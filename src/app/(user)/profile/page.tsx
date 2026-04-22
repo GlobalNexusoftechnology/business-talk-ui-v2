@@ -2,7 +2,7 @@
 
 "use client";
 import {
-  MapPin, Briefcase, Calendar, Link as LinkIcon, Mail, Phone, Award, Users, TrendingUp, Camera, Edit
+  MapPin, Briefcase, Calendar, Link as LinkIcon, Mail, Phone, Award, TrendingUp, Camera, Edit
 } from "lucide-react";
 import { useState } from "react";
 
