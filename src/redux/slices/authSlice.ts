@@ -58,6 +58,7 @@ export const signup = createAsyncThunk(
       const response = await apiClient.signup(
         data.email,
         data.username,
+        
         data.password,
         data.phone_number
       )

@@ -446,21 +446,55 @@ class ApiClient {
   // 🔐 AUTH
   // =========================
 
-  login(email: string, password: string) {
-    return this.client.post('/auth/login', { email, password })
+  async login(email: string, password: string) {
+    const res = await this.client.post('/auth/login', {
+      email,
+      password,
+    })
+
+    // ✅ Only store user (NOT token)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('user', JSON.stringify(res.data.user))
+    }
+
+    return res
   }
 
-  signup(email: string, username: string, password: string, phone?: string) {
-    return this.client.post('/auth/signup', {
+  async signup(
+    email: string,
+    username: string,
+    password: string,
+    phone_number?: string
+  ) {
+    const createRes = await this.client.post('/auth/signup', {
       email,
       username,
       password,
-      phone_number: phone,
+      phone_number,
+      role_id: 'dbc9e1d3-1241-471e-964a-3524cff5bf9f',
     })
+
+    if (createRes.data.UserExist) {
+      throw new Error('User already exists')
+    }
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(
+        'user',
+        JSON.stringify(createRes.data.user || createRes.data)
+      )
+    }
+
+    return createRes
   }
 
-  logout() {
-    return this.client.post('/auth/logout')
+  async logout() {
+    await this.client.post('/auth/logout')
+
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('user')
+      window.location.href = '/login'
+    }
   }
 
   // =========================
