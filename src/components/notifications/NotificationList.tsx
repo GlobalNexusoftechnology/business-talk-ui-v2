@@ -1,36 +1,48 @@
-import React from 'react';
-import { NotificationCard } from './NotificationCard';
-
-export interface NotificationListNotification {
-  id: string;
-  type: 'like' | 'comment' | 'follow' | 'mention' | 'group';
-  user: {
-    name: string;
-    avatar: string;
-  };
-  message: string;
-  timestamp: string;
-  isRead: boolean;
-}
+import React from 'react'
+import { NotificationCard } from './NotificationCard'
 
 interface NotificationListProps {
-  notifications: NotificationListNotification[];
+  notifications: Array<{
+    id: string;
+    type: string;
+    user: { name: string; avatar: string };
+    message: string;
+    timestamp: string;
+    isRead: boolean;
+  }>;
+  loading?: boolean;
   onNotificationClick: (id: string) => void;
 }
 
-export const NotificationList: React.FC<NotificationListProps> = ({ notifications, onNotificationClick }) => {
+export const NotificationList: React.FC<NotificationListProps> = ({ notifications, loading, onNotificationClick }) => {
+  if (loading) {
+    return <div className="p-4 text-neutral-400">Loading...</div>
+  }
+
   if (!notifications.length) {
     return (
       <div className="bg-white dark:bg-black rounded-2xl shadow-sm border p-12 text-center border-neutral-800">
-        <p className="text-neutral-500 dark:text-neutral-400">No notifications</p>
+        <p className="text-neutral-500 dark:text-neutral-400">
+          No notifications
+        </p>
       </div>
-    );
+    )
   }
+
   return (
     <div className="space-y-2">
-      {notifications.map((notification) => (
-        <NotificationCard key={notification.id} {...notification} onClick={onNotificationClick} />
+      {notifications.map((n) => (
+        <NotificationCard
+          key={n.id}
+          id={n.id}
+          type={n.type as any}
+          user={n.user}
+          message={n.message}
+          timestamp={n.timestamp}
+          isRead={n.isRead}
+          onClick={onNotificationClick}
+        />
       ))}
     </div>
-  );
-};
+  )
+}

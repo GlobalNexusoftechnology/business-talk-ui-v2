@@ -1,6 +1,6 @@
 'use client'
 
-import { HelpCircle, Tag, X } from 'lucide-react'
+import { HelpCircle, X } from 'lucide-react'
 import { useState } from 'react'
 import { TagsPopup } from '@/components/shared/TagsPopup'
 import apiClient from '@/lib/api-client'

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useWebSocket } from '@/providers/WebSocketProvider';
 import {
   Panel,
   Group,
@@ -118,45 +119,48 @@ const mockConversations: Conversation[] = [
   },
 ];
 
-const mockMessages: Message[] = [
-  {
-    id: "1",
-    text: "Hi! I saw your post about Series A funding. Great insights!",
-    sender: "other",
-    timestamp: "2:30 PM",
-  },
-  {
-    id: "2",
-    text: "Thanks! Happy to share more details if you're interested.",
-    sender: "me",
-    timestamp: "2:32 PM",
-  },
-  {
-    id: "3",
-    text: "Absolutely! We're currently preparing for our own Series A round. What metrics did you focus on?",
-    sender: "other",
-    timestamp: "2:35 PM",
-  },
-  {
-    id: "4",
-    text: "The key ones were: MRR growth, customer retention rate, and CAC payback period. Investors really care about unit economics.",
-    sender: "me",
-    timestamp: "2:38 PM",
-  },
-  {
-    id: "5",
-    text: "Thanks for the insights on the funding strategy!",
-    sender: "other",
-    timestamp: "2:40 PM",
-  },
-];
+
 
 const MessagesPage = () => {
-  const [selectedConversation, setSelectedConversation] =
-    useState<Conversation>(mockConversations[0]);
+  const [selectedConversation, setSelectedConversation] = useState<Conversation>(mockConversations[0]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [messageInput, setMessageInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'unread' | 'groups'>('all');
+  const { wsManager } = useWebSocket();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Fetch initial messages for selected conversation (replace with API call if needed)
+  useEffect(() => {
+    setMessages([]); // Clear messages on conversation change
+    // Optionally fetch messages from API here
+  }, [selectedConversation]);
+
+  // WebSocket: Listen for incoming messages
+  useEffect(() => {
+    if (!wsManager) return;
+    const handler = (data: any) => {
+      // Only add message if for current conversation
+      if (data.conversationId === selectedConversation.id) {
+        setMessages((prev): Message[] => [
+          ...prev,
+          {
+            id: data.id || Date.now().toString(),
+            text: data.text,
+            sender: data.sender === 'me' ? 'me' : 'other',
+            timestamp: data.timestamp || new Date().toLocaleTimeString(),
+          },
+        ]);
+      }
+    };
+    const unsubscribe = wsManager.on('message', handler);
+    return () => { unsubscribe && unsubscribe(); };
+  }, [wsManager, selectedConversation.id]);
+
+  // Auto-scroll to bottom on new message
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const filteredConversations = useMemo(() => {
     return mockConversations.filter((conv) => {
@@ -170,7 +174,20 @@ const MessagesPage = () => {
   }, [activeTab, searchQuery]);
 
   const handleSendMessage = () => {
-    if (!messageInput.trim()) return;
+    if (!messageInput.trim() || !wsManager) return;
+    const msg: Message = {
+      id: Date.now().toString(),
+      text: messageInput,
+      sender: 'me',
+      timestamp: new Date().toLocaleTimeString(),
+    };
+    setMessages((prev: Message[]) => [...prev, msg]);
+    wsManager.send('message', {
+      conversationId: selectedConversation.id,
+      text: messageInput,
+      sender: 'me',
+      timestamp: msg.timestamp,
+    });
     setMessageInput('');
   };
   return (
@@ -305,7 +322,7 @@ const MessagesPage = () => {
 
             {/* MESSAGES */}
             <div className="flex-1 p-4 space-y-3 overflow-y-auto bg-[#F8F9FA]">
-              {mockMessages.map((msg) => (
+              {messages.map((msg) => (
                 <div
                   key={msg.id}
                   className={`flex ${
@@ -326,6 +343,7 @@ const MessagesPage = () => {
                   </div>
                 </div>
               ))}
+              <div ref={messagesEndRef} />
             </div>
 
             {/* INPUT */}

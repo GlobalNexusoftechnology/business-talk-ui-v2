@@ -1,9 +1,16 @@
-
 'use client'
-import Link from 'next/link'
 
-import { Search, Users, Filter, MapPin, Briefcase, TrendingUp } from 'lucide-react'
+import Link from 'next/link'
+import {
+  Search,
+  Users,
+  Filter,
+  MapPin,
+  Briefcase,
+  TrendingUp,
+} from 'lucide-react'
 import { useState } from 'react'
+import { useUsers } from '@/hooks/useUsers'
 
 const categories = [
   'All',
@@ -15,150 +22,88 @@ const categories = [
   'Consulting',
 ]
 
-const basePeople = [
-  {
-    name: 'Amit Patel',
-    title: 'Venture Capitalist at Sequoia Capital',
-    location: 'Mumbai, India',
-    avatar: 'https://images.unsplash.com/photo-1621610085923-4e8234a10784?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlbnRyZXByZW5ldXIlMjB3b3JraW5nfGVufDF8fHx8MTc3MjI5MDcxMnww&ixlib=rb-4.1.0&q=80&w=1080',
-    mutualConnections: 12,
-    expertise: ['Startups', 'Funding', 'Growth'],
-  },
-  {
-    name: 'Sneha Gupta',
-    title: 'Growth Strategist at TechCorp',
-    location: 'Bangalore, India',
-    avatar: 'https://images.unsplash.com/photo-1629507208649-70919ca33793?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMHByb2Zlc3Npb25hbCUyMHBvcnRyYWl0fGVufDF8fHx8MTc3MjE4Mjg0OXww&ixlib=rb-4.1.0&q=80&w=1080',
-    mutualConnections: 24,
-    expertise: ['Marketing', 'Analytics', 'Strategy'],
-  },
-  {
-    name: 'Vikram Singh',
-    title: 'Serial Entrepreneur & Angel Investor',
-    location: 'Delhi, India',
-    avatar: 'https://images.unsplash.com/photo-1615702669705-0d3002c6801c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb3Jwb3JhdGUlMjBleGVjdXRpdmUlMjBwb3J0cmFpdHxlbnwxfHx8fDE3NzIyNzA4MDd8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    mutualConnections: 8,
-    expertise: ['E-commerce', 'SaaS', 'Leadership'],
-  },
-  {
-    name: 'Priya Sharma',
-    title: 'Marketing Director at GrowthLabs',
-    location: 'Pune, India',
-    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMHdvbWFuJTIwcG9ydHJhaXR8ZW58MXx8fHwxNzQwNzUxMDE0fDA&ixlib=rb-4.1.0&q=80&w=1080',
-    mutualConnections: 15,
-    expertise: ['Digital Marketing', 'Content', 'Branding'],
-  },
-  {
-    name: 'Rahul Mehta',
-    title: 'CTO at CloudTech Solutions',
-    location: 'Hyderabad, India',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYW4lMjBwb3J0cmFpdCUyMHByb2Zlc3Npb25hbHxlbnwxfHx8fDE3NDA3NTEwMTR8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    mutualConnections: 32,
-    expertise: ['Cloud', 'DevOps', 'AI/ML'],
-  },
-  {
-    name: 'Anjali Reddy',
-    title: 'Product Manager at FinTech Innovations',
-    location: 'Chennai, India',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjB3b21hbiUyMHBvcnRyYWl0fGVufDF8fHx8MTc0MDc1MTAxNHww&ixlib=rb-4.1.0&q=80&w=1080',
-    mutualConnections: 19,
-    expertise: ['Product Strategy', 'UX', 'Fintech'],
-  },
-  {
-    name: 'Karan Desai',
-    title: 'Business Development Lead at StartupHub',
-    location: 'Ahmedabad, India',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYW4lMjBidXNpbmVzcyUyMHBvcnRyYWl0fGVufDF8fHx8MTc0MDc1MTAxNHww&ixlib=rb-4.1.0&q=80&w=1080',
-    mutualConnections: 11,
-    expertise: ['Sales', 'Partnerships', 'B2B'],
-  },
-  {
-    name: 'Divya Kapoor',
-    title: 'HR Director & Culture Strategist',
-    location: 'Gurgaon, India',
-    avatar: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBwZXJzb24lMjBwb3J0cmFpdHxlbnwxfHx8fDE3NDA3NTEwMTR8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    mutualConnections: 27,
-    expertise: ['Talent', 'Culture', 'Leadership'],
-  },
-];
-
-const suggestedPeople = basePeople.map(person => ({
-  ...person,
-  id: person.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-}));
-
 export default function PeoplePage() {
-  const [selectedCategory, setSelectedCategory] = useState('All')
+  const { users, loading, followUser } = useUsers()
+
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('All')
+  const [connecting, setConnecting] = useState<string | null>(null)
+
+  // 🔥 Filter users
+  const filteredUsers = users.filter((u) =>
+    `${u.full_name || ''} ${u.profession || ''} ${u.company || ''}`
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase())
+  )
+
+  const handleFollow = async (id: string, e: any) => {
+    e.preventDefault()
+
+    if (!/^[0-9a-f-]{36}$/.test(id)) {
+      console.error('Invalid ID:', id)
+      return
+    }
+
+    setConnecting(id)
+
+    try {
+      await followUser(id)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setConnecting(null)
+    }
+  }
+
+  if (loading) return <div className="p-6">Loading users...</div>
 
   return (
     <div className="p-6 overflow-y-auto" style={{ backgroundColor: '#F8F9FA' }}>
       <div className="max-w-6xl mx-auto">
+
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-semibold mb-2" style={{ color: '#212529' }}>
             Discover People
           </h1>
-          <p style={{ color: '#5F6368' }}>Connect with professionals and expand your network</p>
+          <p style={{ color: '#5F6368' }}>
+            Connect with professionals and expand your network
+          </p>
         </div>
 
-        {/* Search and Filter Bar */}
+        {/* Search + Filters */}
         <div className="bg-white rounded-2xl shadow-sm border p-6 mb-6" style={{ border: '1px solid #E8E8E8' }}>
           <div className="flex flex-col md:flex-row gap-4">
-            {/* Search Input */}
+
+            {/* Search */}
             <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5" style={{ color: '#5F6368' }} />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
               <input
                 type="text"
-                placeholder="Search by name, title, company, or expertise..."
+                placeholder="Search by name, title, company..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 transition-all"
-                style={{
-                  backgroundColor: '#F8F9FA',
-                  border: '1px solid #E8E8E8',
-                  color: '#212529',
-                }}
-                onFocus={(e) => (e.currentTarget.style.outlineColor = '#212529')}
+                className="w-full pl-12 pr-4 py-3 rounded-xl border bg-[#F8F9FA]"
               />
             </div>
 
             {/* Filter Button */}
-            <button
-              className="px-6 py-3 rounded-xl font-medium flex items-center gap-2 transition-all"
-              style={{
-                borderColor: '#E8E8E8',
-                color: '#5F6368',
-                border: '2px solid #E8E8E8',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8F9FA')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-            >
+            <button className="px-6 py-3 rounded-xl border-2 flex items-center gap-2 text-gray-500 hover:bg-[#F8F9FA]">
               <Filter className="w-5 h-5" />
               Filters
             </button>
           </div>
 
-          {/* Category Tabs */}
+          {/* Categories */}
           <div className="flex gap-2 mt-4 overflow-x-auto pb-2">
             {categories.map((category) => (
               <button
                 key={category}
                 onClick={() => setSelectedCategory(category)}
-                className="px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all"
+                className="px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap"
                 style={{
                   backgroundColor: selectedCategory === category ? '#212529' : '#F8F9FA',
-                  color: selectedCategory === category ? '#FFFFFF' : '#5F6368',
-                }}
-                onMouseEnter={(e) => {
-                  if (selectedCategory !== category) {
-                    e.currentTarget.style.backgroundColor = '#E8E8E8'
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (selectedCategory !== category) {
-                    e.currentTarget.style.backgroundColor = '#F8F9FA'
-                  }
+                  color: selectedCategory === category ? '#FFF' : '#5F6368',
                 }}
               >
                 {category}
@@ -167,135 +112,115 @@ export default function PeoplePage() {
           </div>
         </div>
 
-        {/* Stats Bar */}
+        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white rounded-xl shadow-sm border p-4 flex items-center gap-4" style={{ border: '1px solid #E8E8E8' }}>
-            <div className="p-3 rounded-lg" style={{ backgroundColor: '#F8F9FA' }}>
-              <Users className="w-6 h-6" style={{ color: '#212529' }} />
-            </div>
+          <div className="bg-white p-4 rounded-xl border flex gap-4">
+            <Users className="w-6 h-6" />
             <div>
-              <p className="text-2xl font-semibold" style={{ color: '#212529' }}>
-                2,547
-              </p>
-              <p className="text-sm" style={{ color: '#5F6368' }}>
-                People to discover
-              </p>
+              <p className="text-xl font-semibold">{users.length}</p>
+              <p className="text-sm text-gray-500">People to discover</p>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border p-4 flex items-center gap-4" style={{ border: '1px solid #E8E8E8' }}>
-            <div className="p-3 rounded-lg" style={{ backgroundColor: '#E8F5E9' }}>
-              <TrendingUp className="w-6 h-6" style={{ color: '#2E7D32' }} />
-            </div>
+          <div className="bg-white p-4 rounded-xl border flex gap-4">
+            <TrendingUp className="w-6 h-6 text-green-600" />
             <div>
-              <p className="text-2xl font-semibold" style={{ color: '#212529' }}>
-                342
-              </p>
-              <p className="text-sm" style={{ color: '#5F6368' }}>
-                Mutual connections
-              </p>
+              <p className="text-xl font-semibold">--</p>
+              <p className="text-sm text-gray-500">Mutual connections</p>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border p-4 flex items-center gap-4" style={{ border: '1px solid #E8E8E8' }}>
-            <div className="p-3 rounded-lg" style={{ backgroundColor: '#F3E5F5' }}>
-              <Briefcase className="w-6 h-6" style={{ color: '#7B1FA2' }} />
-            </div>
+          <div className="bg-white p-4 rounded-xl border flex gap-4">
+            <Briefcase className="w-6 h-6 text-purple-600" />
             <div>
-              <p className="text-2xl font-semibold" style={{ color: '#212529' }}>
-                128
-              </p>
-              <p className="text-sm" style={{ color: '#5F6368' }}>
-                In your industry
-              </p>
+              <p className="text-xl font-semibold">--</p>
+              <p className="text-sm text-gray-500">In your industry</p>
             </div>
           </div>
         </div>
 
         {/* People Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {suggestedPeople.map((person) => (
+
+          {filteredUsers.map((user) => (
             <Link
-              key={person.id}
-              href={`/profile/${person.id}`}
+              key={user.id}
+              href={`/profile/${user.id}`}
               className="block group"
-              style={{ textDecoration: 'none' }}
             >
-              <div
-                className="bg-white rounded-2xl shadow-sm border p-6 hover:shadow-md transition-all group-hover:scale-[1.025] group-hover:border-blue-400"
-                style={{ border: '1px solid #E8E8E8' }}
-              >
-                {/* Avatar and Info */}
+              <div className="bg-white rounded-2xl border p-6 transition hover:shadow-md hover:scale-[1.02]">
+
+                {/* Avatar */}
                 <div className="flex flex-col items-center text-center mb-4">
                   <img
-                    src={person.avatar}
-                    alt={person.name}
-                    className="w-20 h-20 rounded-full object-cover mb-3 group-hover:ring-2 group-hover:ring-blue-400 transition-all"
-                    style={{ border: '2px solid #E8E8E8' }}
+                    src={user.profile_photo || '/avatar.png'}
+                    alt={user.full_name || 'User Avatar'}
+                    className="w-20 h-20 rounded-full object-cover mb-3 border"
                   />
-                  <h3 className="font-semibold text-lg mb-1 group-hover:text-blue-700 transition-colors" style={{ color: '#212529' }}>
-                    {person.name}
+
+                  <h3 className="font-semibold text-lg">
+                    {user.full_name}
                   </h3>
-                  <p className="text-sm mb-2" style={{ color: '#5F6368' }}>
-                    {person.title}
+
+                  <p className="text-sm text-gray-500">
+                    {user.profession || 'Professional'}
                   </p>
-                  <div className="flex items-center gap-1 text-xs" style={{ color: '#9AA0A6' }}>
+
+                  <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
                     <MapPin className="w-3 h-3" />
-                    <span>{person.location}</span>
+                    <span>{user.location || 'India'}</span>
                   </div>
                 </div>
 
-                {/* Mutual Connections */}
-                {person.mutualConnections > 0 && (
-                  <div className="rounded-lg p-3 mb-4 text-center" style={{ backgroundColor: '#F8F9FA' }}>
-                    <p className="text-sm" style={{ color: '#212529' }}>
-                      <span className="font-semibold">{person.mutualConnections}</span> mutual connections
-                    </p>
+                {/* Company */}
+                {user.company && (
+                  <div className="text-center text-xs text-gray-500 mb-3">
+                    {user.company}
                   </div>
                 )}
 
-                {/* Expertise Tags */}
-                <div className="flex flex-wrap gap-2 mb-4 justify-center">
-                  {person.expertise.map((skill: string, idx: number) => (
-                    <span
-                      key={idx}
-                      className="px-3 py-1 text-xs rounded-full"
-                      style={{ backgroundColor: '#F8F9FA', color: '#212529' }}
-                    >
-                      {skill}
-                    </span>
-                  ))}
-                </div>
+                {/* Skills */}
+                {user.skills && (
+                  <div className="flex flex-wrap gap-2 justify-center mb-4">
+                    {(Array.isArray(user.skills)
+                      ? user.skills
+                      : typeof user.skills === 'string'
+                      ? user.skills.split(',')
+                      : []
+                    )
+                      .slice(0, 3)
+                      .map((skill: string, i: number) => (
+                        <span
+                          key={i}
+                          className="px-3 py-1 text-xs rounded-full bg-[#F8F9FA]"
+                        >
+                          {skill.trim()}
+                        </span>
+                      ))}
+                  </div>
+                )}
 
                 {/* Connect Button */}
                 <button
-                  className="w-full px-4 py-2.5 rounded-lg font-medium transition-all"
-                  style={{ backgroundColor: '#212529', color: '#FFFFFF' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#3D3D3D')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#212529')}
-                  onClick={e => { e.preventDefault(); /* Optionally handle connect logic here */ }}
+                  onClick={(e) => handleFollow(user.id, e)}
+                  className="w-full py-2.5 rounded-lg bg-black text-white hover:bg-gray-800"
                 >
-                  Connect
+                  {connecting === user.id ? 'Connecting...' : 'Connect'}
                 </button>
+
               </div>
             </Link>
           ))}
+
         </div>
 
         {/* Load More */}
         <div className="mt-8 text-center">
-          <button
-            className="px-8 py-3 rounded-xl font-medium transition-all"
-            style={{
-              border: '2px solid #E8E8E8',
-              color: '#5F6368',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8F9FA')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-          >
+          <button className="px-8 py-3 border rounded-xl text-gray-500 hover:bg-[#F8F9FA]">
             Load More People
           </button>
         </div>
+
       </div>
     </div>
   )

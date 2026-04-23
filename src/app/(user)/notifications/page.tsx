@@ -1,9 +1,11 @@
 'use client'
 
 import { CheckCheck } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useWebSocket } from '@/providers/WebSocketProvider';
 import { useRouter } from 'next/navigation';
 import { NotificationList } from '@/components/notifications/NotificationList';
+import apiClient from '@/lib/api-client';
 
 
 export type NotificationType = 'like' | 'comment' | 'follow' | 'mention' | 'group';
@@ -20,82 +22,86 @@ export interface Notification {
   redirectUrl?: string;
 }
 
-const mockNotifications: Notification[] = [
-  {
-    id: '1',
-    type: 'like',
-    user: {
-      name: 'Rajesh Kumar',
-      avatar: 'https://images.unsplash.com/photo-1629507208649-70919ca33793?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMHByb2Zlc3Npb25hbCUyMHBvcnRyYWl0fGVufDF8fHx8MTc3MjE4Mjg0OXww&ixlib=rb-4.1.0&q=80&w=1080',
-    },
-    message: 'liked your post',
-    timestamp: '5 minutes ago',
-    isRead: false,
-    redirectUrl: '/posts/1',
-  },
-  {
-    id: '2',
-    type: 'comment',
-    user: {
-      name: 'Priya Sharma',
-      avatar: 'https://images.unsplash.com/photo-1615702669705-0d3002c6801c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb3Jwb3JhdGUlMjBleGVjdXRpdmUlMjBwb3J0cmFpdHxlbnwxfHx8fDE3NzIyNzA4MDd8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    },
-    message: 'commented on your post',
-    timestamp: '1 hour ago',
-    isRead: false,
-    redirectUrl: '/posts/2',
-  },
-  {
-    id: '3',
-    type: 'follow',
-    user: {
-      name: 'Ankit Verma',
-      avatar: 'https://images.unsplash.com/photo-1621610085923-4e8234a10784?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlbnRyZXByZW5ldXIlMjB3b3JraW5nfGVufDF8fHx8MTc3MjI5MDcxMnww&ixlib=rb-4.1.0&q=80&w=1080',
-    },
-    message: 'started following you',
-    timestamp: '2 hours ago',
-    isRead: false,
-    redirectUrl: '/profile/ankit-verma',
-  },
-  {
-    id: '4',
-    type: 'mention',
-    user: {
-      name: 'Sarah Thompson',
-      avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMHdvbWFuJTIwcG9ydHJhaXR8ZW58MXx8fHwxNzcyMjkwNzEyfDA&ixlib=rb-4.1.0&q=80&w=1080',
-    },
-    message: 'mentioned you in a post',
-    timestamp: '3 hours ago',
-    isRead: true,
-    redirectUrl: '/posts/3',
-  },
-  {
-    id: '5',
-    type: 'group',
-    user: {
-      name: 'Startup Founders India',
-      avatar: 'https://images.unsplash.com/photo-1759310610480-48649b55fbdf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBncm91cCUyMG1lZXRpbmd8ZW58MXx8fHx8MTc3NTA1Mzk3OHww&ixlib=rb-4.1.0&q=80&w=1080',
-    },
-    message: 'New post in group',
-    timestamp: '5 hours ago',
-    isRead: true,
-    redirectUrl: '/groups/startup-founders-india',
-  },
-];
+
+
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [filter, setFilter] = useState<'all' | 'unread' | 'mentions'>('all');
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { wsManager } = useWebSocket();
+
+  // Fetch notifications from API
+  // Initial fetch
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      setLoading(true);
+      try {
+        const res = await apiClient.getMyNotifications();
+        const mapped = (res.data || []).map((n: any) => ({
+          id: n.id,
+          type: n.type,
+          user: {
+            name: n.user?.name || 'Unknown',
+            avatar: n.user?.avatar || '/assets/images/default-avatar.png',
+          },
+          message: n.message,
+          timestamp: n.timestamp || n.createdAt || '',
+          isRead: n.isRead || n.read || false,
+          redirectUrl: n.redirectUrl || n.url || undefined,
+        }));
+        setNotifications(mapped);
+      } catch (e) {
+        // Optionally show error toast
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchNotifications();
+  }, []);
+
+  // WebSocket: Listen for real-time notifications
+  useEffect(() => {
+    if (!wsManager) return;
+    // Handler for new notification
+    const handler = (data: any) => {
+      // Map backend notification to UI type
+      const newNotification = {
+        id: data.id,
+        type: data.type,
+        user: {
+          name: data.user?.name || 'Unknown',
+          avatar: data.user?.avatar || '/assets/images/default-avatar.png',
+        },
+        message: data.message,
+        timestamp: data.timestamp || data.createdAt || '',
+        isRead: false,
+        redirectUrl: data.redirectUrl || data.url || undefined,
+      };
+      setNotifications((prev) => [newNotification, ...prev]);
+    };
+    // Subscribe to 'notification' event
+    const unsubscribe = wsManager.on('notification', handler);
+    return () => {
+      unsubscribe && unsubscribe();
+    };
+  }, [wsManager]);
 
   // Mark as read (single)
-  const handleMarkAsRead = (id: string) => {
+  const handleMarkAsRead = async (id: string) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
+    try {
+      await apiClient.markNotificationAsRead(id);
+    } catch {}
   };
 
   // Mark all as read
-  const handleMarkAllAsRead = () => {
+  const handleMarkAllAsRead = async () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    try {
+      await apiClient.markAllNotificationsRead();
+    } catch {}
   };
 
   // Routing logic
@@ -167,7 +173,11 @@ export default function NotificationsPage() {
         </div>
 
         {/* Notifications List */}
-        <NotificationList notifications={filteredNotifications as any} onNotificationClick={handleNotificationClick} />
+        <NotificationList
+          notifications={filteredNotifications}
+          loading={loading}
+          onNotificationClick={handleNotificationClick}
+        />
       </div>
     </div>
   );

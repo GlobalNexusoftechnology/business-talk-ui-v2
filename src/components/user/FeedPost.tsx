@@ -6,33 +6,6 @@ import { ShareModal } from '@/components/shared/ShareModal'
 import { useOpenContent } from '@/hooks/useOpenContent'
 import apiClient from '@/lib/api-client'
 
-const MOCK_COMMENTS = [
-  {
-    id: 1,
-    author: { name: 'John Doe', avatar: '/avatar.png', title: 'CEO' },
-    content: 'Great insights! This is very helpful.',
-    created_at: new Date(Date.now() - 3600000).toISOString(),
-    likes: 5,
-    replies: [
-      {
-        id: 2,
-        author: { name: 'Jane Smith', avatar: '/avatar.png', title: 'Manager' },
-        content: 'I completely agree with you!',
-        created_at: new Date(Date.now() - 1800000).toISOString(),
-        likes: 2,
-      },
-    ],
-  },
-  {
-    id: 3,
-    author: { name: 'Mike Johnson', avatar: '/avatar.png', title: 'Developer' },
-    content: 'Thanks for sharing this valuable information.',
-    created_at: new Date(Date.now() - 7200000).toISOString(),
-    likes: 8,
-    replies: [],
-  },
-]
-
 interface FeedPostProps {
   id?: string
   author: {
@@ -60,8 +33,8 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
   const [commentInput, setCommentInput] = useState('')
   const [replyInput, setReplyInput] = useState('')
   const [likedComments, setLikedComments] = useState<Set<string>>(new Set())
-  const [commentsList, setCommentsList] = useState(MOCK_COMMENTS)
-  const [, forceUpdate] = useState(0) // force re-render
+  const [commentsList, setCommentsList] = useState<any[]>([])
+  // forceUpdate removed (was unused)
   const actionMenuRef = useRef<HTMLDivElement>(null)
   const { openPost } = useOpenContent()
 
@@ -144,88 +117,32 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
     )
   }
 
-  // Like/Unlike a comment or reply at any depth using unique path
-  const handleLikeComment = (commentId: number, parentId?: number, replyPath?: string) => {
+  // Like/Unlike a comment or reply using API
+  const handleLikeComment = async (commentId: number, parentId?: number, replyPath?: string) => {
     const itemId = replyPath || (parentId ? `${parentId}-reply-${commentId}` : `comment-${commentId}`)
     const isLiked = likedComments.has(itemId)
     const newLikedComments = new Set(likedComments)
-
-    if (isLiked) {
-      newLikedComments.delete(itemId)
-    } else {
-      newLikedComments.add(itemId)
-    }
-    setLikedComments(newLikedComments)
-
-    // Helper to immutably update likes for the correct reply by path (using numeric IDs)
-    function updateLikesByPathImmutable(replies: any[], pathArr: (string|number)[]): any[] {
-      if (!replies || pathArr.length === 0) return replies
-      const [current, ...rest] = pathArr
-      const currentId = typeof current === 'string' ? parseInt(current, 10) : current
-      return replies.map(r => {
-        if (r.id === currentId) {
-          if (rest.length === 0) {
-            return {
-              ...r,
-              likes: isLiked ? r.likes - 1 : r.likes + 1
-            }
-          } else {
-            return {
-              ...r,
-              replies: updateLikesByPathImmutable(r.replies || [], rest)
-            }
-          }
+    try {
+      // Call comment vote API (toggle up)
+      const res = await apiClient.voteComment(commentId.toString(), isLiked ? 'down' : 'up')
+      // API returns updated vote counts and user's vote
+      // Update UI state accordingly
+      if (isLiked) {
+        newLikedComments.delete(itemId)
+      } else {
+        newLikedComments.add(itemId)
+      }
+      setLikedComments(newLikedComments)
+      // Optionally update comment likes in UI (refetch or optimistic)
+      setCommentsList(prev => prev.map(comment => {
+        if (comment.id === commentId) {
+          return { ...comment, likes: res.upvotes }
         }
-        return r
-      })
-    }
-
-    if (replyPath) {
-      // replyPath is like '1-2-4', split to get the id chain as numbers
-      const idChain = replyPath.split('-').map(Number)
-      setCommentsList(prev => {
-        const updated = prev.map(comment => {
-          if (comment.id === idChain[0]) {
-            return {
-              ...comment,
-              replies: updateLikesByPathImmutable(comment.replies || [], idChain.slice(1))
-            }
-          }
-          return comment
-        })
-        forceUpdate(n => n + 1)
-        return updated
-      })
-    } else if (parentId) {
-      // Like/Unlike a reply at first level
-      setCommentsList(prev => {
-        const updated = prev.map(comment => {
-          if (comment.id === parentId && comment.replies) {
-            return {
-              ...comment,
-              replies: comment.replies.map((reply: any) =>
-                reply.id === commentId
-                  ? { ...reply, likes: isLiked ? reply.likes - 1 : reply.likes + 1 }
-                  : reply
-              )
-            }
-          }
-          return comment
-        })
-        forceUpdate(n => n + 1)
-        return updated
-      })
-    } else {
-      // Like/Unlike a comment
-      setCommentsList(prev => {
-        const updated = prev.map(comment =>
-          comment.id === commentId 
-            ? { ...comment, likes: isLiked ? comment.likes - 1 : comment.likes + 1 } 
-            : comment
-        )
-        forceUpdate(n => n + 1)
-        return updated
-      })
+        // Update nested replies if needed (not implemented for deep nesting here)
+        return comment
+      }))
+    } catch (err) {
+      // fallback: do nothing or show error
     }
   }
 
@@ -234,11 +151,11 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
     try {
       // Call vote API (toggle UP)
       const postId = id?.toString() || ''
-      const res = await apiClient.client.post(`/posts/${postId}/vote`, { vote: 'UP' })
+      const res = await apiClient.votePost(postId, 'up')
       // API returns updated vote counts and user's vote
-      const { upvotes, downvotes, userVote } = res.data
+      const { upvotes, userVote } = res
       setLikeCount(upvotes)
-      setLiked(userVote === 'UP')
+      setLiked(userVote === 'up')
     } catch (err) {
       // fallback to optimistic UI
       if (liked) {
@@ -271,11 +188,10 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
     if (!commentInput.trim()) return
     try {
       const postId = id?.toString() || ''
-      const res = await apiClient.client.post(`/posts/${postId}/comments`, {
-        comment: commentInput,
-      })
-      // API returns the saved comment object
-      setCommentsList([...commentsList, res.data])
+      const res = await apiClient.addPostComment(postId, commentInput)
+      // Map API response to UI structure
+      const newComment = mapApiCommentToUi(res)
+      setCommentsList([...commentsList, newComment])
       setCommentInput('')
     } catch (err) {
       // fallback: do nothing or show error
@@ -294,62 +210,19 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
     return ids
   }
 
-  const handleAddReply = (commentId: number, parentReplyId?: number) => {
-    if (replyInput.trim()) {
-      // Get all ids in the tree to avoid duplicates
-      const allIds = getAllReplyIds(commentsList)
-      const newId = (allIds.length > 0 ? Math.max(...allIds) : 0) + 1
-      const newReply = {
-        id: newId,
-        author: { name: 'You', avatar: '/avatar.png', title: 'Your Title' },
-        content: replyInput,
-        created_at: new Date().toISOString(),
-        likes: 0,
-        replies: []
-      }
-
-      // Recursive function to add reply at any depth
-      const addReplyAtDepth = (replies: any[], targetId: number): boolean => {
-        for (let reply of replies) {
-          if (reply.id === targetId) {
-            reply.replies = [...(reply.replies || []), newReply]
-            return true
-          }
-          if (reply.replies && addReplyAtDepth(reply.replies, targetId)) {
-            return true
-          }
-        }
-        return false
-      }
-
-      if (parentReplyId) {
-        // Adding a reply to a reply (at any depth)
-        setCommentsList(
-          commentsList.map(comment => {
-            if (comment.id === commentId) {
-              const updatedComment = { ...comment }
-              addReplyAtDepth(updatedComment.replies || [], parentReplyId)
-              return updatedComment
-            }
-            return comment
-          })
-        )
-      } else {
-        // Adding a reply to a comment
-        setCommentsList(
-          commentsList.map(comment => {
-            if (comment.id === commentId) {
-              return {
-                ...comment,
-                replies: [...(comment.replies || []), newReply]
-              }
-            }
-            return comment
-          })
-        )
-      }
+  // Add reply using API
+  const handleAddReply = async (commentId: number, parentReplyId?: number) => {
+    if (!replyInput.trim()) return
+    try {
+      const postId = id?.toString() || ''
+      await apiClient.addPostComment(postId, replyInput, parentReplyId ? parentReplyId.toString() : commentId.toString())
       setReplyInput('')
       setReplyingTo(null)
+      // Refetch comments for latest state
+      const updatedComments = await apiClient.getPostComments(postId)
+      setCommentsList(nestComments(updatedComments))
+    } catch (err) {
+      // fallback: do nothing or show error
     }
   }
 
@@ -368,12 +241,45 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // Helper to map API comment to UI comment structure
+  const mapApiCommentToUi = (apiComment: any) => ({
+    id: apiComment.id,
+    author: {
+      name: apiComment.user?.full_name || apiComment.user?.username || 'Unknown',
+      avatar: apiComment.user?.profile_photo || '/avatar.png',
+      title: apiComment.user?.profession || '',
+    },
+    content: apiComment.comment,
+    created_at: apiComment.created_on,
+    likes: apiComment.likes || 0,
+    replies: [], // Flat API, no nested replies in response
+    parent: apiComment.parent || null,
+  })
+
+  // Convert flat API comments to nested structure
+  const nestComments = (comments: any[]) => {
+    const map: Record<string, any> = {}
+    const roots: any[] = []
+    comments.forEach((c) => {
+      map[c.id] = { ...mapApiCommentToUi(c), replies: [] }
+    })
+    comments.forEach((c) => {
+      if (c.parent && c.parent.id && map[c.parent.id]) {
+        map[c.parent.id].replies.push(map[c.id])
+      } else {
+        roots.push(map[c.id])
+      }
+    })
+    return roots
+  }
+
   useEffect(() => {
     const fetchComments = async () => {
       if (!id) return
       try {
-        const res = await apiClient.client.get(`/posts/${id}/comments`)
-        setCommentsList(res.data)
+        const res = await apiClient.getPostComments(id)
+        // Map and nest comments for UI
+        setCommentsList(nestComments(res))
       } catch (err) {
         // fallback: keep mock comments
       }

@@ -1,6 +1,6 @@
 'use client'
 
-import { BookOpen, Tag, X, ImageIcon } from 'lucide-react'
+import { X, ImageIcon } from 'lucide-react'
 import { useState } from 'react'
 import { TagsPopup } from '@/components/shared/TagsPopup'
 import apiClient from '@/lib/api-client'

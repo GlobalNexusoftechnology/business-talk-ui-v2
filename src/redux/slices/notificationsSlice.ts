@@ -1,7 +1,17 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-import type { PayloadAction, ActionReducerMapBuilder } from '@reduxjs/toolkit'
-import { Notification } from '@/types'
 import apiClient from '@/lib/api-client'
+
+interface Notification {
+  id: string
+  message: string
+  created_on: string
+  is_read: boolean
+  sender?: {
+    username?: string
+    profile_photo?: string
+  }
+  type?: string
+}
 
 interface NotificationsState {
   notifications: Notification[]
@@ -17,62 +27,97 @@ const initialState: NotificationsState = {
   error: null,
 }
 
+// ✅ GET NOTIFICATIONS
 export const getNotifications = createAsyncThunk(
   'notifications/getNotifications',
-  async (page: number = 1, { rejectWithValue }: any) => {
+  async (_, { rejectWithValue }) => {
     try {
-      const response = await apiClient.getNotifications(page)
-      return response.data
+      const res = await apiClient.getMyNotifications()
+      return res.data
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch notifications')
+      return rejectWithValue(error.message)
     }
   }
 )
 
-export const markAsRead = createAsyncThunk('notifications/markAsRead', async (id: string, { rejectWithValue }: any) => {
-  try {
-    const response = await apiClient.markAsRead(id)
-    return response.data
-  } catch (error: any) {
-    return rejectWithValue(error.response?.data?.message || 'Failed to mark as read')
+// ✅ MARK SINGLE
+export const markAsRead = createAsyncThunk(
+  'notifications/markAsRead',
+  async (id: string, { rejectWithValue }) => {
+    try {
+      await apiClient.markNotificationAsRead(id)
+      return id
+    } catch (error: any) {
+      return rejectWithValue(error.message)
+    }
   }
-})
+)
+
+// ✅ MARK ALL
+export const markAllAsRead = createAsyncThunk(
+  'notifications/markAllAsRead',
+  async (_, { rejectWithValue }) => {
+    try {
+      await apiClient.markAllNotificationsRead()
+      return true
+    } catch (error: any) {
+      return rejectWithValue(error.message)
+    }
+  }
+)
+
+// ✅ UNREAD COUNT
+export const getUnreadCount = createAsyncThunk(
+  'notifications/getUnreadCount',
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await apiClient.getUnreadNotificationCount()
+      return res.data.unread
+    } catch (error: any) {
+      return rejectWithValue(error.message)
+    }
+  }
+)
 
 const notificationsSlice = createSlice({
   name: 'notifications',
   initialState,
-  reducers: {
-    addNotification: (state: NotificationsState, action: PayloadAction<Notification>) => {
-      state.notifications.unshift(action.payload)
-      if (!action.payload.is_read) {
-        state.unreadCount += 1
-      }
-    },
-  },
-  extraReducers: (builder: ActionReducerMapBuilder<NotificationsState>) => {
+  reducers: {},
+  extraReducers: (builder) => {
     builder
-      .addCase(getNotifications.pending, (state: NotificationsState) => {
+      // GET
+      .addCase(getNotifications.pending, (state) => {
         state.isLoading = true
       })
-      .addCase(getNotifications.fulfilled, (state: NotificationsState, action: PayloadAction<any>) => {
+      .addCase(getNotifications.fulfilled, (state, action) => {
         state.isLoading = false
-        state.notifications = action.payload.notifications
-        state.unreadCount = action.payload.unread_count
+        state.notifications = action.payload || []
       })
-      .addCase(getNotifications.rejected, (state: NotificationsState, action: PayloadAction<any>) => {
+      .addCase(getNotifications.rejected, (state, action: any) => {
         state.isLoading = false
-        state.error = action.payload as string
+        state.error = action.payload
       })
 
-      .addCase(markAsRead.fulfilled, (state: NotificationsState, action: PayloadAction<any>) => {
-        const notification = state.notifications.find((n: Notification) => n.id === action.payload.id)
-        if (notification && !notification.is_read) {
-          notification.is_read = true
+      // MARK ONE
+      .addCase(markAsRead.fulfilled, (state, action) => {
+        const n = state.notifications.find((x) => x.id === action.payload)
+        if (n && !n.is_read) {
+          n.is_read = true
           state.unreadCount -= 1
         }
+      })
+
+      // MARK ALL
+      .addCase(markAllAsRead.fulfilled, (state) => {
+        state.notifications.forEach((n) => (n.is_read = true))
+        state.unreadCount = 0
+      })
+
+      // UNREAD COUNT
+      .addCase(getUnreadCount.fulfilled, (state, action) => {
+        state.unreadCount = action.payload
       })
   },
 })
 
-export const { addNotification } = notificationsSlice.actions
 export default notificationsSlice.reducer

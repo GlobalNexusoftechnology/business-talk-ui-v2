@@ -14,15 +14,6 @@ export const useAuth = () => {
   }
 }
 
-export const usePosts = () => {
-  const posts = useAppSelector((state) => state.posts)
-  const dispatch = useAppDispatch()
-
-  return {
-    ...posts,
-    dispatch,
-  }
-}
 
 export const useNotifications = () => {
   const notifications = useAppSelector((state) => state.notifications)

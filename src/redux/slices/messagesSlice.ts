@@ -68,6 +68,9 @@ const messagesSlice = createSlice({
     addMessage: (state: MessagesState, action: PayloadAction<Message>) => {
       state.currentConversation.messages.push(action.payload)
     },
+    addIncomingMessage: (state, action: PayloadAction<Message>) => {
+      state.currentConversation.messages.push(action.payload)
+    },
   },
   extraReducers: (builder: ActionReducerMapBuilder<MessagesState>) => {
     builder
@@ -102,5 +105,5 @@ const messagesSlice = createSlice({
   },
 })
 
-export const { addMessage } = messagesSlice.actions
+export const { addMessage, addIncomingMessage } = messagesSlice.actions
 export default messagesSlice.reducer
