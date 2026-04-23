@@ -471,6 +471,7 @@ class ApiClient {
       username,
       password,
       phone_number,
+      created_by: 'dbc9e1d3-1241-471e-964a-3524cff5bf9f',
       role_id: 'dbc9e1d3-1241-471e-964a-3524cff5bf9f',
     })
 
