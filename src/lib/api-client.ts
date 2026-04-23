@@ -472,7 +472,8 @@ class ApiClient {
       password,
       phone_number,
       created_by: 'dbc9e1d3-1241-471e-964a-3524cff5bf9f',
-      role_id: 'dbc9e1d3-1241-471e-964a-3524cff5bf9f',
+      role_id: 'f06ca452-6eca-4cb1-83f9-54bc56d8c52c',
+      // role_id: 'dbc9e1d3-1241-471e-964a-3524cff5bf9f',
     })
 
     if (createRes.data.UserExist) {
