@@ -123,7 +123,9 @@ export default function SignupPage() {
             </div>
           </div>
 
-          <button className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-secondary-300 rounded-lg hover:bg-secondary-50 transition-colors">
+          <button className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-secondary-300 rounded-lg hover:bg-secondary-50 transition-colors" onClick={() => {
+            window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/google`
+          }}>
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path
                 fill="#EA4335"

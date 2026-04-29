@@ -1,5 +1,5 @@
 import PostCard from '@/components/user/PostCard';
-import QuestionPost from '@/components/user/QuestionPost';
+import { QuestionPost } from '@/components/user/QuestionPost';
 import BlogCard from '@/components/user/BlogCard';
 
 export function ProfileActivityFeed({

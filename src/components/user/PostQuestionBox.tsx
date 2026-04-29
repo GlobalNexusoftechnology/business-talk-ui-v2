@@ -1,6 +1,6 @@
 'use client'
 
-import { HelpCircle, X } from 'lucide-react'
+import { HelpCircle, Tag, X } from 'lucide-react'
 import { useState } from 'react'
 import { TagsPopup } from '@/components/shared/TagsPopup'
 import apiClient from '@/lib/api-client'
@@ -36,18 +36,23 @@ export function PostQuestionBox() {
 
   return (
     <div className="bg-white rounded-2xl p-6 mb-6 border">
-      <div className="flex gap-2 mb-3">
-        <HelpCircle /> <h3>Ask a Question</h3>
+      <div className="flex items-center gap-3 mb-4">
+        <div className="bg-gray-100 p-2 rounded-full">
+          <HelpCircle className="w-5 h-5" />
+        </div>
+        <h3 className="font-semibold text-gray-900">Ask a Question</h3>
       </div>
 
       <textarea
         value={questionText}
+        placeholder='What would you like to know from the community?'
         onChange={(e) => setQuestionText(e.target.value)}
         className="w-full p-3 bg-gray-50 border rounded-xl"
       />
 
       <div className="flex justify-between mt-3">
-        <button onClick={() => setShowTagsPopup(true)}>
+        <button onClick={() => setShowTagsPopup(true)} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-all">
+          <Tag className="w-4 h-4" />
           Add Tags ({tags.length})
         </button>
 
@@ -60,12 +65,20 @@ export function PostQuestionBox() {
         </button>
       </div>
 
-      {tags.map((tag) => (
-        <span key={tag} className="mr-2">
-          {tag}
-          <X onClick={() => setTags(tags.filter((t) => t !== tag))} />
-        </span>
-      ))}
+      <div className="flex flex-nowrap overflow-x-auto gap-2 mt-2 pb-1">
+        {tags.map((tag) => (
+          <span
+            key={tag}
+            className="flex items-center gap-1 text-sm px-2 py-1 rounded bg-gray-100 whitespace-nowrap"
+          >
+            {tag}
+            <X
+              onClick={() => setTags(tags.filter((t) => t !== tag))}
+              className="w-4 h-4 cursor-pointer"
+            />
+          </span>
+        ))}
+      </div>
 
       <TagsPopup
         isOpen={showTagsPopup}

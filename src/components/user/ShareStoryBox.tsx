@@ -1,6 +1,6 @@
 'use client'
 
-import { X, ImageIcon } from 'lucide-react'
+import { X, ImageIcon, BookOpen, Tag } from 'lucide-react'
 import { useState } from 'react'
 import { TagsPopup } from '@/components/shared/TagsPopup'
 import apiClient from '@/lib/api-client'
@@ -54,15 +54,23 @@ export function ShareStoryBox() {
 
   return (
     <div className="bg-white p-6 rounded-2xl border">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="bg-gray-100 p-2 rounded-full">
+          <BookOpen className="w-5 h-5" />
+        </div>
+        <h3 className="font-semibold text-gray-900">Share Your Story</h3>
+      </div>
+
       <input
         value={storyTitle}
         onChange={(e) => setStoryTitle(e.target.value)}
-        placeholder="Title"
+        placeholder="Give your story a compelling title..."
         className="w-full p-3 bg-gray-50 border rounded-xl"
       />
 
       <textarea
         value={storyText}
+        placeholder='Tell your story... Share insights, experiences, and lessons learned.'
         onChange={(e) => setStoryText(e.target.value)}
         className="w-full p-3 mt-3 bg-gray-50 border rounded-xl"
       />
@@ -73,15 +81,15 @@ export function ShareStoryBox() {
             type="file"
             id="media-upload"
             accept="image/*"
-            multiple
             onChange={handleFileSelect}
             className="hidden"
           />
           <label htmlFor="media-upload" className="cursor-pointer flex gap-2">
-            <ImageIcon />
+            <ImageIcon className='text-[#474b50]'/> Add Cover
           </label>
 
-          <button onClick={() => setShowTagsPopup(true)}>
+          <button onClick={() => setShowTagsPopup(true)} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-all">
+            <Tag className="w-4 h-4" />
             Add Tags ({tags.length})
           </button>
         </div>
@@ -95,12 +103,24 @@ export function ShareStoryBox() {
         </button>
       </div>
 
-      {tags.map((tag) => (
-        <span key={tag} className="mr-2">
-          {tag}
-          <X onClick={() => setTags(tags.filter((t) => t !== tag))} />
-        </span>
-      ))}
+      {coverImage.length > 0 && (
+        <p className="text-sm mt-2">{coverImage.length} file selected</p>
+      )}
+
+      <div className="flex flex-nowrap overflow-x-auto gap-2 mt-2 pb-1">
+        {tags.map((tag) => (
+          <span
+            key={tag}
+            className="flex items-center gap-1 text-sm px-2 py-1 rounded bg-gray-100 whitespace-nowrap"
+          >
+            {tag}
+            <X
+              onClick={() => setTags(tags.filter((t) => t !== tag))}
+              className="w-4 h-4 cursor-pointer"
+            />
+          </span>
+        ))}
+      </div>
 
       <TagsPopup
         isOpen={showTagsPopup}

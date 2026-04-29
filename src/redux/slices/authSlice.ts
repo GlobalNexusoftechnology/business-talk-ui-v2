@@ -32,75 +32,110 @@ if (typeof window !== 'undefined') {
 
 export const login = createAsyncThunk(
   'auth/login',
-  async (credentials: LoginRequest, { rejectWithValue }: any) => {
+  async (credentials: LoginRequest, { rejectWithValue }) => {
     try {
-      const response = await apiClient.login(
-        credentials.email,
-        credentials.password
-      )
+      // 1. Login (sets cookies)
+      await apiClient.login(credentials.email, credentials.password)
 
-      const { user } = response.data
+      // 2. Fetch user using cookie session
+      const userRes = await apiClient.getMyProfile()
 
-      // ✅ Store only user
-      localStorage.setItem('user', JSON.stringify(user))
+      if (!userRes?.data) {
+        throw new Error('Failed to fetch user')
+      }
 
-      return { user }
+      // 3. Store user (optional but useful)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(userRes.data))
+      }
+
+      return { user: userRes.data }
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Login failed')
+      return rejectWithValue(error?.response?.data?.message || error.message)
     }
   }
 )
 
 export const signup = createAsyncThunk(
   'auth/signup',
-  async (data: SignupRequest, { rejectWithValue }: any) => {
+  async (data: SignupRequest, { rejectWithValue }) => {
     try {
-      const response = await apiClient.signup(
+      await apiClient.signup(
         data.email,
         data.username,
-        
         data.password,
         data.phone_number
       )
 
-      const user = response.data
+      // ⚠️ Only fetch profile if backend logs user in
+      let user = null
 
-      localStorage.setItem('user', JSON.stringify(user))
+      try {
+        const userRes = await apiClient.getMyProfile()
+        user = userRes.data
+
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user', JSON.stringify(user))
+        }
+      } catch {
+        // backend didn't login automatically → ignore
+      }
 
       return { user }
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Signup failed')
+      return rejectWithValue(error?.response?.data?.message || error.message)
     }
   }
 )
 
 export const completeProfile = createAsyncThunk(
   'auth/completeProfile',
-  async (data: CompleteProfileRequest, { rejectWithValue }: any) => {
+  async (data: CompleteProfileRequest, { rejectWithValue }) => {
     try {
       const response = await apiClient.completeProfile(data)
       const user = response.data
 
-      localStorage.setItem('user', JSON.stringify(user))
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(user))
+      }
 
       return user
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Profile completion failed')
+      return rejectWithValue(error?.response?.data?.message || error.message)
     }
   }
 )
 
 export const logout = createAsyncThunk(
   'auth/logout',
-  async (_: void, { rejectWithValue }: any) => {
+  async (_, { rejectWithValue }) => {
     try {
-      await apiClient.logout() // ✅ clears cookies via backend
+      await apiClient.logout() // clears cookies
 
-      localStorage.removeItem('user')
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('user')
+      }
 
       return null
     } catch (error: any) {
-      return rejectWithValue(error.message)
+      // even if API fails → force logout UI
+      localStorage.removeItem('user')
+
+      return null
+    }
+  }
+)
+
+export const fetchCurrentUser = createAsyncThunk(
+  'auth/fetchCurrentUser',
+  async (_, { rejectWithValue }: any) => {
+    try {
+      const res = await apiClient.getMyProfile()
+      localStorage.setItem('user', JSON.stringify(res.data))
+      return res.data
+    } catch (err) {
+      localStorage.removeItem('user')
+      return rejectWithValue('Session expired')
     }
   }
 )
@@ -169,6 +204,16 @@ const authSlice = createSlice({
 
       // 🚪 Logout
       .addCase(logout.fulfilled, (state) => {
+        state.user = null
+        state.isAuthenticated = false
+      })
+
+      .addCase(fetchCurrentUser.fulfilled, (state, action) => {
+        state.user = action.payload
+        state.isAuthenticated = true
+      })
+
+      .addCase(fetchCurrentUser.rejected, (state) => {
         state.user = null
         state.isAuthenticated = false
       })

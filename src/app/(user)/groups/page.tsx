@@ -3,6 +3,8 @@
 import { Search, Users, Lock, Globe, TrendingUp, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
+import apiClient from '@/lib/api-client'
 
 interface Group {
   id: string
@@ -16,83 +18,117 @@ interface Group {
   category: string
 }
 
-const mockGroups: Group[] = [
-  {
-    id: '1',
-    name: 'Startup Founders India',
-    description: 'A community of startup founders sharing insights, challenges, and success stories',
-    image: 'https://images.unsplash.com/photo-1759310610480-48649b55fbdf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBncm91cCUyMG1lZXRpbmd8ZW58MXx8fHwxNzc1MDUzOTc4fDA&ixlib=rb-4.1.0&q=80&w=1080',
-    members: 12450,
-    posts: 3420,
-    type: 'public',
-    joined: true,
-    category: 'Entrepreneurship',
-  },
-  {
-    id: '2',
-    name: 'Digital Marketing Professionals',
-    description: 'Learn and share the latest trends in digital marketing, SEO, and growth hacking',
-    image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYXJrZXRpbmclMjB0ZWFtJTIwbWVldGluZ3xlbnwxfHx8fDE3NzUwNTM5Nzh8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    members: 8920,
-    posts: 2150,
-    type: 'public',
-    joined: true,
-    category: 'Marketing',
-  },
-  {
-    id: '3',
-    name: 'SaaS Product Managers',
-    description: 'Exclusive community for product managers in the SaaS industry',
-    image: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9kdWN0JTIwbWFuYWdlbWVudCUyMG1lZXRpbmd8ZW58MXx8fHwxNzc1MDUzOTc4fDA&ixlib=rb-4.1.0&q=80&w=1080',
-    members: 5640,
-    posts: 1820,
-    type: 'private',
-    joined: false,
-    category: 'Product',
-  },
-  {
-    id: '4',
-    name: 'FinTech Innovators',
-    description: 'Discussing the future of financial technology and banking disruption',
-    image: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmaW5hbmNlJTIwdGVjaG5vbG9neSUyMG1lZXRpbmd8ZW58MXx8fHwxNzc1MDUzOTc4fDA&ixlib=rb-4.1.0&q=80&w=1080',
-    members: 7230,
-    posts: 1950,
-    type: 'public',
-    joined: false,
-    category: 'Finance',
-  },
-  {
-    id: '5',
-    name: 'AI & Machine Learning Hub',
-    description: 'Exploring artificial intelligence and its business applications',
-    image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhcnRpZmljaWFsJTIwaW50ZWxsaWdlbmNlJTIwdGVjaCUyMG1lZXRpbmd8ZW58MXx8fHwxNzc1MDUzOTc4fDA&ixlib=rb-4.1.0&q=80&w=1080',
-    members: 15320,
-    posts: 4580,
-    type: 'public',
-    joined: true,
-    category: 'Technology',
-  },
-  {
-    id: '6',
-    name: 'Women in Business',
-    description: 'Empowering women leaders and entrepreneurs in the business world',
-    image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21lbiUyMGJ1c2luZXNzJTIwbGVhZGVyc3xlbnwxfHx8fDE3NzUwNTM5Nzh8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    members: 9870,
-    posts: 2640,
-    type: 'public',
-    joined: false,
-    category: 'Leadership',
-  },
-]
-
 export default function GroupsPage() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState<'all' | 'my-groups'>('all')
-  const [groups, setGroups] = useState(mockGroups)
+  const [groups, setGroups] = useState<Group[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
-  const handleJoinToggle = (groupId: string) => {
-    setGroups(groups.map(g => g.id === groupId ? { ...g, joined: !g.joined } : g))
+  const [newGroup, setNewGroup] = useState<{
+    name: string
+    description: string
+    visibility: 'PUBLIC' | 'PRIVATE'
+    cover_image: string | File
+  }>({
+    name: '',
+    description: '',
+    visibility: 'PUBLIC',
+    cover_image: '',
+  })
+
+  useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+        const res = await apiClient.getGroups()
+        const data = res.data || []
+
+        const formatted = data.map((g: any) => ({
+          id: g.id,
+          name: g.name,
+          description: g.description,
+          image: g.cover_image || '/placeholder.jpg',
+          members: g.members_count || 0,
+          posts: 0,
+          type: g.visibility === 'PRIVATE' ? 'private' : 'public',
+          joined: g.isJoined || false,
+          category: 'General',
+        }))
+
+        setGroups(formatted)
+      } catch (err) {
+        console.error('Groups fetch error', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchGroups()
+  }, [])
+
+  const handleCreateGroup = async () => {
+    if (!newGroup.name.trim()) return
+
+    try {
+      const formData = new FormData()
+
+      formData.append('name', newGroup.name.trim())
+      formData.append('description', newGroup.description.trim())
+      formData.append('visibility', newGroup.visibility)
+
+      if (newGroup.cover_image instanceof File) {
+        formData.append('cover_image', newGroup.cover_image)
+      }
+
+      const res = await apiClient.createGroup(formData)
+
+      const g = res.data
+
+      const formatted: Group = {
+        id: g.id,
+        name: g.name,
+        description: g.description,
+        image: g.cover_image || '/placeholder.jpg',
+        members: 1,
+        posts: 0,
+        type: g.visibility === 'PRIVATE' ? 'private' : 'public',
+        joined: true,
+        category: 'General',
+      }
+
+      setGroups(prev => [formatted, ...prev])
+      setShowCreateModal(false)
+
+    } catch (err) {
+      console.error('Create group error', err)
+    }
+  }
+
+  const handleJoinToggle = async (groupId: string) => {
+    try {
+      const group = groups.find(g => g.id === groupId)
+
+      if (!group) return
+
+      if (group.joined) {
+        await apiClient.leaveGroup(groupId)
+      } else {
+        await apiClient.joinGroup(groupId)
+      }
+
+      setGroups(prev =>
+        prev.map(g =>
+          g.id === groupId ? { ...g, joined: !g.joined } : g
+        )
+      )
+    } catch (err) {
+      console.error('Join/Leave error', err)
+    }
+  }
+
+  if (loading) {
+    return <div className="p-6">Loading groups...</div>
   }
 
   const handleGroupClick = (group: Group) => {
@@ -158,6 +194,7 @@ export default function GroupsPage() {
               </button>
             </div>
             <button
+              onClick={() => setShowCreateModal(true)} 
               className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all"
               style={{ backgroundColor: '#212529', color: '#FFFFFF' }}
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#3D3D3D')}
@@ -257,6 +294,104 @@ export default function GroupsPage() {
             </div>
           ))}
         </div>
+
+        {showCreateModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white w-full max-w-lg rounded-2xl p-6 shadow-xl">
+
+            {/* HEADER */}
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Create Group</h2>
+              <button onClick={() => setShowCreateModal(false)}>✕</button>
+            </div>
+
+            {/* FORM */}
+            <div className="space-y-4">
+
+              {/* NAME */}
+              <input
+                type="text"
+                placeholder="Group Name"
+                value={newGroup.name}
+                onChange={(e) =>
+                  setNewGroup({ ...newGroup, name: e.target.value })
+                }
+                className="w-full px-4 py-3 rounded-lg border"
+              />
+
+              {/* DESCRIPTION */}
+              <textarea
+                placeholder="Group Description"
+                value={newGroup.description}
+                onChange={(e) =>
+                  setNewGroup({ ...newGroup, description: e.target.value })
+                }
+                className="w-full px-4 py-3 rounded-lg border"
+              />
+
+              {/* IMAGE */}
+              <input
+                type="file"
+                id="media-upload"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) {
+                    setNewGroup({ ...newGroup, cover_image: file })
+                  }
+                }}
+                className="w-full px-4 py-3 rounded-lg border"
+              />
+
+              {/* VISIBILITY */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() =>
+                    setNewGroup({ ...newGroup, visibility: 'PUBLIC' })
+                  }
+                  className={`flex-1 py-2 rounded-lg ${
+                    newGroup.visibility === 'PUBLIC'
+                      ? 'bg-black text-white'
+                      : 'bg-gray-100'
+                  }`}
+                >
+                  Public
+                </button>
+
+                <button
+                  onClick={() =>
+                    setNewGroup({ ...newGroup, visibility: 'PRIVATE' })
+                  }
+                  className={`flex-1 py-2 rounded-lg ${
+                    newGroup.visibility === 'PRIVATE'
+                      ? 'bg-black text-white'
+                      : 'bg-gray-100'
+                  }`}
+                >
+                  Private
+                </button>
+              </div>
+            </div>
+
+            {/* ACTIONS */}
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="px-4 py-2 rounded-lg bg-gray-100"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={handleCreateGroup}
+                className="px-4 py-2 rounded-lg bg-black text-white"
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   )

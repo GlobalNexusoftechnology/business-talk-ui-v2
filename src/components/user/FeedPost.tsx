@@ -37,6 +37,28 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
   // forceUpdate removed (was unused)
   const actionMenuRef = useRef<HTMLDivElement>(null)
   const { openPost } = useOpenContent()
+  const [commentCount, setCommentCount] = useState(comments || 0)
+
+  //
+  // FETCH COMMENT COUNT
+  //
+
+  useEffect(() => {
+    const fetchCommentsCount = async () => {
+      if (!id) return
+
+      try {
+        const res = await apiClient.getPostComments(id)
+
+        // ✅ API is FLAT → just count length
+        setCommentCount((res || []).length)
+      } catch (err) {
+        console.error('Failed to fetch comment count')
+      }
+    }
+
+    fetchCommentsCount()
+  }, [id])
 
   // Helper function to recursively render infinite nested replies
   // Helper to generate a unique key for each reply based on its ancestry
@@ -177,7 +199,7 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
       video,
       timestamp,
       likes: likeCount,
-      comments,
+      comments: commentCount,
       sends
     }
     openPost(postData)
@@ -192,6 +214,7 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
       // Map API response to UI structure
       const newComment = mapApiCommentToUi(res)
       setCommentsList([...commentsList, newComment])
+      setCommentCount(prev => prev + 1) // ✅ ADD THIS
       setCommentInput('')
     } catch (err) {
       // fallback: do nothing or show error
@@ -216,11 +239,13 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
     try {
       const postId = id?.toString() || ''
       await apiClient.addPostComment(postId, replyInput, parentReplyId ? parentReplyId.toString() : commentId.toString())
+      setCommentCount(prev => prev + 1) // ✅ ADD THIS
       setReplyInput('')
       setReplyingTo(null)
       // Refetch comments for latest state
       const updatedComments = await apiClient.getPostComments(postId)
       setCommentsList(nestComments(updatedComments))
+      setCommentCount(updatedComments.length) // ✅ IMPORTANT
     } catch (err) {
       // fallback: do nothing or show error
     }
@@ -390,7 +415,7 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 transition-all cursor-pointer"
           >
             <MessageCircle className="w-5 h-5" />
-            <span className="text-sm font-medium">{commentsList.length}</span>
+            <span className="text-sm font-medium">{commentCount}</span>
           </button>
 
           <button

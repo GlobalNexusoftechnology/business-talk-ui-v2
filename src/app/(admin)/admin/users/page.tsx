@@ -1,254 +1,335 @@
 'use client'
 
-import { useState } from 'react'
-import { Card, Badge } from '@/components/shared/Card'
-import { Input } from '@/components/shared/Input'
-import { Button } from '@/components/shared/Button'
-import { Search, ChevronDown, Trash2, Edit2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import {
+  Search,
+  Download,
+  Eye,
+  AlertTriangle,
+  Ban,
+  Trash2,
+  Mail,
+  CheckCircle,
+} from 'lucide-react'
 
-interface User {
-  id: string
-  name: string
-  email: string
-  joinDate: string
-  status: 'active' | 'inactive' | 'banned'
-  posts: number
-  followers: number
-}
-
-const mockUsers: User[] = [
-  {
-    id: '1',
-    name: 'John Doe',
-    email: 'john@example.com',
-    joinDate: '2024-01-15',
-    status: 'active',
-    posts: 45,
-    followers: 240,
-  },
-  {
-    id: '2',
-    name: 'Jane Smith',
-    email: 'jane@example.com',
-    joinDate: '2024-02-20',
-    status: 'active',
-    posts: 28,
-    followers: 180,
-  },
-  {
-    id: '3',
-    name: 'Bob Johnson',
-    email: 'bob@example.com',
-    joinDate: '2024-03-10',
-    status: 'active',
-    posts: 12,
-    followers: 95,
-  },
-  {
-    id: '4',
-    name: 'Alice Brown',
-    email: 'alice@example.com',
-    joinDate: '2024-01-05',
-    status: 'inactive',
-    posts: 8,
-    followers: 65,
-  },
-  {
-    id: '5',
-    name: 'Charlie Davis',
-    email: 'charlie@example.com',
-    joinDate: '2024-04-15',
-    status: 'banned',
-    posts: 0,
-    followers: 0,
-  },
-]
+import apiClient from '@/lib/api-client'
+import adminApi from '@/lib/admin-api'
 
 export default function AdminUsersPage() {
-  const [searchTerm, setSearchTerm] = useState('')
-  const [sortBy, setSortBy] = useState<'name' | 'date' | 'followers'>('date')
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive' | 'banned'>('all')
+  const [users, setUsers] = useState<any[]>([])
+  const [filteredUsers, setFilteredUsers] = useState<any[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filter, setFilter] = useState<'all' | 'active' | 'suspended' | 'reported'>('all')
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const filteredUsers = mockUsers.filter((user) => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = filterStatus === 'all' || user.status === filterStatus
-    return matchesSearch && matchesStatus
-  })
+  // ================= FETCH USERS =================
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await adminApi.getAllUsers()
 
-  const sortedUsers = [...filteredUsers].sort((a, b) => {
-    switch (sortBy) {
-      case 'name':
-        return a.name.localeCompare(b.name)
-      case 'date':
-        return new Date(b.joinDate).getTime() - new Date(a.joinDate).getTime()
-      case 'followers':
-        return b.followers - a.followers
-      default:
-        return 0
+        const data = res.data || []
+
+        const normalized = data.map((u: any) => ({
+          id: u.id,
+          name: u.full_name || u.username,
+          email: u.email,
+          company: u.company || 'N/A',
+          role: u.profession || 'User',
+          posts: u.posts_count || 0,
+          followers: u.followers_count || 0,
+          status: u.is_banned
+            ? 'suspended'
+            : u.warning_count > 0
+            ? 'reported'
+            : 'active',
+          verified: u.is_verified || false,
+          lastActive: u.last_active || 'N/A',
+        }))
+
+        setUsers(normalized)
+        setFilteredUsers(normalized)
+      } catch (err) {
+        console.error('Fetch users error:', err)
+      } finally {
+        setLoading(false)
+      }
     }
-  })
 
-  const getStatusColor = (status: User['status']) => {
-    switch (status) {
-      case 'active':
-        return 'success'
-      case 'inactive':
-        return 'warning'
-      case 'banned':
-        return 'danger'
-      default:
-        return 'secondary'
+    fetchUsers()
+  }, [])
+
+  // ================= FILTER =================
+  useEffect(() => {
+    let temp = users
+
+    if (filter !== 'all') {
+      temp = temp.filter((u) => u.status === filter)
+    }
+
+    if (searchQuery) {
+      temp = temp.filter(
+        (u) =>
+          u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          u.company?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    }
+
+    setFilteredUsers(temp)
+  }, [searchQuery, filter, users])
+
+  // ================= ACTIONS =================
+  const handleWarn = async (id: string) => {
+    try {
+      await adminApi.warnUser(id)
+
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === id ? { ...u, status: 'reported' } : u
+        )
+      )
+    } catch (err) {
+      console.error('Warn failed', err)
     }
   }
 
+  const handleBan = async (id: string) => {
+    try {
+      await adminApi.banUser(id)
+
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === id ? { ...u, status: 'suspended' } : u
+        )
+      )
+    } catch (err) {
+      console.error('Ban failed', err)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    try {
+      await apiClient.delete(`/user/${id}`)
+
+      setUsers((prev) => prev.filter((u) => u.id !== id))
+    } catch (err) {
+      console.error('Delete failed', err)
+    }
+  }
+
+  // ================= SELECTION =================
+  const toggleUser = (id: string) => {
+    setSelectedUsers((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    )
+  }
+
+  const toggleAll = () => {
+    if (selectedUsers.length === filteredUsers.length) {
+      setSelectedUsers([])
+    } else {
+      setSelectedUsers(filteredUsers.map((u) => u.id))
+    }
+  }
+
+  if (loading) return <div className="p-6">Loading users...</div>
+
   return (
-    <div>
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-secondary-900 mb-2">Users Management</h1>
-        <p className="text-secondary-600">Manage platform users and permissions</p>
+    <div className="space-y-6">
+
+      {/* HEADER */}
+      <div>
+        <h1 className="text-2xl font-semibold text-gray-900">
+          Users Management
+        </h1>
+        <p className="text-sm text-gray-500">
+          Manage and monitor platform users
+        </p>
       </div>
 
-      {/* Filters & Search */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="md:col-span-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-secondary-400" />
-            <Input
-              type="text"
-              placeholder="Search by name or email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+      {/* STATS */}
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div className="bg-gray-50 p-4 border rounded">
+          <p className="text-sm">Total Users</p>
+          <p className="text-xl font-semibold">{users.length}</p>
         </div>
 
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value as any)}
-          className="px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-        >
-          <option value="all">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-          <option value="banned">Banned</option>
-        </select>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <p className="text-sm text-secondary-600 mb-1">Total Users</p>
-          <p className="text-2xl font-bold text-secondary-900">9,900</p>
-        </Card>
-        <Card>
-          <p className="text-sm text-secondary-600 mb-1">Active</p>
-          <p className="text-2xl font-bold text-green-600">8,750</p>
-        </Card>
-        <Card>
-          <p className="text-sm text-secondary-600 mb-1">Inactive</p>
-          <p className="text-2xl font-bold text-yellow-600">1,050</p>
-        </Card>
-        <Card>
-          <p className="text-sm text-secondary-600 mb-1">Banned</p>
-          <p className="text-2xl font-bold text-red-600">100</p>
-        </Card>
-      </div>
-
-      {/* Users Table */}
-      <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-secondary-200 bg-secondary-50">
-                <th className="px-6 py-4 text-left">
-                  <button
-                    onClick={() => setSortBy('name')}
-                    className="flex items-center gap-2 font-semibold text-secondary-900"
-                  >
-                    Name
-                    {sortBy === 'name' && <ChevronDown className="h-4 w-4" />}
-                  </button>
-                </th>
-                <th className="px-6 py-4 text-left font-semibold text-secondary-900">Email</th>
-                <th className="px-6 py-4 text-left">
-                  <button
-                    onClick={() => setSortBy('date')}
-                    className="flex items-center gap-2 font-semibold text-secondary-900"
-                  >
-                    Joined
-                    {sortBy === 'date' && <ChevronDown className="h-4 w-4" />}
-                  </button>
-                </th>
-                <th className="px-6 py-4 text-left font-semibold text-secondary-900">Status</th>
-                <th className="px-6 py-4 text-left">
-                  <button
-                    onClick={() => setSortBy('followers')}
-                    className="flex items-center gap-2 font-semibold text-secondary-900"
-                  >
-                    Followers
-                    {sortBy === 'followers' && <ChevronDown className="h-4 w-4" />}
-                  </button>
-                </th>
-                <th className="px-6 py-4 text-left font-semibold text-secondary-900">Posts</th>
-                <th className="px-6 py-4 text-right font-semibold text-secondary-900">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedUsers.map((user) => (
-                <tr key={user.id} className="border-b border-secondary-200 hover:bg-secondary-50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-primary-600 text-white flex items-center justify-center font-bold text-sm">
-                        {user.name.charAt(0)}
-                      </div>
-                      <span className="font-medium text-secondary-900">{user.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-secondary-600">{user.email}</td>
-                  <td className="px-6 py-4 text-secondary-600">
-                    {new Date(user.joinDate).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4">
-                    <Badge variant={getStatusColor(user.status)}>
-                      {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-4 text-secondary-900 font-medium">{user.followers}</td>
-                  <td className="px-6 py-4 text-secondary-900">{user.posts}</td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button className="p-2 hover:bg-secondary-100 rounded-lg transition-colors">
-                        <Edit2 className="h-4 w-4 text-secondary-600" />
-                      </button>
-                      <button className="p-2 hover:bg-red-50 rounded-lg transition-colors">
-                        <Trash2 className="h-4 w-4 text-red-600" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        <div className="px-6 py-4 border-t border-secondary-200 flex items-center justify-between">
-          <p className="text-sm text-secondary-600">
-            Showing <span className="font-medium">{sortedUsers.length}</span> results
+        <div className="bg-green-50 p-4 border rounded">
+          <p className="text-sm">Active</p>
+          <p className="text-xl font-semibold">
+            {users.filter((u) => u.status === 'active').length}
           </p>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled>
-              Previous
-            </Button>
-            <Button variant="outline" size="sm">
-              Next
-            </Button>
-          </div>
         </div>
-      </Card>
+
+        <div className="bg-red-50 p-4 border rounded">
+          <p className="text-sm">Suspended</p>
+          <p className="text-xl font-semibold">
+            {users.filter((u) => u.status === 'suspended').length}
+          </p>
+        </div>
+
+        <div className="bg-yellow-50 p-4 border rounded">
+          <p className="text-sm">Reported</p>
+          <p className="text-xl font-semibold">
+            {users.filter((u) => u.status === 'reported').length}
+          </p>
+        </div>
+      </div>
+
+      {/* FILTER BAR */}
+      <div className="bg-gray-50 border rounded p-4 flex flex-col sm:flex-row gap-4 items-center">
+
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+          <input
+            className="pl-10 pr-3 py-2 border rounded w-full text-sm"
+            placeholder="Search users..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        <div className="flex gap-2">
+          {['all', 'active', 'suspended', 'reported'].map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f as any)}
+              className={`px-3 py-1 rounded text-sm ${
+                filter === f
+                  ? 'bg-blue-600 text-white'
+                  : 'border bg-white'
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+
+        <button className="flex items-center gap-2 px-3 py-2 border rounded text-sm">
+          <Download size={14} />
+          Export
+        </button>
+      </div>
+
+      {/* TABLE */}
+      <div className="border rounded overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-white border-b">
+            <tr>
+              <th className="p-3">
+                <input
+                  type="checkbox"
+                  checked={selectedUsers.length === filteredUsers.length}
+                  onChange={toggleAll}
+                />
+              </th>
+              <th>User</th>
+              <th>Company</th>
+              <th>Activity</th>
+              <th>Status</th>
+              <th className="text-right pr-4">Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {filteredUsers.map((u) => (
+              <tr key={u.id} className="border-t hover:bg-gray-50">
+
+                <td className="p-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedUsers.includes(u.id)}
+                    onChange={() => toggleUser(u.id)}
+                  />
+                </td>
+
+                <td className="p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 bg-blue-600 text-white rounded flex items-center justify-center text-sm">
+                      {u.name?.charAt(0)}
+                    </div>
+
+                    <div>
+                      <div className="flex items-center gap-1 font-medium">
+                        {u.name}
+                        {u.verified && <CheckCircle size={14} />}
+                      </div>
+                      <div className="text-xs text-gray-500">{u.email}</div>
+                    </div>
+                  </div>
+                </td>
+
+                <td>{u.company}</td>
+
+                <td>
+                  <div>{u.posts} posts</div>
+                  <div className="text-xs text-gray-500">
+                    {u.followers} followers
+                  </div>
+                </td>
+
+                <td>
+                  <span
+                    className={`px-2 py-1 text-xs rounded ${
+                      u.status === 'active'
+                        ? 'bg-green-100 text-green-700'
+                        : u.status === 'suspended'
+                        ? 'bg-red-100 text-red-700'
+                        : 'bg-yellow-100 text-yellow-700'
+                    }`}
+                  >
+                    {u.status}
+                  </span>
+                </td>
+
+                <td className="text-right pr-4">
+                  <div className="flex justify-end gap-2">
+
+                    <button title="View">
+                      <Eye size={16} />
+                    </button>
+
+                    <button title="Email">
+                      <Mail size={16} />
+                    </button>
+
+                    <button
+                      title="Warn"
+                      onClick={() => handleWarn(u.id)}
+                    >
+                      <AlertTriangle size={16} />
+                    </button>
+
+                    <button
+                      title="Ban"
+                      onClick={() => handleBan(u.id)}
+                    >
+                      <Ban size={16} />
+                    </button>
+
+                    <button
+                      title="Delete"
+                      onClick={() => handleDelete(u.id)}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* FOOTER */}
+      <div className="flex justify-between text-sm text-gray-500">
+        <p>
+          Showing {filteredUsers.length} of {users.length}
+        </p>
+      </div>
     </div>
   )
 }

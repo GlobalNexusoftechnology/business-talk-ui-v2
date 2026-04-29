@@ -2,20 +2,22 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useWebSocket } from '@/providers/WebSocketProvider';
+import apiClient from '@/lib/api-client';
+import { useSearchParams } from 'next/navigation'
+import EmojiPicker from 'emoji-picker-react';
+
 import {
   Panel,
   Group,
   Separator,
 } from 'react-resizable-panels';
+
 import {
   Search,
-  Users,
-  Phone,
-  Video,
-  MoreVertical,
-  Paperclip,
-  Smile,
   Send,
+  // Paperclip,
+  Smile,
+  Users,
 } from 'lucide-react';
 
 type Conversation = {
@@ -35,135 +37,243 @@ type Message = {
   sender: 'me' | 'other';
   text: string;
   timestamp: string;
+  createdAt: number;
+
+  senderId?: string;
+  senderName?: string;
+  senderAvatar?: string;
+
+  status?: 'sent' | 'delivered' | 'seen';
 };
 
-const mockConversations: Conversation[] = [
-  {
-    id: "1",
-    name: "Rajesh Kumar",
-    avatar:
-      "https://images.unsplash.com/photo-1629507208649-70919ca33793?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMHByb2Zlc3Npb25hbCUyMHBvcnRyYWl0fGVufDF8fHx8MTc3MjE4Mjg0OXww&ixlib=rb-4.1.0&q=80&w=1080",
-    lastMessage:
-      "Thanks for the insights on the funding strategy!",
-    timestamp: "10m ago",
-    unread: 2,
-    online: true,
-  },
-  {
-    id: "2",
-    name: "Priya Sharma",
-    avatar:
-      "https://images.unsplash.com/photo-1615702669705-0d3002c6801c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb3Jwb3JhdGUlMjBleGVjdXRpdmUlMjBwb3J0cmFpdHxlbnwxfHx8fDE3NzIyNzA4MDd8MA&ixlib=rb-4.1.0&q=80&w=1080",
-    lastMessage: "Let's schedule a call next week",
-    timestamp: "1h ago",
-    unread: 0,
-    online: true,
-  },
-  {
-    id: "group1",
-    name: "Startup Founders India",
-    avatar:
-      "https://images.unsplash.com/photo-1522071820081-009f0129c71c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZWFtJTIwbWVldGluZ3xlbnwxfHx8fDE3NzUwNTM5Nzh8MA&ixlib=rb-4.1.0&q=80&w=1080",
-    lastMessage:
-      "Ankit: Great discussion on product-market fit!",
-    timestamp: "2h ago",
-    unread: 5,
-    online: true,
-    isGroup: true,
-    members: 156,
-  },
-  {
-    id: "3",
-    name: "Ankit Verma",
-    avatar:
-      "https://images.unsplash.com/photo-1621610085923-4e8234a10784?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlbnRyZXByZW5ldXIlMjB3b3JraW5nfGVufDF8fHx8MTc3MjI5MDcxMnww&ixlib=rb-4.1.0&q=80&w=1080",
-    lastMessage: "I reviewed the business plan. Looks great!",
-    timestamp: "3h ago",
-    unread: 0,
-    online: false,
-  },
-  {
-    id: "group2",
-    name: "Product Managers Network",
-    avatar:
-      "https://images.unsplash.com/photo-1543269865-cbf427effbad?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxicmFpbnN0b3JtaW5nJTIwbWVldGluZ3xlbnwxfHx8fDE3NzUwNTM5Nzh8MA&ixlib=rb-4.1.0&q=80&w=1080",
-    lastMessage:
-      "Sarah: Anyone using Jira for roadmap planning?",
-    timestamp: "4h ago",
-    unread: 0,
-    online: true,
-    isGroup: true,
-    members: 89,
-  },
-  {
-    id: "4",
-    name: "Sarah Thompson",
-    avatar:
-      "https://images.unsplash.com/photo-1580489944761-15a19d654956?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMHdvbWFuJTIwcG9ydHJhaXR8ZW58MXx8fHwxNzcyMjkwNzEyfDA&ixlib=rb-4.1.0&q=80&w=1080",
-    lastMessage: "The marketing campaign results are in!",
-    timestamp: "5h ago",
-    unread: 1,
-    online: false,
-  },
-  {
-    id: "group3",
-    name: "Digital Marketing Hub",
-    avatar:
-      "https://images.unsplash.com/photo-1557804506-669a67965ba0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYXJrZXRpbmclMjB0ZWFtfGVufDF8fHx8MTc3NTA1Mzk3OHww&ixlib=rb-4.1.0&q=80&w=1080",
-    lastMessage: "Michael: Check out this new SEO strategy",
-    timestamp: "1 day ago",
-    unread: 3,
-    online: true,
-    isGroup: true,
-    members: 234,
-  },
-];
-
-
-
 const MessagesPage = () => {
-  const [selectedConversation, setSelectedConversation] = useState<Conversation>(mockConversations[0]);
+  const { wsManager } = useWebSocket();
+
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageInput, setMessageInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'unread' | 'groups'>('all');
-  const { wsManager } = useWebSocket();
+  const [typingUser, setTypingUser] = useState<string | null>(null);
+  const searchParams = useSearchParams()
+  const conversationIdFromURL = searchParams.get('conversationId')
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch initial messages for selected conversation (replace with API call if needed)
-  useEffect(() => {
-    setMessages([]); // Clear messages on conversation change
-    // Optionally fetch messages from API here
-  }, [selectedConversation]);
 
-  // WebSocket: Listen for incoming messages
+  /* ================== 🆕 TYPING INDICATOR ================== */
   useEffect(() => {
     if (!wsManager) return;
+
     const handler = (data: any) => {
-      // Only add message if for current conversation
-      if (data.conversationId === selectedConversation.id) {
-        setMessages((prev): Message[] => [
-          ...prev,
-          {
-            id: data.id || Date.now().toString(),
-            text: data.text,
-            sender: data.sender === 'me' ? 'me' : 'other',
-            timestamp: data.timestamp || new Date().toLocaleTimeString(),
-          },
-        ]);
+      if (data.conversationId !== selectedConversation?.id) return;
+
+      setTypingUser(data.userName);
+
+      setTimeout(() => setTypingUser(null), 2000);
+    };
+
+    return wsManager.on('typing', handler);
+  }, [wsManager, selectedConversation]);
+
+  /* ================= FETCH CONVERSATIONS ================= */
+  useEffect(() => {
+    const fetchConversations = async () => {
+      try {
+        const res = await apiClient.getConversations();
+
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+
+        const formatted = res.data.map((c: any) => {
+          const conv = c.conversation;
+
+          let avatar = '/avatar.png';
+          let name = conv.title;
+
+          const isGroup = conv.is_group;
+
+          if (!isGroup) {
+            const otherUser = conv.participants?.find(
+              (p: any) => p.user?.id !== currentUser.id
+            )?.user;
+
+            if (otherUser) {
+              name = otherUser.full_name || otherUser.username;
+              avatar = otherUser.profile_photo || '/avatar.png';
+            }
+          } else {
+            avatar = '/avatar.png';
+            name =
+              conv.title ||
+              conv.participants?.map((p: any) => p.user?.username).join(', ');
+          }
+
+          const lastMsg = conv.messages?.[conv.messages.length - 1];
+
+          return {
+            id: conv.id,
+            name: name || 'Unknown',
+            avatar,
+            lastMessage: lastMsg?.content || '',
+            timestamp: lastMsg
+              ? new Date(Number(lastMsg.created_on)).toLocaleTimeString()
+              : '',
+            unread: 0,
+            online: true,
+            isGroup,
+            members: conv.participants?.length,
+          };
+        });
+
+        setConversations(formatted);
+
+        // ✅ IMPORTANT: auto open correct conversation
+        if (conversationIdFromURL) {
+          const found = formatted.find((c: any) => c.id === conversationIdFromURL);
+          setSelectedConversation(found || formatted[0]);
+        } else {
+          setSelectedConversation(formatted[0]);
+        }
+
+      } catch (err) {
+        console.error(err);
       }
     };
-    const unsubscribe = wsManager.on('message', handler);
-    return () => { unsubscribe && unsubscribe(); };
-  }, [wsManager, selectedConversation.id]);
 
-  // Auto-scroll to bottom on new message
+    fetchConversations();
+  }, [conversationIdFromURL]);
+
+  /* ================= FETCH MESSAGES ================= */
+
+  useEffect(() => {
+    if (!selectedConversation) return;
+
+    const fetchMessages = async () => {
+      try {
+        console.log("🔥 Fetching messages for:", selectedConversation.id);
+
+        const res = await apiClient.getMessages(selectedConversation.id);
+
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+        const formatted = res.data
+          .map((m: any) => ({
+            id: m.id,
+            text: m.content,
+            sender: m.sender?.id === user.id ? 'me' : 'other',
+            timestamp: new Date(Number(m.created_on)).toLocaleTimeString(),
+            createdAt: Number(m.created_on),
+
+            senderId: m.sender?.id,
+            senderName: m.sender?.full_name || m.sender?.username,
+            senderAvatar: m.sender?.profile_photo || '/avatar.png',
+
+            status: m.status || 'sent',
+          }))
+          .sort((a: Message, b: Message) => a.createdAt - b.createdAt);
+
+        setMessages(formatted);
+
+      } catch (err) {
+        console.error("❌ Fetch messages failed:", err);
+      }
+    };
+
+    fetchMessages();
+  }, [selectedConversation]);
+
+  /* ================= SOCKET ================= */
+  useEffect(() => {
+    if (!wsManager) return;
+
+    const handler = (data: any) => {
+      if (data.conversationId !== selectedConversation?.id) return;
+
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: data.id,
+          text: data.content,
+          sender: data.sender?.id === user.id ? 'me' : 'other',
+          timestamp: new Date(Number(data.created_on)).toLocaleTimeString(),
+          createdAt: Number(data.created_on),
+
+          senderId: data.sender?.id,
+          senderName: data.sender?.full_name || data.sender?.username,
+          senderAvatar: data.sender?.profile_photo || '/avatar.png',
+
+          status: data.status || 'sent',
+        },
+      ]);
+    };
+
+    return wsManager.on('message', handler);
+  }, [wsManager, selectedConversation]);
+
+   /* ================== 🆕 SEND MESSAGE ================== */
+  const handleSendMessage = async () => {
+    if (!messageInput.trim() || !selectedConversation) return;
+
+    const tempId = Date.now().toString();
+
+    const tempMessage: Message = {
+      id: tempId,
+      text: messageInput,
+      sender: 'me',
+      timestamp: new Date().toLocaleTimeString(),
+      createdAt: Date.now(),
+    };
+
+    // ✅ Optimistic UI
+    setMessages((prev) => [...prev, tempMessage]);
+
+    try {
+      const res = await apiClient.sendMessage(
+        selectedConversation.id,
+        messageInput
+      );
+
+      const realMessage = res.data;
+
+      // ✅ Replace temp message with real one
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === tempId
+            ? {
+                id: realMessage.id,
+                text: realMessage.content,
+                sender: 'me',
+                timestamp: new Date(Number(realMessage.created_on)).toLocaleTimeString(),
+                createdAt: Number(realMessage.created_on),
+              }
+            : msg
+        )
+      );
+
+      // ✅ Emit socket (for other users)
+      wsManager?.emit('send_message', realMessage);
+
+    } catch (err) {
+      console.error('Send message error', err);
+
+      // ❌ Rollback UI if failed
+      setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
+    }
+
+    setMessageInput('');
+  };
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const filteredConversations = useMemo(() => {
-    return mockConversations.filter((conv) => {
+    return conversations.filter((conv) => {
       if (activeTab === 'unread') return conv.unread > 0;
       if (activeTab === 'groups') return conv.isGroup;
       if (searchQuery.trim()) {
@@ -171,47 +281,70 @@ const MessagesPage = () => {
       }
       return true;
     });
-  }, [activeTab, searchQuery]);
+  }, [conversations, activeTab, searchQuery]);
 
-  const handleSendMessage = () => {
-    if (!messageInput.trim() || !wsManager) return;
-    const msg: Message = {
-      id: Date.now().toString(),
-      text: messageInput,
-      sender: 'me',
-      timestamp: new Date().toLocaleTimeString(),
-    };
-    setMessages((prev: Message[]) => [...prev, msg]);
-    wsManager.send('message', {
-      conversationId: selectedConversation.id,
-      text: messageInput,
-      sender: 'me',
-      timestamp: msg.timestamp,
-    });
-    setMessageInput('');
+  if (!selectedConversation) return null;
+
+  // ✅ ENTER SEND
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
   };
+
+  // ✅ EMOJI SELECT
+  const handleEmojiClick = (emojiData: any) => {
+    setMessageInput((prev) => prev + emojiData.emoji);
+  };
+
+  // ✅ FILE UPLOAD
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedConversation) return;
+
+    try {
+      // If sendMessageWithAttachment expects a string, send file as base64 or URL
+      // Otherwise, if it expects a FormData, update the API definition
+      // Here, we assume it expects a string (file name or base64)
+      // If you want to send the file as base64 string:
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const fileString = event.target?.result as string;
+        await apiClient.sendMessageWithAttachment(
+          selectedConversation.id,
+          fileString,
+        );
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error("File upload failed", err);
+    }
+  };
+
   return (
-    <div className="flex-1 flex min-h-0 h-screen overflow-hidden bg-[#F8F9FA] p-0 m-0">
-      <Group orientation="horizontal" className="flex-1 min-h-0">
-        <Panel defaultSize={25} minSize={18}>
-          <div className="h-full min-h-0 flex flex-col bg-white border-r border-[#E8E8E8] p-0 m-0">
+    <div className="h-screen w-full flex overflow-hidden bg-[#F8F9FA]">
+      <Group orientation="horizontal" className="flex-1 h-full">
+
+        {/* LEFT PANEL */}
+        <Panel defaultSize={25} className="h-full">
+          <div className="h-full flex flex-col bg-white border-r overflow-hidden">
 
             {/* SEARCH */}
-            <div className="p-4 border-b border-[#E8E8E8]">
+            <div className="p-4 border-b">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                 <input
-                  type="text"
                   placeholder="Search messages..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-[#E8E8E8] bg-[#F8F9FA] text-sm outline-none"
+                  className="w-full pl-10 pr-4 py-2 rounded-lg border bg-gray-50 text-sm"
                 />
               </div>
             </div>
 
             {/* TABS */}
-            <div className="px-4 py-3 border-b border-[#E8E8E8] flex gap-2">
+            <div className="p-3 flex gap-2 border-b">
               {['all', 'unread', 'groups'].map((tab) => (
                 <button
                   key={tab}
@@ -222,160 +355,197 @@ const MessagesPage = () => {
                       : 'bg-gray-100 text-gray-600'
                   }`}
                 >
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  {tab}
                 </button>
               ))}
             </div>
 
             {/* LIST */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 min-h-0 overflow-y-auto">
               {filteredConversations.map((c) => (
                 <button
                   key={c.id}
                   onClick={() => setSelectedConversation(c)}
-                  className={`w-full p-3 flex gap-3 text-left border-b hover:bg-gray-50 ${
+                  className={`w-full p-3 flex gap-3 text-left border-b ${
                     selectedConversation.id === c.id ? 'bg-blue-50' : ''
                   }`}
                 >
-                  <div className="relative flex-shrink-0">
-                    <img
-                      src={c.avatar}
-                      alt={c.name}
-                      className="w-11 h-11 rounded-full object-cover"
-                    />
-                    {c.isGroup ? (
-                      <div className="absolute bottom-0 right-0 w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center border-2 border-white">
-                        <Users className="w-2.5 h-2.5 text-white" />
+                  <div className="relative">
+                    {!c.avatar ? (
+                      <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
+                        {c.name?.charAt(0).toUpperCase()}
                       </div>
-                    ) : c.online ? (
-                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
-                    ) : null}
+                    ) : (
+                      <img src={c.avatar} alt={c.name} className="w-10 h-10 rounded-full" />
+                    )}
+                    {c.isGroup && (
+                      <div className="absolute bottom-0 right-0 w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center">
+                        <Users className="w-2 h-2 text-white" />
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex-1">
-                    <div className="flex justify-between">
-                      <h3 className="text-sm font-semibold truncate">
-                        {c.name}
-                      </h3>
-                      <span className="text-xs text-gray-500">
-                        {c.timestamp}
-                      </span>
-                    </div>
-
-                    {c.isGroup && (
-                      <p className="text-xs text-gray-400">
-                        {c.members} members
-                      </p>
-                    )}
-
+                    <h3 className="text-sm font-semibold">{c.name}</h3>
                     <p className="text-xs text-gray-500 truncate">
                       {c.lastMessage}
                     </p>
                   </div>
-
-                  {c.unread > 0 && (
-                    <div className="w-5 h-5 bg-black text-white text-xs rounded-full flex items-center justify-center">
-                      {c.unread}
-                    </div>
-                  )}
                 </button>
               ))}
             </div>
           </div>
         </Panel>
 
-        <Separator className="w-1 bg-gray-200 hover:bg-gray-300 cursor-col-resize" />
+        <Separator />
 
         {/* RIGHT PANEL */}
-        <Panel defaultSize={75}>
-          <div className="h-full min-h-0 flex flex-col">
+        <Panel defaultSize={75} className="h-full">
+          <div className="h-full flex flex-col overflow-hidden">
 
             {/* HEADER */}
-            <div className="p-4 flex justify-between items-center bg-white border-b border-[#E8E8E8]">
+            <div className="p-4 flex justify-between items-center bg-white border-b">
               <div className="flex gap-3 items-center">
-                <div className="relative">
-                  <img
-                    src={selectedConversation.avatar}
-                    alt={selectedConversation.name}
-                    className="w-10 h-10 rounded-full"
-                  />
-                  {selectedConversation.online && (
-                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
-                  )}
-                </div>
+                <img src={selectedConversation.avatar} alt={selectedConversation.name} className="w-10 h-10 rounded-full" />
                 <div>
-                  <h2 className="font-semibold">
-                    {selectedConversation.name}
-                  </h2>
-                  <p className="text-xs text-gray-500">
-                    {selectedConversation.online ? 'Active now' : 'Offline'}
-                  </p>
+                  <h2 className="font-semibold">{selectedConversation.name}</h2>
                 </div>
               </div>
 
-              <div className="flex gap-2 text-gray-600">
+              {/* <div className="flex gap-2 text-gray-600">
                 <Phone />
                 <Video />
                 <MoreVertical />
-              </div>
+              </div> */}
             </div>
 
             {/* MESSAGES */}
-            <div className="flex-1 p-4 space-y-3 overflow-y-auto bg-[#F8F9FA]">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex ${
-                    msg.sender === 'me' ? 'justify-end' : 'justify-start'
-                  }`}
-                >
+            <div className="flex-1 min-h-0 p-4 space-y-1 overflow-y-auto bg-white">
+              {messages.map((msg) => {
+                const isMe = msg.sender === 'me';
+                const isGroup = selectedConversation.isGroup;
+
+                return (
                   <div
-                    className={`max-w-[65%] px-3 py-2 rounded-2xl ${
-                      msg.sender === 'me'
-                        ? 'bg-blue-500 text-white rounded-br-sm'
-                        : 'bg-white border rounded-bl-sm'
-                    }`}
+                    key={msg.id}
+                    className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
                   >
-                    <p className="text-sm">{msg.text}</p>
-                    <span className="text-xs block mt-1 opacity-70">
-                      {msg.timestamp}
-                    </span>
+                    {/* 👇 Avatar for group (other users only) */}
+                    {!isMe && isGroup && (
+                      <img
+                        src={msg.senderAvatar || '/avatar.png'}
+                        alt={msg.senderName}
+                        className="w-7 h-7 rounded-full mr-2 self-end"
+                      />
+                    )}
+
+                    <div className="max-w-[70%]">
+
+                      {/* 👇 Sender Name (Group only) */}
+                      {!isMe && isGroup && (
+                        <p className="text-xs text-gray-500 ml-1 mb-1">
+                          {msg.senderName}
+                        </p>
+                      )}
+
+                      {/* 💬 Message Bubble */}
+                      <div
+                        className={`px-3 py-2 rounded-2xl text-sm ${
+                          isMe
+                            ? 'bg-[#DCF8C6] text-black rounded-br-sm'
+                            : 'bg-gray-100 text-black rounded-bl-sm'
+                        }`}
+                      >
+                        {msg.text}
+
+                        {/* ⏱ TIME + STATUS */}
+                        <div className="flex items-center justify-end gap-1 mt-1">
+                          <span className="text-[10px] text-gray-500">
+                            {msg.timestamp}
+                          </span>
+
+                          {/* ✅ Message ticks */}
+                          {isMe && (
+                            <span className="text-[10px] text-gray-500">
+                              {msg.status === 'seen'
+                                ? '✓✓'
+                                : msg.status === 'delivered'
+                                ? '✓✓'
+                                : '✓'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
+
               <div ref={messagesEndRef} />
             </div>
 
             {/* INPUT */}
-            <div className="p-3 bg-white border-t flex gap-2">
-              <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg">
+            <div className="p-3 bg-white border-t flex items-end gap-2 relative">
+
+              {/* FILE BUTTON */}
+              {/* <button onClick={() => fileInputRef.current?.click()}>
                 <Paperclip />
-              </button>
-              <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg">
+              </button> */}
+
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+
+              {/* EMOJI BUTTON */}
+              <button onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
                 <Smile />
               </button>
 
-              <input
-                type="text"
-                placeholder="Type a message..."
+              {/* EMOJI PICKER */}
+              {showEmojiPicker && (
+                <div className="absolute bottom-14 left-10 z-50">
+                  <EmojiPicker onEmojiClick={handleEmojiClick} />
+                </div>
+              )}
+
+              {/* INPUT BOX */}
+              <textarea
                 value={messageInput}
-                onChange={(e) => setMessageInput(e.target.value)}
-                className="flex-1 px-4 py-2 rounded-lg border bg-[#F8F9FA] text-sm outline-none"
+                onChange={(e) => {
+                  setMessageInput(e.target.value);
+
+                  wsManager?.emit('typing', {
+                    conversationId: selectedConversation.id,
+                  });
+                }}
+                onKeyDown={handleKeyDown}
+                rows={1}
+                placeholder="Type a message"
+                className="flex-1 px-4 py-2 border rounded resize-none max-h-28 overflow-y-auto"
               />
 
+              {/* SEND BUTTON */}
               <button
                 onClick={handleSendMessage}
-                className={`w-10 h-10 flex items-center justify-center rounded-lg ${
-                  messageInput
-                    ? 'bg-black text-white'
-                    : 'bg-gray-200 text-gray-500'
-                }`}
+                className="bg-black text-white px-3 py-2 rounded"
               >
                 <Send />
               </button>
+
+              {/* TYPING */}
+              {typingUser && (
+                <div className="absolute -top-5 left-12 text-xs text-gray-500">
+                  {typingUser} is typing...
+                </div>
+              )}
             </div>
+
           </div>
         </Panel>
+
       </Group>
     </div>
   );

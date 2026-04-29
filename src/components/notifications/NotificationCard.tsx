@@ -10,7 +10,7 @@ export interface NotificationCardProps {
   };
   message: string;
   timestamp: string;
-  isRead: boolean;
+  is_read: boolean;
   onClick: (id: string) => void;
 }
 
@@ -37,7 +37,7 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
   user,
   message,
   timestamp,
-  isRead,
+  is_read,
   onClick,
 }) => {
   return (
@@ -46,9 +46,9 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
         onClick(id);
       }}
       className={`bg-white dark:bg-black rounded-2xl shadow-sm border p-5 hover:shadow-md transition-all cursor-pointer notification-fade-in ${
-        !isRead ? 'border-blue-600 border-2' : 'border-neutral-800 border'
+        !is_read ? 'border-blue-600 border-2' : 'border-neutral-800 border'
       } flex items-start gap-4`}
-      style={{ borderLeft: !isRead ? '4px solid #1976D2' : undefined }}
+      style={{ borderLeft: !is_read ? '4px solid #1976D2' : undefined }}
     >
       {/* Avatar + Icon */}
       <div className="relative flex-shrink-0">
@@ -71,7 +71,7 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
         <div className="flex items-start justify-between gap-2 mb-1">
           <p
             className={`text-base ${
-              !isRead ? 'font-bold' : ''
+              !is_read ? 'font-bold' : ''
             } text-black dark:text-white`}
           >
             <span className="font-semibold">{user.name}</span>{' '}
@@ -79,7 +79,7 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
           </p>
 
           {/* Unread dot */}
-          {!isRead && (
+          {!is_read && (
             <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0 bg-blue-600"></div>
           )}
         </div>

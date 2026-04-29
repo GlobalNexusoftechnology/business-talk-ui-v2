@@ -44,7 +44,9 @@ export function useFeedPosts(postType: 'NORMAL' | 'QUESTION') {
 
           likes: post.upvotes || 0,
           dislikes: post.downvotes || 0,
-          comments: 0,
+
+          views: post.views || post.view_count || 0,
+          comments: post.commentsCount || 0,
 
           personalized_rank: post.personalized_rank,
           type: (post.post_type || post.type)?.toUpperCase(),

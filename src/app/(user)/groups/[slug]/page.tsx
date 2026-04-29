@@ -1,9 +1,11 @@
 'use client'
 
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, Lock, Globe, MessageCircle, Share2 } from 'lucide-react'
+import { ArrowLeft, Lock, Globe, MessageCircle, Share2, ThumbsUp } from 'lucide-react'
 import { useState } from 'react'
 import { ShareModal } from '@/components/shared/ShareModal'
+import { useEffect } from 'react'
+import apiClient from '@/lib/api-client'
 
 interface GroupMember {
   id: string
@@ -36,78 +38,74 @@ interface Group {
   about: string
 }
 
-// Mock group data with detailed information
-const mockGroups: { [key: string]: Group } = {
-  '1': {
-    id: '1',
-    name: 'Startup Founders India',
-    description: 'A community of startup founders sharing insights, challenges, and success stories',
-    image: 'https://images.unsplash.com/photo-1759310610480-48649b55fbdf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBncm91cCUyMG1lZXRpbmd8ZW58MXx8fHwxNzc1MDUzOTc4fDA&ixlib=rb-4.1.0&q=80&w=1080',
-    members: 12450,
-    posts: 3420,
-    type: 'public',
-    joined: true,
-    category: 'Entrepreneurship',
-    about: 'Startup Founders India is a thriving community of entrepreneurs and founders building the next generation of businesses in India. We share experiences, challenges, and celebrate success together. Whether you\'re just starting out or scaling your venture, this is the place to connect, learn, and grow.',
-    membersList: [
-      { id: '1', name: 'Rajesh Kumar', avatar: 'https://images.unsplash.com/photo-1629507208649-70919ca33793?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMHByb2Zlc3Npb25hbCUyMHBvcnRyYWl0fGVufDF8fHx8MTc3MjE4Mjg0OXww&ixlib=rb-4.1.0&q=80&w=1080', title: 'Founder & CEO' },
-      { id: '2', name: 'Priya Sharma', avatar: 'https://images.unsplash.com/photo-1615702669705-0d3002c6801c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb3Jwb3JhdGUlMjBleGVjdXRpdmUlMjBwb3J0cmFpdHxlbnwxfHx8fDE3NzIyNzA4MDd8MA&ixlib=rb-4.1.0&q=80&w=1080', title: 'Product Manager' },
-      { id: '3', name: 'Ankit Verma', avatar: 'https://images.unsplash.com/photo-1621610085923-4e8234a10784?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlbnRyZXByZW5ldXIlMjB3b3JraW5nfGVufDF8fHx8MTc3MjI5MDcxMnww&ixlib=rb-4.1.0&q=80&w=1080', title: 'Head of Growth' },
-      { id: '4', name: 'Sarah Thompson', avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMHdvbWFuJTIwcG9ydHJhaXR8ZW58MXx8fHwxNzcyMjkwNzEyfDA&ixlib=rb-4.1.0&q=80&w=1080', title: 'Financial Advisor' },
-      { id: '5', name: 'Michael Chen', avatar: 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMG1hbiUyMHBvcnRyYWl0fGVufDF8fHx8MTc3NTA1Mzk3OHww&ixlib=rb-4.1.0&q=80&w=1080', title: 'Marketing Expert' },
-      { id: '6', name: 'Anjali Desai', avatar: 'https://images.unsplash.com/photo-1551836022-deb4988cc6c0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxpbnZlc3RtZW50JTIwYnVzaW5lc3N8ZW58MXx8fHwxNzcyMjIyNzU3fDA&ixlib=rb-4.1.0&q=80&w=1080', title: 'VC Partner' },
-    ],
-    recentPosts: [
-      {
-        id: '1',
-        author: { id: '1', name: 'Rajesh Kumar', avatar: 'https://images.unsplash.com/photo-1629507208649-70919ca33793?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMHByb2Zlc3Npb25hbCUyMHBvcnRyYWl0fGVufDF8fHx8MTc3MjE4Mjg0OXww&ixlib=rb-4.1.0&q=80&w=1080', title: 'Founder & CEO' },
-        content: 'Just raised our Series A funding! Excited to announce that we\'ve secured $5M in funding to scale our platform. Huge thanks to our investors and supporters!',
-        timestamp: '2 hours ago',
-        likes: 342,
-        comments: 45,
-      },
-      {
-        id: '2',
-        author: { id: '2', name: 'Priya Sharma', avatar: 'https://images.unsplash.com/photo-1615702669705-0d3002c6801c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb3Jwb3JhdGUlMjBleGVjdXRpdmUlMjBwb3J0cmFpdHxlbnwxfHx8fDE3NzIyNzA4MDd8MA&ixlib=rb-4.1.0&q=80&w=1080', title: 'Product Manager' },
-        content: 'What\'s your go-to strategy for customer retention? We\'ve been experimenting with personalized onboarding and would love to hear what works for other founders.',
-        timestamp: '1 day ago',
-        likes: 218,
-        comments: 67,
-      },
-      {
-        id: '3',
-        author: { id: '3', name: 'Ankit Verma', avatar: 'https://images.unsplash.com/photo-1621610085923-4e8234a10784?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlbnRyZXByZW5ldXIlMjB3b3JraW5nfGVufDF8fHx8MTc3MjI5MDcxMnww&ixlib=rb-4.1.0&q=80&w=1080', title: 'Head of Growth' },
-        content: 'Looking for recommendations on growth hacking tools. We\'re targeting B2B SaaS and want to optimize our acquisition funnel.',
-        timestamp: '2 days ago',
-        likes: 156,
-        comments: 89,
-      },
-    ],
-  },
-  '2': {
-    id: '2',
-    name: 'Digital Marketing Professionals',
-    description: 'Learn and share the latest trends in digital marketing, SEO, and growth hacking',
-    image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYXJrZXRpbmclMjB0ZWFtJTIwbWVldGluZ3xlbnwxfHx8fDE3NzUwNTM5Nzh8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    members: 8920,
-    posts: 2150,
-    type: 'public',
-    joined: true,
-    category: 'Marketing',
-    about: 'Digital Marketing Professionals is a vibrant community dedicated to sharing the latest trends, strategies, and best practices in digital marketing. From SEO and social media to content marketing and analytics, we cover it all.',
-    membersList: [],
-    recentPosts: [],
-  },
-}
-
 export default function GroupDetailsPage() {
   const router = useRouter()
   const params = useParams()
   const groupId = params.id as string
 
-  const group = mockGroups[groupId]
+  const [group, setGroup] = useState<Group | null>(null)
+  const [loading, setLoading] = useState(true)
   const [showShareModal, setShowShareModal] = useState(false)
   const [isJoined, setIsJoined] = useState(group?.joined || false)
+
+  useEffect(() => {
+    if (!groupId) return
+
+    const fetchGroup = async () => {
+      try {
+        const res = await apiClient.getGroupBySlug(groupId)
+        const g = res.data
+
+        const formatted = {
+          id: g.id,
+          name: g.name,
+          description: g.description,
+          image: g.cover_image || '/placeholder.jpg',
+          members: g.members?.length || 0,
+          posts: 0,
+          type: (g.visibility === 'PRIVATE' ? 'private' : 'public') as 'public' | 'private',
+          joined: g.isJoined || false, // optional
+          category: 'General',
+          membersList: (g.members || []).map((m: any) => ({
+            id: m.userId,
+            name: m.name || 'User',
+            avatar: '/avatar.png',
+            title: m.role,
+          })),
+          recentPosts: [],
+          about: g.description,
+        }
+
+        setGroup(formatted)
+      } catch (err) {
+        console.error('Group fetch error', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchGroup()
+  }, [groupId])
+
+  if (loading) {
+    return <div className="p-6">Loading group...</div>
+  }
+
+  const handleJoin = async () => {
+    if (!group) return
+
+    try {
+      if (isJoined) {
+        await apiClient.leaveGroup(group.id)
+      } else {
+        await apiClient.joinGroup(group.id)
+      }
+
+      setIsJoined(!isJoined)
+    } catch (err) {
+      console.error(err)
+    }
+  }
 
   if (!group) {
     return (
@@ -157,7 +155,7 @@ export default function GroupDetailsPage() {
               </div>
 
               <button
-                onClick={() => setIsJoined(!isJoined)}
+                onClick={handleJoin}
                 className="px-6 py-2 rounded-lg font-medium transition-all whitespace-nowrap"
                 style={{
                   backgroundColor: isJoined ? '#F8F9FA' : '#212529',
@@ -283,7 +281,7 @@ export default function GroupDetailsPage() {
                   </p>
                   <div className="flex items-center gap-6" style={{ color: '#5F6368' }}>
                     <button className="flex items-center gap-1 text-sm hover:text-blue-600 transition-colors">
-                      👍 {post.likes}
+                      <ThumbsUp className="inline w-4 h-4" /> {post.likes}
                     </button>
                     <button className="flex items-center gap-1 text-sm hover:text-blue-600 transition-colors">
                       <MessageCircle className="w-4 h-4" />

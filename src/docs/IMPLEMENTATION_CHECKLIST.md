@@ -222,7 +222,7 @@ function PostViewCardWithActions() {
   
   return (
     <>
-      <button onClick={handleLike}>👍 Like</button>
+      <button onClick={handleLike}><ThumbsUp  /> Like</button>
       <button onClick={handleShare}>📤 Share</button>
     </>
   )

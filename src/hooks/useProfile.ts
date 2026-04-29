@@ -12,7 +12,7 @@ export function useProfile() {
   const fetchAll = useCallback(async () => {
     try {
       const [profileRes, statsRes, activityRes] = await Promise.all([
-        apiClient.getMyProfile(),
+        apiClient.getMyProfileinfo(),
         apiClient.getDashboardStats(),
         apiClient.getUserActivity(),
       ])

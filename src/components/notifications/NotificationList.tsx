@@ -8,7 +8,7 @@ interface NotificationListProps {
     user: { name: string; avatar: string };
     message: string;
     timestamp: string;
-    isRead: boolean;
+    is_read: boolean;
   }>;
   loading?: boolean;
   onNotificationClick: (id: string) => void;
@@ -39,7 +39,7 @@ export const NotificationList: React.FC<NotificationListProps> = ({ notification
           user={n.user}
           message={n.message}
           timestamp={n.timestamp}
-          isRead={n.isRead}
+          is_read={n.is_read}
           onClick={onNotificationClick}
         />
       ))}

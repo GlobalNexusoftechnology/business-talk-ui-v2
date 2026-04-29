@@ -11,6 +11,7 @@ import { Button } from '@/components/shared/Button'
 import { Card } from '@/components/shared/Card'
 import { useAppDispatch } from '@/hooks/useRedux'
 import { login } from '@/redux/slices/authSlice'
+import { isAdmin } from '@/lib/roles'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -23,6 +24,7 @@ export default function LoginPage() {
     formState: { errors, isSubmitting },
   } = useForm<LoginInput>({
     resolver: zodResolver(LoginSchema),
+    shouldUnregister: false,
   })
 
   const onSubmit = async (data: LoginInput) => {
@@ -31,8 +33,16 @@ export default function LoginPage() {
       const result = await dispatch(login(data))
       if (login.fulfilled.match(result)) {
         // Redirect based on role
-        const role = result.payload.user.role_id
-        router.push(role === 'ADMIN' ? '/admin/dashboard' : '/dashboard')
+        const roleId = result.payload.user.role_id
+
+        // 🔥 Save user properly (IMPORTANT for layout)
+        localStorage.setItem('user', JSON.stringify(result.payload.user))
+
+        if (isAdmin(roleId)) {
+          router.push('/admin/dashboard')
+        } else {
+          router.push('/dashboard')
+        }
       } else if (login.rejected.match(result)) {
         setError(result.payload as string)
       }
@@ -98,7 +108,9 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <button className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-secondary-300 rounded-lg hover:bg-secondary-50 transition-colors">
+          <button className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-secondary-300 rounded-lg hover:bg-secondary-50 transition-colors" onClick={() => {
+            window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/google`
+          }}>
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path
                 fill="#EA4335"

@@ -20,7 +20,7 @@ export function useStoriesFeed() {
         timestamp: new Date(Number(story.created_on)).toLocaleString(),
         views: story.views ?? 0,
         likes: story.likes ?? 0,
-        comments: 0,
+        comments: story.commentsCount ?? 0,
         readTime: '5 min read',
         category: Array.isArray(story.tags) ? (story.tags[0]?.name || 'Story') : (story.tags?.name || 'Story'),
       }))

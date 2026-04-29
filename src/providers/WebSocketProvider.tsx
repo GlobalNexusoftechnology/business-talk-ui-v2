@@ -15,14 +15,22 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    wsManagerRef.current = new WebSocketManager();
-    wsManagerRef.current.connect().then(() => setIsConnected(true)).catch(() => setIsConnected(false));
-    wsManagerRef.current.onConnect(() => setIsConnected(true));
-    wsManagerRef.current.onDisconnect(() => setIsConnected(false));
+    const userStr = localStorage.getItem('user')
+
+    if (!userStr) return
+
+    const user = JSON.parse(userStr)
+
+    const ws = new WebSocketManager()
+    ws.connect(user.id) // 🔥 CRITICAL
+
+    wsManagerRef.current = ws
+    setIsConnected(true)
+
     return () => {
-      wsManagerRef.current?.disconnect();
-    };
-  }, []);
+      ws.disconnect()
+    }
+  }, [])
 
   return (
     <WebSocketContext.Provider value={{ wsManager: wsManagerRef.current, isConnected }}>

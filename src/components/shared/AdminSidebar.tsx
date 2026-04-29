@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import clsx from 'clsx'
 import {
   LayoutGrid,
@@ -11,13 +11,13 @@ import {
   ImageIcon,
   BookOpen,
   BarChart3,
-  Mail,
+  // Mail,
   Bell,
-  Megaphone,
+  // Megaphone,
   TrendingUp,
-  DollarSign,
-  Lock,
-  Settings,
+  // DollarSign,
+  // Lock,
+  // Settings,
   LogOut,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useRedux'
@@ -27,25 +27,28 @@ const adminSidebarItems = [
   { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutGrid },
   { label: 'Users', href: '/admin/users', icon: Users },
   { label: 'Posts', href: '/admin/posts', icon: FileText },
-  { label: 'Moderation', href: '/admin/moderation', icon: Shield },
+  { label: 'Questions', href: '/admin/questions', icon: Shield },
+  // { label: 'Moderation', href: '/admin/moderation', icon: Shield },
   { label: 'Stories', href: '/admin/stories', icon: ImageIcon },
   { label: 'Blogs', href: '/admin/blogs', icon: BookOpen },
   { label: 'Reports', href: '/admin/reports', icon: BarChart3 },
-  { label: 'Email Marketing', href: '/admin/email-marketing', icon: Mail },
+  // { label: 'Email Marketing', href: '/admin/email-marketing', icon: Mail },
   { label: 'Notifications', href: '/admin/notifications', icon: Bell },
-  { label: 'Advertisements', href: '/admin/advertisements', icon: Megaphone },
+  // { label: 'Advertisements', href: '/admin/advertisements', icon: Megaphone },
   { label: 'Analytics', href: '/admin/analytics', icon: TrendingUp },
-  { label: 'Revenue', href: '/admin/revenue', icon: DollarSign },
-  { label: 'Roles', href: '/admin/roles', icon: Lock },
-  { label: 'Settings', href: '/admin/settings', icon: Settings },
+  // { label: 'Revenue', href: '/admin/revenue', icon: DollarSign },
+  // { label: 'Roles', href: '/admin/roles', icon: Lock },
+  // { label: 'Settings', href: '/admin/settings', icon: Settings },
 ]
 
 export const AdminSidebar = () => {
   const pathname = usePathname()
   const { dispatch } = useAuth()
+  const router = useRouter()
 
-  const handleLogout = () => {
-    dispatch(logout())
+  const handleLogout = async () => {
+    await dispatch(logout())   // wait for logout to complete
+    router.push('/login')      // redirect to login page
   }
 
   return (

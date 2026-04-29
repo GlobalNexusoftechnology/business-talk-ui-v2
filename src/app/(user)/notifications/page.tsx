@@ -1,178 +1,334 @@
 'use client'
 
-import { CheckCheck } from 'lucide-react';
-import { useState, useMemo, useEffect } from 'react';
-import { useWebSocket } from '@/providers/WebSocketProvider';
-import { useRouter } from 'next/navigation';
-import { NotificationList } from '@/components/notifications/NotificationList';
-import apiClient from '@/lib/api-client';
+import { CheckCheck } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { useWebSocket } from '@/providers/WebSocketProvider'
+import { useRouter } from 'next/navigation'
+import { NotificationList } from '@/components/notifications/NotificationList'
+import apiClient from '@/lib/api-client'
 
-
-export type NotificationType = 'like' | 'comment' | 'follow' | 'mention' | 'group';
+// ✅ UPDATED TYPE
 export interface Notification {
-  id: string;
-  type: NotificationType;
+  id: string
+  type: string
+
   user: {
-    name: string;
-    avatar: string;
-  };
-  message: string;
-  timestamp: string;
-  isRead: boolean;
-  redirectUrl?: string;
+    name: string
+    avatar: string
+  }
+
+  message: string
+
+  timestamp: string // formatted
+  rawTimestamp: number // 🔥 used for sorting
+
+  is_read: boolean
+
+  entity_id: string
+  entity_type: string
 }
 
+// ✅ TIME FORMATTER
+const getTimeAgo = (ts: string) => {
+  const diff = Date.now() - Number(ts)
 
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+  const weeks = Math.floor(diff / 604800000)
+  const months = Math.floor(diff / 2629800000)
+  const years = Math.floor(diff / 31557600000)
 
+  if (minutes < 1) return 'just now'
+  if (minutes < 60) return `${minutes}m`
+  if (hours < 24) return `${hours}h`
+  if (days < 7) return `${days}d`
+  if (weeks < 4) return `${weeks}w`
+  if (months < 12) return `${months}mo`
+  return `${years}y`
+}
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [filter, setFilter] = useState<'all' | 'unread' | 'mentions'>('all');
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
-  const { wsManager } = useWebSocket();
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [filter, setFilter] = useState<'all' | 'unread' >('all') /*| 'mentions' if mention is added in future */
+  const [loading, setLoading] = useState(false)
 
-  // Fetch notifications from API
-  // Initial fetch
+  const router = useRouter()
+  const { wsManager } = useWebSocket()
+
+  // =========================
+  // 🔥 FETCH + MAP FIXED
+  // =========================
   useEffect(() => {
     const fetchNotifications = async () => {
-      setLoading(true);
+      setLoading(true)
+
       try {
-        const res = await apiClient.getMyNotifications();
-        const mapped = (res.data || []).map((n: any) => ({
-          id: n.id,
-          type: n.type,
-          user: {
-            name: n.user?.name || 'Unknown',
-            avatar: n.user?.avatar || '/assets/images/default-avatar.png',
-          },
-          message: n.message,
-          timestamp: n.timestamp || n.createdAt || '',
-          isRead: n.isRead || n.read || false,
-          redirectUrl: n.redirectUrl || n.url || undefined,
-        }));
-        setNotifications(mapped);
+        const res = await apiClient.getMyNotifications()
+
+        const mapped = await Promise.all(
+          (res.data || []).map(async (n: any) => {
+            let userData = null
+
+            try {
+              const userRes = await apiClient.getUserById(n.actor_id)
+              userData = userRes.data
+            } catch {
+              userData = null
+            }
+
+            return {
+              id: n.id,
+              type: n.type,
+
+              user: {
+                name:
+                  userData?.full_name ||
+                  userData?.name ||
+                  userData?.username ||
+                  'Unknown',
+
+                avatar:
+                  userData?.profile_photo ||
+                  userData?.avatar ||
+                  '/assets/images/default-avatar.png',
+              },
+
+              message: n.message,
+
+              timestamp: getTimeAgo(n.created_on),
+              rawTimestamp: Number(n.created_on),
+
+              is_read: n.is_read === true,
+
+              entity_id: n.entity_id,
+              entity_type: n.entity_type,
+            }
+          })
+        )
+
+        // ✅ FIXED SORT (IMPORTANT)
+        mapped.sort((a, b) => b.rawTimestamp - a.rawTimestamp)
+
+        setNotifications(mapped)
       } catch (e) {
-        // Optionally show error toast
+        console.error('Notification fetch failed', e)
       } finally {
-        setLoading(false);
-      }
-    };
-    fetchNotifications();
-  }, []);
-
-  // WebSocket: Listen for real-time notifications
-  useEffect(() => {
-    if (!wsManager) return;
-    // Handler for new notification
-    const handler = (data: any) => {
-      // Map backend notification to UI type
-      const newNotification = {
-        id: data.id,
-        type: data.type,
-        user: {
-          name: data.user?.name || 'Unknown',
-          avatar: data.user?.avatar || '/assets/images/default-avatar.png',
-        },
-        message: data.message,
-        timestamp: data.timestamp || data.createdAt || '',
-        isRead: false,
-        redirectUrl: data.redirectUrl || data.url || undefined,
-      };
-      setNotifications((prev) => [newNotification, ...prev]);
-    };
-    // Subscribe to 'notification' event
-    const unsubscribe = wsManager.on('notification', handler);
-    return () => {
-      unsubscribe && unsubscribe();
-    };
-  }, [wsManager]);
-
-  // Mark as read (single)
-  const handleMarkAsRead = async (id: string) => {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
-    try {
-      await apiClient.markNotificationAsRead(id);
-    } catch {}
-  };
-
-  // Mark all as read
-  const handleMarkAllAsRead = async () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-    try {
-      await apiClient.markAllNotificationsRead();
-    } catch {}
-  };
-
-  // Routing logic
-  const handleNotificationClick = (id: string) => {
-    const notification = notifications.find((n) => n.id === id);
-    if (notification) {
-      handleMarkAsRead(id);
-      if (notification.redirectUrl) {
-        router.push(notification.redirectUrl);
+        setLoading(false)
       }
     }
-  };
 
-  // Tabs/Filters
+    fetchNotifications()
+  }, [])
+
+  // =========================
+  // 🔥 WEBSOCKET FIXED
+  // =========================
+  useEffect(() => {
+    if (!wsManager) return
+
+    const handler = async (data: any) => {
+      let userData = null
+
+      try {
+        const userRes = await apiClient.getUserById(data.actor_id)
+        userData = userRes.data
+      } catch {}
+
+      const newNotification: Notification = {
+        id: data.id,
+        type: data.type,
+
+        user: {
+          name:
+            userData?.full_name ||
+            userData?.name ||
+            userData?.username ||
+            'Unknown',
+
+          avatar:
+            userData?.profile_photo ||
+            userData?.avatar ||
+            '/assets/images/default-avatar.png',
+        },
+
+        message: data.message,
+
+        timestamp: getTimeAgo(data.created_on),
+        rawTimestamp: Number(data.created_on),
+
+        is_read: false,
+
+        entity_id: data.entity_id,
+        entity_type: data.entity_type,
+      }
+
+      setNotifications((prev) => [newNotification, ...prev])
+    }
+
+    const unsubscribe = wsManager.on('notification', handler)
+
+    return () => unsubscribe && unsubscribe()
+  }, [wsManager])
+
+  // =========================
+  // MARK READ
+  // =========================
+  const handleMarkAsRead = async (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) =>
+        n.id === id ? { ...n, is_read: true } : n
+      )
+    )
+
+    try {
+      await apiClient.markNotificationAsRead(id)
+    } catch {}
+  }
+
+  const handleMarkAllAsRead = async () => {
+    setNotifications((prev) =>
+      prev.map((n) => ({ ...n, is_read: true }))
+    )
+
+    try {
+      await apiClient.markAllNotificationsRead()
+    } catch {}
+  }
+
+  // =========================
+  // 🔥 ROUTING LOGIC (FIXED)
+  // =========================
+  const handleNotificationClick = (id: string) => {
+    const n = notifications.find((x) => x.id === id)
+    if (!n) return
+
+    handleMarkAsRead(id)
+
+    const { entity_id, entity_type, type } = n
+
+    switch (entity_type) {
+      case 'user':
+        router.push(`/profile/${entity_id}`)
+        break
+
+      case 'post':
+        if (type === 'question') {
+          router.push(`/question/${entity_id}`)
+        } else {
+          router.push(`/post/${entity_id}`)
+        }
+        break
+
+      case 'blog':
+        if (type === 'story') {
+          router.push(`/story/${entity_id}`)
+        } else {
+          router.push(`/blog/${entity_id}`)
+        }
+        break
+
+      case 'comment':
+        router.push(`/post/${entity_id}?highlight=comment`)
+        break
+
+      case 'conversation':
+        router.push(`/messages/${entity_id}`)
+        break
+
+      default:
+        console.warn('Unknown notification type')
+    }
+  }
+
+  // =========================
+  // FILTERS
+  // =========================
   const filteredNotifications = useMemo(() => {
-    if (filter === 'unread') return notifications.filter((n) => !n.isRead);
-    if (filter === 'mentions') return notifications.filter((n) => n.type === 'mention');
-    return notifications;
-  }, [notifications, filter]);
+    if (filter === 'unread')
+      return notifications.filter((n) => !n.is_read)
 
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
+    // NOTE: Mentions filter can be added in future when mention notifications are supported by backend
+    // if (filter === 'mentions')
+    //   return notifications.filter((n) => n.type === 'mention')
 
+    return notifications
+  }, [notifications, filter])
+
+  const unreadCount = notifications.filter((n) => !n.is_read).length
+
+  // =========================
+  // UI
+  // =========================
   return (
     <div className="p-6 overflow-y-auto min-h-screen bg-gray-50 text-white">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
+
+        {/* HEADER */}
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-semibold mb-2">Notifications</h1>
+              <h1 className="text-3xl font-semibold mb-2 text-black">
+                Notifications
+              </h1>
+
               <p className="text-neutral-400">
                 {unreadCount > 0
                   ? `You have ${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}`
                   : "You're all caught up!"}
               </p>
             </div>
+
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllAsRead}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all bg-white border border-black text-black hover:bg-neutral-100"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-black text-black hover:bg-neutral-100"
               >
-                <CheckCheck className="w-5 h-5 text-black" />
+                <CheckCheck className="w-5 h-5" />
                 Mark all as read
               </button>
             )}
           </div>
         </div>
 
-        {/* Filter Tabs */}
-        <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-2 mb-6 flex gap-2">
+        {/* FILTERS */}
+        <div className="bg-white rounded-2xl shadow-sm border p-2 mb-6 flex gap-2">
           <button
             onClick={() => setFilter('all')}
-            className={`flex-1 py-2.5 rounded-lg font-medium transition-all ${filter === 'all' ? 'bg-black text-white' : 'text-neutral-700 bg-white'}`}
+            className={`flex-1 py-2.5 rounded-lg ${
+              filter === 'all'
+                ? 'bg-black text-white'
+                : 'text-neutral-700'
+            }`}
           >
             All
           </button>
+
           <button
             onClick={() => setFilter('unread')}
-            className={`flex-1 py-2.5 rounded-lg font-medium transition-all ${filter === 'unread' ? 'bg-black text-white' : 'text-neutral-700 bg-white'}`}
+            className={`flex-1 py-2.5 rounded-lg ${
+              filter === 'unread'
+                ? 'bg-black text-white'
+                : 'text-neutral-700'
+            }`}
           >
             Unread ({unreadCount})
           </button>
-          <button
+
+          {/* Note: Mentions filter can be added in future when mention notifications are supported by backend */}
+          {/* <button
             onClick={() => setFilter('mentions')}
-            className={`flex-1 py-2.5 rounded-lg font-medium transition-all ${filter === 'mentions' ? 'bg-black text-white' : 'text-neutral-700 bg-white'}`}
+            className={`flex-1 py-2.5 rounded-lg ${
+              filter === 'mentions'
+                ? 'bg-black text-white'
+                : 'text-neutral-700'
+            }`}
           >
             Mentions
-          </button>
+          </button> */}
         </div>
 
-        {/* Notifications List */}
+        {/* LIST */}
         <NotificationList
           notifications={filteredNotifications}
           loading={loading}
@@ -180,5 +336,5 @@ export default function NotificationsPage() {
         />
       </div>
     </div>
-  );
+  )
 }

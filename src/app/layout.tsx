@@ -29,23 +29,20 @@ export const metadata: Metadata = {
   },
 }
 
-function syncAccessTokenCookieToLocalStorage() {
-  if (typeof window !== 'undefined') {
-    const match = document.cookie.match(new RegExp('(^| )access_token=([^;]+)'));
-    const cookieToken = match ? decodeURIComponent(match[2]) : null;
-    if (cookieToken && !localStorage.getItem('auth_token')) {
-      localStorage.setItem('auth_token', cookieToken);
-    }
-  }
-}
+// function syncAccessTokenCookieToLocalStorage() {
+//   if (typeof window !== 'undefined') {
+//     const match = document.cookie.match(new RegExp('(^| )access_token=([^;]+)'));
+//     const cookieToken = match ? decodeURIComponent(match[2]) : null;
+//     if (cookieToken && !localStorage.getItem('auth_token')) {
+//       localStorage.setItem('auth_token', cookieToken);
+//     }
+//   }
+// }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  if (typeof window !== 'undefined') {
-    syncAccessTokenCookieToLocalStorage();
-  }
   return (
     <html lang="en">
-      <body>
+      <body className="h-screen">
         <Providers>{children}</Providers>
       </body>
     </html>
