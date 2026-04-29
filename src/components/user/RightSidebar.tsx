@@ -334,6 +334,8 @@ export function RightSidebar() {
     };
   }, []);
 
+  if (loading) return <div className="p-6">Loading SideBar...</div>
+
   return (
     <aside className="w-80 bg-white overflow-y-auto rounded-2xl shadow-sm" style={{ borderLeft: '1px solid #E8E8E8' }}>
       <div className="p-6 space-y-6">

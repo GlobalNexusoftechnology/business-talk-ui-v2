@@ -2,7 +2,7 @@
 
 import { Search, Users, Lock, Globe, TrendingUp, Plus } from 'lucide-react'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+// import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import apiClient from '@/lib/api-client'
 
@@ -19,7 +19,7 @@ interface Group {
 }
 
 export default function GroupsPage() {
-  const router = useRouter()
+  // const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState<'all' | 'my-groups'>('all')
   const [groups, setGroups] = useState<Group[]>([])
@@ -131,9 +131,9 @@ export default function GroupsPage() {
     return <div className="p-6">Loading groups...</div>
   }
 
-  const handleGroupClick = (group: Group) => {
-    router.push(`/groups/${group.id}`)
-  }
+  // const handleGroupClick = (group: Group) => {
+  //   router.push(`/groups/${group.id}`)
+  // }
 
   const filteredGroups = activeTab === 'my-groups' ? groups.filter(g => g.joined) : groups
 
@@ -228,7 +228,7 @@ export default function GroupsPage() {
           {filteredGroups.map((group) => (
             <div
               key={group.id}
-              onClick={() => handleGroupClick(group)}
+              // onClick={() => handleGroupClick(group)}
               className="bg-white rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
               style={{ border: '1px solid #E8E8E8' }}
             >

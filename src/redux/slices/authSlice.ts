@@ -108,7 +108,7 @@ export const completeProfile = createAsyncThunk(
 
 export const logout = createAsyncThunk(
   'auth/logout',
-  async (_, { rejectWithValue }) => {
+  async (_) => {
     try {
       await apiClient.logout() // clears cookies
 

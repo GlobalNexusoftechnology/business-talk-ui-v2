@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, ThumbsUp, MessageCircle } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { ShareModal } from '@/components/shared/ShareModal'
 import apiClient from '@/lib/api-client'
@@ -49,7 +49,7 @@ export default function BlogDetailsPage() {
   const [loading, setLoading] = useState(true)
   const [showShareModal, setShowShareModal] = useState(false)
   // const [isBookmarked, setIsBookmarked] = useState(false)
-  const [isLiked, setIsLiked] = useState(false)
+  // const [isLiked, setIsLiked] = useState(false)
 
   /* ================== 🆕 ADDED: Comment States ================== */
   const [comments, setComments] = useState<Comment[]>([])
@@ -113,22 +113,22 @@ export default function BlogDetailsPage() {
   }, [blogId])
 
   /* ================== 🆕 ADDED: Like Logic ================== */
-  const handleLike = async () => {
-    if (!blog) return
+  // const handleLike = async () => {
+  //   if (!blog) return
 
-    try {
-      setIsLiked(!isLiked)
+  //   try {
+  //     setIsLiked(!isLiked)
 
-      if (!isLiked) {
-        await apiClient.likeBlog(blog.id)
-        setBlog(prev => prev && { ...prev, likes: prev.likes + 1 })
-      } else {
+  //     if (!isLiked) {
+  //       await apiClient.likeBlog(blog.id)
+  //       setBlog(prev => prev && { ...prev, likes: prev.likes + 1 })
+  //     } else {
 
-      }
-    } catch (err) {
-      console.error('Like error', err)
-    }
-  }
+  //     }
+  //   } catch (err) {
+  //     console.error('Like error', err)
+  //   }
+  // }
 
   /* ================== 🆕 ADDED: Add Comment ================== */
   const handleAddComment = async () => {

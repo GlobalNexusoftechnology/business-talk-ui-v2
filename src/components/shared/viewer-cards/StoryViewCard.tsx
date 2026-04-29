@@ -75,7 +75,7 @@ export function StoryViewCard({ data }: Props) {
 
       {/* Actions */}
       <div className="flex gap-4 border-t pt-3">
-        <button onClick={handleLike}>
+        <button onClick={handleLike} className={`flex items-center gap-1 px-2 py-1 rounded ${liked ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:bg-gray-50'}`}>
           <ThumbsUp /> {likeCount}
         </button>
 

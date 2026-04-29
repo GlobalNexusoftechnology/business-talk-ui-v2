@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/lib/api-client'
+import adminApi from '@/lib/admin-api'
 
 export function useAdminPosts(filter: string) {
   return useQuery({
@@ -21,7 +22,7 @@ export function useDeletePost() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (postId: string) => {
-      return apiClient.client.delete(`/posts/${postId}`)
+      return adminApi.deletePost(postId)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-posts'] })

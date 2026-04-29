@@ -6,7 +6,7 @@ import { Card } from '@/components/shared/Card'
 import { AdminCreateBlogBox } from '@/components/admin/AdminCreateBlogBox'
 import { useAdminBlogs, useDeleteBlog } from '@/hooks/useAdminBlogs'
 import apiClient from '@/lib/api-client'
-import adminApi from '@/lib/admin-api'
+// import adminApi from '@/lib/admin-api'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 const filters = ['All', 'Latest', 'Trending', 'Reported']
