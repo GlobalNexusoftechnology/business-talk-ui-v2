@@ -1,25 +1,67 @@
-import { useState } from 'react'
-import { Card } from '@/components/shared/Card'
-import { Button } from '@/components/shared/Button'
+'use client'
 
-export function AdminCreateQuestionBox({ onClose, onCreate, isLoading }: { onClose: () => void, onCreate?: (content: string) => void, isLoading?: boolean }) {
+import { useState } from 'react'
+import { Tag } from 'lucide-react'
+import { TagsPopup } from '@/components/shared/TagsPopup'
+import apiClient from '@/lib/api-client'
+
+export function AdminCreateQuestionBox() {
   const [question, setQuestion] = useState('')
+  const [tags, setTags] = useState<string[]>([])
+  const [showTags, setShowTags] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  const handleCreate = async () => {
+    if (!question.trim()) return
+
+    try {
+      setLoading(true)
+
+      await apiClient.createPost({
+        type: 'QUESTION',
+        content: question,
+        tags,
+      })
+
+      setQuestion('')
+      setTags([])
+      window.location.reload()
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-      <Card className="w-full max-w-lg p-6">
-        <h2 className="text-xl font-bold mb-4">Create Question</h2>
-        <textarea
-          className="w-full border rounded p-2 mb-4"
-          rows={4}
-          placeholder="Write your question..."
-          value={question}
-          onChange={e => setQuestion(e.target.value)}
-        />
-        <div className="flex gap-2 justify-end">
-          <Button variant="secondary" onClick={onClose} disabled={isLoading}>Cancel</Button>
-          <Button variant="primary" isLoading={isLoading} onClick={() => onCreate?.(question)} disabled={!question.trim() || isLoading}>Create</Button>
-        </div>
-      </Card>
+    <div className="bg-white rounded-2xl p-6 border mb-6">
+      <textarea
+        value={question}
+        onChange={(e) => setQuestion(e.target.value)}
+        placeholder="Ask a question as admin..."
+        className="w-full p-3 bg-gray-50 border rounded-xl"
+      />
+
+      <div className="flex justify-between mt-3">
+        <button onClick={() => setShowTags(true)} className="flex gap-2 text-sm">
+          <Tag /> Tags ({tags.length})
+        </button>
+
+        <button
+          onClick={handleCreate}
+          disabled={loading}
+          className="bg-black text-white px-5 py-2 rounded-lg"
+        >
+          {loading ? 'Posting...' : 'Create Question'}
+        </button>
+      </div>
+
+      <TagsPopup
+        isOpen={showTags}
+        onClose={() => setShowTags(false)}
+        onTagsChange={setTags}
+        selectedTags={tags}
+      />
     </div>
   )
 }

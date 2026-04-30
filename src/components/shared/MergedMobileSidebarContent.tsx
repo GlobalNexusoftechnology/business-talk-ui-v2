@@ -6,6 +6,8 @@ import { TrendingItem, UserCard, GroupCard } from '@/components/user/RightSideba
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useRedux'
 import { logout } from '@/redux/slices/authSlice'
+import { FileCheck, Info, LogOut, MessageSquare, Shield, Users } from 'lucide-react'
+import Link from 'next/link'
 
 interface Props {
   people: any[]
@@ -119,7 +121,7 @@ export const MergedMobileSidebarContent = ({
               <div>
               <h3 className="font-semibold mb-2 text-sm">Suggested People</h3>
               <div className="space-y-3">
-                {people.map((person) => (
+                {people.slice(0, 5).map((person) => (
                   <UserCard
                     key={person.id}
                     person={person}
@@ -135,7 +137,7 @@ export const MergedMobileSidebarContent = ({
             <div>
               <h3 className="font-semibold mb-2 text-sm">Groups</h3>
               <div className="space-y-3">
-                {groups.map((group) => (
+                {groups.slice(0, 5).map((group) => (
                   <GroupCard
                     key={group.id}
                     group={group}
@@ -156,25 +158,99 @@ export const MergedMobileSidebarContent = ({
       {/* ========================= */}
 
       <div className="py-2">
-        <div className="border-t mb-2" />
+        <div className="mt-6 space-y-4">
+          {/* Company */}
+          <div>
+            <div className="mb-2 font-semibold text-xs text-gray-500 uppercase tracking-wide pl-2">Company</div>
+            <Link
+              href="/about"
+              className="w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-sm"
+              style={{ color: '#5F6368' }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8F9FA')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+            >
+              <Info className="w-5 h-5" />
+              <span>About</span>
+            </Link>
+          </div>
 
-        <a href="/privacy-policy" className="block px-4 py-2 text-sm text-gray-600">
-          Privacy Policy
-        </a>
+          {/* Legal */}
+          <div>
+            <div className="mb-2 font-semibold text-xs text-gray-500 uppercase tracking-wide pl-2">Legal</div>
+            <div className="space-y-1">
+              <Link
+                href="/terms-of-service"
+                className="w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-sm"
+                style={{ color: '#5F6368' }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8F9FA')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+              >
+                <FileCheck className="w-5 h-5" />
+                <span>Terms of Service</span>
+              </Link>
+              <Link
+                href="/privacy-policy"
+                className="w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-sm"
+                style={{ color: '#5F6368' }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8F9FA')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+              >
+                <Shield className="w-5 h-5" />
+                <span>Privacy Policy</span>
+              </Link>
+              <Link
+                href="/disclaimer"
+                className="w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-sm"
+                style={{ color: '#5F6368' }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8F9FA')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+              >
+                <Info className="w-5 h-5" />
+                <span>Disclaimer</span>
+              </Link>
+            </div>
+          </div>
 
-        <a href="/user-agreement" className="block px-4 py-2 text-sm text-gray-600">
-          User Agreement
-        </a>
+          {/* Platform */}
+          <div>
+            <div className="mb-2 font-semibold text-xs text-gray-500 uppercase tracking-wide pl-2">Platform</div>
+            <Link
+              href="/community-guidelines"
+              className="w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-sm"
+              style={{ color: '#5F6368' }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8F9FA')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+            >
+              <Users className="w-5 h-5" />
+              <span>Community Guidelines</span>
+            </Link>
+          </div>
 
-        <button className="w-full text-left px-4 py-2 text-sm text-gray-600">
-          About
-        </button>
+          {/* Support */}
+          <div>
+            <div className="mb-2 font-semibold text-xs text-gray-500 uppercase tracking-wide pl-2">Support</div>
+            <Link
+              href="/feedback-support"
+              className="w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-sm"
+              style={{ color: '#5F6368' }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8F9FA')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+            >
+              <MessageSquare className="w-5 h-5" />
+              <span>Feedback & Support</span>
+            </Link>
+          </div>
+        </div>
 
         <button
           onClick={handleLogout}
-          className="w-full text-left px-4 py-2 text-sm text-red-600"
+          className="w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-sm"
+          style={{ color: '#DC3545' }}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8F9FA')}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
         >
-          Logout
+          <LogOut size={20} />
+          <span>Logout</span>
         </button>
       </div>
     </div>

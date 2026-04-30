@@ -1,7 +1,8 @@
 'use client'
 
 import { User, Lock, Bell, Shield, Mail, Smartphone, Eye, Globe } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import apiClient from '@/lib/api-client'
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('profile')
@@ -9,6 +10,41 @@ export default function SettingsPage() {
   const [pushNotifications, setPushNotifications] = useState(true)
   const [profileVisibility, setProfileVisibility] = useState('public')
   const [twoFactorAuth, setTwoFactorAuth] = useState(false)
+
+  // Profile fields
+  const [profile, setProfile] = useState({
+    full_name: '',
+    profession: '',
+    company: '',
+    location: '',
+    short_bio: '',
+  })
+  const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    async function fetchProfile() {
+      setLoading(true)
+      setError('')
+      try {
+        const res = await apiClient.getMyProfileinfo()
+        const data = res.data
+        setProfile({
+          full_name: data.full_name || '',
+          profession: data.profession || '',
+          company: data.company || '',
+          location: data.location || '',
+          short_bio: data.short_bio || '',
+        })
+      } catch (err) {
+        setError('Failed to load profile')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchProfile()
+  }, [])
 
   const tabs = [
     { id: 'profile', label: 'Profile Settings', icon: User },
@@ -72,6 +108,10 @@ export default function SettingsPage() {
                     Profile Information
                   </h2>
 
+                  {loading && <div className="text-gray-500">Loading...</div>}
+                  {error && <div className="text-red-500">{error}</div>}
+                  {success && <div className="text-green-600">Profile updated successfully!</div>}
+
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium mb-2" style={{ color: '#212529' }}>
@@ -79,14 +119,15 @@ export default function SettingsPage() {
                       </label>
                       <input
                         type="text"
-                        defaultValue="John Doe"
+                        value={profile.full_name}
+                        onChange={e => setProfile(p => ({ ...p, full_name: e.target.value }))}
                         className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition-all"
                         style={{
                           backgroundColor: '#F8F9FA',
                           border: '1px solid #E8E8E8',
                           color: '#212529',
                         }}
-                        onFocus={(e) => (e.currentTarget.style.outlineColor = '#1976D2')}
+                        onFocus={e => (e.currentTarget.style.outlineColor = '#1976D2')}
                       />
                     </div>
 
@@ -96,14 +137,15 @@ export default function SettingsPage() {
                       </label>
                       <input
                         type="text"
-                        defaultValue="Business Development Manager"
+                        value={profile.profession}
+                        onChange={e => setProfile(p => ({ ...p, profession: e.target.value }))}
                         className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition-all"
                         style={{
                           backgroundColor: '#F8F9FA',
                           border: '1px solid #E8E8E8',
                           color: '#212529',
                         }}
-                        onFocus={(e) => (e.currentTarget.style.outlineColor = '#1976D2')}
+                        onFocus={e => (e.currentTarget.style.outlineColor = '#1976D2')}
                       />
                     </div>
 
@@ -113,14 +155,15 @@ export default function SettingsPage() {
                       </label>
                       <input
                         type="text"
-                        defaultValue="Tech Ventures Inc."
+                        value={profile.company}
+                        onChange={e => setProfile(p => ({ ...p, company: e.target.value }))}
                         className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition-all"
                         style={{
                           backgroundColor: '#F8F9FA',
                           border: '1px solid #E8E8E8',
                           color: '#212529',
                         }}
-                        onFocus={(e) => (e.currentTarget.style.outlineColor = '#1976D2')}
+                        onFocus={e => (e.currentTarget.style.outlineColor = '#1976D2')}
                       />
                     </div>
 
@@ -130,14 +173,15 @@ export default function SettingsPage() {
                       </label>
                       <input
                         type="text"
-                        defaultValue="Mumbai, India"
+                        value={profile.location}
+                        onChange={e => setProfile(p => ({ ...p, location: e.target.value }))}
                         className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition-all"
                         style={{
                           backgroundColor: '#F8F9FA',
                           border: '1px solid #E8E8E8',
                           color: '#212529',
                         }}
-                        onFocus={(e) => (e.currentTarget.style.outlineColor = '#1976D2')}
+                        onFocus={e => (e.currentTarget.style.outlineColor = '#1976D2')}
                       />
                     </div>
 
@@ -147,24 +191,39 @@ export default function SettingsPage() {
                       </label>
                       <textarea
                         rows={4}
-                        defaultValue="Passionate about building innovative solutions and connecting with like-minded professionals."
+                        value={profile.short_bio}
+                        onChange={e => setProfile(p => ({ ...p, short_bio: e.target.value }))}
                         className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition-all resize-none"
                         style={{
                           backgroundColor: '#F8F9FA',
                           border: '1px solid #E8E8E8',
                           color: '#212529',
                         }}
-                        onFocus={(e) => (e.currentTarget.style.outlineColor = '#1976D2')}
+                        onFocus={e => (e.currentTarget.style.outlineColor = '#1976D2')}
                       />
                     </div>
 
                     <button
                       className="px-6 py-3 text-white rounded-lg transition-all"
                       style={{ backgroundColor: '#212529' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#3D3D3D')}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#212529')}
+                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#3D3D3D')}
+                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#212529')}
+                      disabled={loading}
+                      onClick={async () => {
+                        setLoading(true)
+                        setError('')
+                        setSuccess(false)
+                        try {
+                          await apiClient.completeProfile(profile)
+                          setSuccess(true)
+                        } catch (err: any) {
+                          setError(err?.message || 'Failed to update profile')
+                        } finally {
+                          setLoading(false)
+                        }
+                      }}
                     >
-                      Save Changes
+                      {loading ? 'Saving...' : 'Save Changes'}
                     </button>
                   </div>
                 </div>

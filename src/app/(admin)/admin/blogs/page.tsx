@@ -1,13 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/shared/Button'
 import { Card } from '@/components/shared/Card'
+import { Button } from '@/components/shared/Button'
 import { AdminCreateBlogBox } from '@/components/admin/AdminCreateBlogBox'
 import { useAdminBlogs, useDeleteBlog } from '@/hooks/useAdminBlogs'
-import apiClient from '@/lib/api-client'
-// import adminApi from '@/lib/admin-api'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useBanUser, useWarnUser } from '@/hooks/useAdminPosts'
 
 const filters = ['All', 'Latest', 'Trending', 'Reported']
 
@@ -15,67 +13,83 @@ export default function AdminBlogsPage() {
   const [activeFilter, setActiveFilter] = useState('All')
   const [showCreate, setShowCreate] = useState(false)
 
-  const queryClient = useQueryClient()
   const { data: blogs = [], isLoading } = useAdminBlogs(activeFilter)
   const deleteBlog = useDeleteBlog()
-  const createBlog = useMutation({
-    mutationFn: async (content: string) => {
-      // Blog API expects FormData
-      const formData = new FormData()
-      formData.append('content', content)
-      return apiClient.createBlog(formData)
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-blogs'] })
-      setShowCreate(false)
-    },
-  })
+  const warnUser = useWarnUser()
+  const banUser = useBanUser()
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-secondary-900 mb-6">Blogs Management</h1>
+      <h1 className="text-3xl font-bold mb-6">Blogs Management</h1>
+
       <div className="mb-4 flex gap-2 items-center">
         {filters.map((f) => (
           <Button
             key={f}
             variant={activeFilter === f ? 'primary' : 'outline'}
-            className="capitalize"
             onClick={() => setActiveFilter(f)}
           >
             {f}
           </Button>
         ))}
-        <Button variant="primary" className="ml-auto" onClick={() => setShowCreate(true)}>
+
+        <Button className="ml-auto" onClick={() => setShowCreate(true)}>
           Create Blog
         </Button>
       </div>
+
       <Card>
         <div className="divide-y">
           {isLoading ? (
-            <div className="py-8 text-center text-secondary-500">Loading...</div>
-          ) : blogs.length === 0 ? (
-            <div className="py-8 text-center text-secondary-500">No blogs found.</div>
-          ) : blogs.map((blog: any) => (
-            <div key={blog.id} className="flex items-center justify-between py-4">
-              <div>
-                <div className="font-semibold">{blog.title || blog.content}</div>
-                <div className="text-xs text-secondary-500">by {blog.user?.username || blog.author?.name || 'User'} • {blog.time || blog.created_on}</div>
-              </div>
-              <div className="flex gap-2">
-                <Button size="sm" variant="danger" isLoading={deleteBlog.status === 'pending'} onClick={() => deleteBlog.mutate(blog.id)}>Delete</Button>
-                <Button size="sm" variant="secondary">Warn User</Button>
-                <Button size="sm" variant="secondary">Ban User</Button>
-              </div>
-            </div>
-          ))}
+            <div className="py-8 text-center">Loading...</div>
+          ) : blogs.map((b: any) => {
+              const userId = b.user?.id
+
+              return (
+                <div key={b.id} className="flex justify-between py-4">
+                  <div>
+                    <p>{b.content}</p>
+                    <p className="text-xs text-gray-500">{b.user?.username}</p>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => userId && warnUser.mutate(userId)}
+                      disabled={!userId}
+                    >
+                      Warn
+                    </Button>
+
+                    <Button
+                      onClick={() => userId && banUser.mutate(userId)}
+                      disabled={!userId}
+                      variant="secondary"
+                    >
+                      Ban
+                    </Button>
+
+                    <Button
+                      variant="danger"
+                      onClick={() => deleteBlog.mutate(b.id)}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              )
+            })}
         </div>
       </Card>
+
       {showCreate && (
-        <AdminCreateBlogBox
-          onClose={() => setShowCreate(false)}
-          onCreate={(content: string) => createBlog.mutate(content)}
-          isLoading={createBlog.status === 'pending'}
-        />
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="w-full max-w-2xl">
+            <AdminCreateBlogBox />
+            <div className="text-center mt-4">
+              <Button onClick={() => setShowCreate(false)}>Close</Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

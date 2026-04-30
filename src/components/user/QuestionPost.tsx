@@ -1057,10 +1057,12 @@ import {
   ThumbsDown
 } from 'lucide-react'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { ShareModal } from '@/components/shared/ShareModal'
 import { useOpenContent } from '@/hooks/useOpenContent'
 import apiClient from '@/lib/api-client'
+import { MoreVertical, Flag } from 'lucide-react'
+import { ReportModal } from '@/components/shared/ReportModal'
 
 interface Answer {
   id: string
@@ -1113,6 +1115,19 @@ export function QuestionPost({
   const [showAnswerBox, setShowAnswerBox] = useState(false)
   const [showAllAnswers, setShowAllAnswers] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
+  const [showActionMenu, setShowActionMenu] = useState(false)
+  const [showReportModal, setShowReportModal] = useState(false)
+  const actionMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (e: any) => {
+      if (actionMenuRef.current && !actionMenuRef.current.contains(e.target)) {
+        setShowActionMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const displayQuestion = question || content || ''
 
@@ -1132,6 +1147,7 @@ export function QuestionPost({
     }
 
     fetchAnswers()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   // =========================
@@ -1299,6 +1315,27 @@ export function QuestionPost({
             <p className="text-sm text-gray-500">{author.title}</p>
             <p className="text-xs text-gray-400">{timestamp}</p>
           </div>
+
+          <div ref={actionMenuRef} className="relative">
+            <button onClick={() => setShowActionMenu(!showActionMenu)}>
+              <MoreVertical />
+            </button>
+
+            {showActionMenu && (
+              <div className="absolute right-0 bg-white border rounded shadow p-2">
+                <button
+                  onClick={() => {
+                    setShowReportModal(true)
+                    setShowActionMenu(false)
+                  }}
+                  className="flex items-center gap-2 text-red-600 px-2 py-1"
+                >
+                  <Flag className="w-4 h-4" />
+                  Report
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* QUESTION */}
@@ -1419,6 +1456,13 @@ export function QuestionPost({
         postContent={displayQuestion}
         contentType="question"
         contentId={id}
+      />
+
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        contentId={id}
+        contentType="question"
       />
     </>
   )

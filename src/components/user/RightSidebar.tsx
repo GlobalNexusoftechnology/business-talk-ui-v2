@@ -235,8 +235,8 @@ export function RightSidebar() {
           apiClient.getStories(),
           apiClient.getHotPosts(),
         ]);
-        setPeople(peopleRes.data || []);
-        setGroups(groupsRes.data || []);
+        setPeople((peopleRes.data || []).slice(0, 5));
+        setGroups((groupsRes.data || []).slice(0, 5));
         const sortedStories = (storiesRes.data || []).sort(
           (a: any, b: any) => new Date(b.created_on).getTime() - new Date(a.created_on).getTime()
         );

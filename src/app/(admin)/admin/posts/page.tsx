@@ -1,78 +1,81 @@
 'use client'
 
-
 import { useState } from 'react'
 import { Card } from '@/components/shared/Card'
 import { Button } from '@/components/shared/Button'
 import { AdminCreatePostBox } from '@/components/admin/AdminCreatePostBox'
-import { useAdminPosts, useDeletePost } from '@/hooks/useAdminPosts'
-import apiClient from '@/lib/api-client'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import {
+  useAdminPosts,
+  useDeletePost,
+  useWarnUser,
+  useBanUser,
+} from '@/hooks/useAdminPosts'
 
 const filters = ['All', 'Latest', 'Trending', 'Reported']
 
 export default function AdminPostsPage() {
-  const [activeFilter, setActiveFilter] = useState('All')
+  const [filter, setFilter] = useState('All')
   const [showCreate, setShowCreate] = useState(false)
-  const queryClient = useQueryClient()
-  const { data: posts = [], isLoading } = useAdminPosts(activeFilter)
+
+  const { data: posts = [] } = useAdminPosts(filter)
   const deletePost = useDeletePost()
-  const createPost = useMutation({
-    mutationFn: async (content: string) => {
-      return apiClient.createPost({ content })
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-posts'] })
-      setShowCreate(false)
-    },
-  })
+  const warnUser = useWarnUser()
+  const banUser = useBanUser()
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-secondary-900 mb-6">Posts Management</h1>
-      <div className="mb-4 flex gap-2 items-center">
+      <h1 className="text-3xl font-bold mb-6">Posts</h1>
+
+      <div className="flex gap-2 mb-4">
         {filters.map((f) => (
-          <Button
-            key={f}
-            variant={activeFilter === f ? 'primary' : 'outline'}
-            className="capitalize"
-            onClick={() => setActiveFilter(f)}
-          >
+          <Button key={f} onClick={() => setFilter(f)}>
             {f}
           </Button>
         ))}
-        <Button variant="primary" className="ml-auto" onClick={() => setShowCreate(true)}>
+        <Button className="ml-auto" onClick={() => setShowCreate(true)}>
           Create Post
         </Button>
       </div>
+
       <Card>
-        <div className="divide-y">
-          {isLoading ? (
-            <div className="py-8 text-center text-secondary-500">Loading...</div>
-          ) : posts.length === 0 ? (
-            <div className="py-8 text-center text-secondary-500">No posts found.</div>
-          ) : posts.map((post: any) => (
-            <div key={post.id} className="flex items-center justify-between py-4">
-              <div>
-                <div className="font-semibold">{post.title || post.content}</div>
-                <div className="text-xs text-secondary-500">by {post.user?.username || post.author?.name || 'User'} • {post.time || post.created_on}</div>
-              </div>
-              <div className="flex gap-2">
-                <Button size="sm" variant="danger" isLoading={deletePost.status === 'pending'} onClick={() => deletePost.mutate(post.id)}>Delete</Button>
-                <Button size="sm" variant="secondary">Warn User</Button>
-                <Button size="sm" variant="secondary">Ban User</Button>
-              </div>
+        {posts.map((p: any) => (
+          <div key={p.id} className="flex justify-between py-4 border-b">
+            <div>
+              <p>{p.content}</p>
+              <p className="text-sm text-gray-500">
+                {p.user?.username}
+              </p>
             </div>
-          ))}
-        </div>
+
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => warnUser.mutate(p.user?.id)}
+              >
+                Warn
+              </Button>
+
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => banUser.mutate(p.user?.id)}
+              >
+                Ban
+              </Button>
+
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={() => deletePost.mutate(p.id)}
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        ))}
       </Card>
-      {showCreate && (
-        <AdminCreatePostBox
-          onClose={() => setShowCreate(false)}
-          onCreate={(content: string) => createPost.mutate(content)}
-          isLoading={createPost.status === 'pending'}
-        />
-      )}
+
+      {showCreate && <AdminCreatePostBox />}
     </div>
   )
 }

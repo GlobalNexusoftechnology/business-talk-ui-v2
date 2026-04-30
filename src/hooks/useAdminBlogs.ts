@@ -6,24 +6,25 @@ export function useAdminBlogs(filter: string) {
     queryKey: ['admin-blogs', filter],
     queryFn: async () => {
       const res = await apiClient.getBlogs()
-      let blogs = (res.data || []).filter((b: any) => b.type === 'BLOG' || b.type === 'ADMIN_BLOG')
-      if (filter === 'All') return blogs
-      if (filter === 'Trending') return blogs.filter((b: any) => b.type === 'trending')
-      if (filter === 'Reported') return blogs.filter((b: any) => b.type === 'reported')
-      if (filter === 'Latest') return blogs.sort((a: any, b: any) => Number(b.created_on) - Number(a.created_on))
+      let blogs = res.data || []
+
+      if (filter === 'Latest') {
+        return blogs.sort((a: any, b: any) => Number(b.created_on) - Number(a.created_on))
+      }
+
+      if (filter === 'Reported') {
+        return blogs.filter((b: any) => b.report_count > 0)
+      }
+
       return blogs
     },
   })
 }
 
 export function useDeleteBlog() {
-  const queryClient = useQueryClient()
+  const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (blogId: string) => {
-      return apiClient.deleteBlog(blogId)
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-blogs'] })
-    },
+    mutationFn: (id: string) => apiClient.deleteBlog(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-blogs'] }),
   })
 }

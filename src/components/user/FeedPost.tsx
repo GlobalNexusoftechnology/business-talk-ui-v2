@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from 'react'
 import { ShareModal } from '@/components/shared/ShareModal'
 import { useOpenContent } from '@/hooks/useOpenContent'
 import apiClient from '@/lib/api-client'
+import { ReportModal } from '@/components/shared/ReportModal'
 
 interface FeedPostProps {
   id?: string
@@ -38,6 +39,7 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
   const actionMenuRef = useRef<HTMLDivElement>(null)
   const { openPost } = useOpenContent()
   const [commentCount, setCommentCount] = useState(comments || 0)
+  const [showReportModal, setShowReportModal] = useState(false)
 
   //
   // FETCH COMMENT COUNT
@@ -352,8 +354,13 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
                 <button className="text-gray-700 hover:text-black hover:bg-gray-100 p-2 rounded transition flex items-center gap-1 text-xs" title="Not interested">
                   <EyeOff className="w-4 h-4" />
                 </button>
-                <button className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2 rounded transition flex items-center gap-1 text-xs" title="Report post">
-                  <Flag className="w-4 h-4" />
+                <button
+                  onClick={() => {
+                    setShowReportModal(true)
+                    setShowActionMenu(false)
+                  }}
+                >
+                  <Flag className="w-4 h-4 text-red-600" />
                 </button>
               </div>
             )}
@@ -526,6 +533,14 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
         postContent={content}
         contentType="post"
         contentId={id}
+      />
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        contentId={id}
+        contentType="post"
       />
     </>
   )

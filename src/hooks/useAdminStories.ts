@@ -1,30 +1,30 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/lib/api-client'
-import adminApi from '@/lib/admin-api'
 
 export function useAdminStories(filter: string) {
   return useQuery({
     queryKey: ['admin-stories', filter],
     queryFn: async () => {
       const res = await apiClient.getStories()
-      let stories = (res.data || [])
-      if (filter === 'All') return stories
-      if (filter === 'Trending') return stories.filter((s: any) => s.type === 'trending')
-      if (filter === 'Reported') return stories.filter((s: any) => s.type === 'reported')
-      if (filter === 'Latest') return stories.sort((a: any, b: any) => Number(b.created_on) - Number(a.created_on))
+      let stories = res.data || []
+
+      if (filter === 'Latest') {
+        return stories.sort((a: { created_on: string }, b: { created_on: string }) => Number(b.created_on) - Number(a.created_on))
+      }
+
+      if (filter === 'Reported') {
+        return stories.filter((s: any) => s.report_count > 0)
+      }
+
       return stories
     },
   })
 }
 
 export function useDeleteStory() {
-  const queryClient = useQueryClient()
+  const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (storyId: string) => {
-      return adminApi.deleteBlog(storyId)
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-stories'] })
-    },
+    mutationFn: (id: string) => apiClient.deleteBlog(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-stories'] }),
   })
 }

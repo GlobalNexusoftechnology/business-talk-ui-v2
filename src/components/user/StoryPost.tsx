@@ -535,13 +535,18 @@ import {
   MoreVertical,
   // BookOpen,
   Eye,
+  Bookmark,
+  Users,
+  EyeOff,
+  Flag,
 } from 'lucide-react'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ShareModal } from '@/components/shared/ShareModal'
 import { useOpenContent } from '@/hooks/useOpenContent'
 import { useStoryComments } from '@/hooks/useStoryComments'
 import { useStoryLike } from '@/hooks/useStoryLike'
+import { ReportModal } from '../shared/ReportModal'
 
 interface StoryPostProps {
   id?: string
@@ -580,10 +585,23 @@ export function StoryPost({
   const [commentInput, setCommentInput] = useState('')
   const [replyInput, setReplyInput] = useState('')
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
+  const [showActionMenu, setShowActionMenu] = useState(false)
+  const [showReportModal, setShowReportModal] = useState(false)
+  const actionMenuRef = useRef<HTMLDivElement>(null)
 
   // ✅ HOOKS (STANDARDIZED)
   const { comments, addComment, likeComment } = useStoryComments(id)
   const { likeStory } = useStoryLike(id)
+
+  useEffect(() => {
+    const handleClickOutside = (e: any) => {
+      if (actionMenuRef.current && !actionMenuRef.current.contains(e.target)) {
+        setShowActionMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   // =========================
   // 🧠 NEST COMMENTS
@@ -759,7 +777,35 @@ export function StoryPost({
               </p>
             </div>
           </div>
-          <MoreVertical />
+          <div ref={actionMenuRef} className="relative">
+            <button onClick={() => setShowActionMenu(!showActionMenu)}>
+              <MoreVertical />
+            </button>
+
+            {showActionMenu && (
+              <div className="absolute right-0 bg-white border rounded shadow p-2 flex gap-1">
+                <button className="text-gray-700 hover:text-black hover:bg-gray-100 p-2 rounded transition flex items-center gap-1 text-xs" title="Save post">
+                  <Bookmark className="w-4 h-4" />
+                </button>
+                <button className="text-gray-700 hover:text-black hover:bg-gray-100 p-2 rounded transition flex items-center gap-1 text-xs" title="Disconnect">
+                  <Users className="w-4 h-4" />
+                </button>
+                <button className="text-gray-700 hover:text-black hover:bg-gray-100 p-2 rounded transition flex items-center gap-1 text-xs" title="Not interested">
+                  <EyeOff className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => {
+                    setShowReportModal(true)
+                    setShowActionMenu(false)
+                  }}
+                  className="flex items-center gap-2 text-red-600 hover:bg-gray-100 px-2 py-1 rounded"
+                >
+                  <Flag className="w-4 h-4" />
+                  Report
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* IMAGE */}
@@ -893,6 +939,13 @@ export function StoryPost({
         postContent={excerpt}
         contentType="story"
         contentId={id}
+      />
+
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        contentId={id}
+        contentType="story"
       />
     </>
   )

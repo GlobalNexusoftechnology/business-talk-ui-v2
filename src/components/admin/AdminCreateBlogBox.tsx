@@ -1,25 +1,86 @@
-import { useState } from 'react'
-import { Card } from '@/components/shared/Card'
-import { Button } from '@/components/shared/Button'
+'use client'
 
-export function AdminCreateBlogBox({ onClose, onCreate, isLoading }: { onClose: () => void, onCreate?: (content: string) => void, isLoading?: boolean }) {
-  const [blog, setBlog] = useState('')
+import { useState } from 'react'
+import { ImageIcon, Tag } from 'lucide-react'
+import { TagsPopup } from '@/components/shared/TagsPopup'
+import apiClient from '@/lib/api-client'
+
+export function AdminCreateBlogBox() {
+  const [title, setTitle] = useState('')
+  const [content, setContent] = useState('')
+  const [cover, setCover] = useState<File[]>([])
+  const [tags, setTags] = useState<string[]>([])
+  const [showTags, setShowTags] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  const handleCreate = async () => {
+    if (!content.trim()) return
+
+    try {
+      setLoading(true)
+
+      const formData = new FormData()
+      formData.append('type', 'ADMIN_BLOG') // 🔥 KEY DIFFERENCE
+      formData.append('title', title)
+      formData.append('content', content)
+      formData.append('tags', JSON.stringify(tags))
+
+      if (cover[0]) formData.append('cover_image', cover[0])
+
+      await apiClient.createBlog(formData)
+
+      setTitle('')
+      setContent('')
+      setCover([])
+      setTags([])
+      window.location.reload()
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-      <Card className="w-full max-w-lg p-6">
-        <h2 className="text-xl font-bold mb-4">Create Blog</h2>
-        <textarea
-          className="w-full border rounded p-2 mb-4"
-          rows={4}
-          placeholder="Write your blog..."
-          value={blog}
-          onChange={e => setBlog(e.target.value)}
-        />
-        <div className="flex gap-2 justify-end">
-          <Button variant="secondary" onClick={onClose} disabled={isLoading}>Cancel</Button>
-          <Button variant="primary" isLoading={isLoading} onClick={() => onCreate?.(blog)} disabled={!blog.trim() || isLoading}>Create</Button>
+    <div className="bg-white p-6 rounded-2xl border">
+      <input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Blog title"
+        className="w-full p-3 bg-gray-50 border rounded-xl"
+      />
+
+      <textarea
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        placeholder="Write admin blog..."
+        className="w-full mt-3 p-3 bg-gray-50 border rounded-xl"
+      />
+
+      <div className="flex justify-between mt-4">
+        <div className="flex gap-4">
+          <input hidden type="file" id="blog-img" onChange={(e) => setCover(Array.from(e.target.files || []))} />
+          <label htmlFor="blog-img" className="cursor-pointer">
+            <ImageIcon />
+          </label>
+
+          <button onClick={() => setShowTags(true)}>
+            <Tag /> Tags
+          </button>
         </div>
-      </Card>
+
+        <button
+          onClick={handleCreate}
+          className="bg-black text-white px-6 py-2 rounded-lg"
+        >
+          {loading ? 'Publishing...' : 'Create Blog'}
+        </button>
+      </div>
+
+      <TagsPopup
+        isOpen={showTags}
+        onClose={() => setShowTags(false)}
+        onTagsChange={setTags}
+        selectedTags={tags}
+      />
     </div>
   )
 }
