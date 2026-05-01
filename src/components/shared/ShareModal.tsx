@@ -4,6 +4,8 @@ import { X, Copy } from 'lucide-react'
 import { useState } from 'react'
 import { FaWhatsapp, FaTelegram , FaLinkedin, FaFacebook } from 'react-icons/fa';
 
+const FRONTEND_URL = process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://businesstalk24.com';
+
 
 interface ShareModalProps {
   isOpen: boolean

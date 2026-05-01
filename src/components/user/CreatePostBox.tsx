@@ -77,7 +77,7 @@ export function CreatePostBox() {
         <button
           onClick={handleCreatePost}
           disabled={loading || !postContent.trim()}
-          className="bg-black text-white px-6 py-2 rounded-lg"
+          className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
           {loading ? 'Posting...' : 'Create Post'}
         </button>

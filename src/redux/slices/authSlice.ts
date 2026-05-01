@@ -38,7 +38,7 @@ export const login = createAsyncThunk(
       await apiClient.login(credentials.email, credentials.password)
 
       // 2. Fetch user using cookie session
-      const userRes = await apiClient.getMyProfile()
+      const userRes = await apiClient.getMyProfileinfo()
 
       if (!userRes?.data) {
         throw new Error('Failed to fetch user')
