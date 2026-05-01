@@ -27,7 +27,7 @@ export function ShareModal({
   const [copied, setCopied] = useState(false)
 
   // Construct the post URL dynamically based on content type
-  const postUrl = `https://businesstalk24.com/${contentType}/${contentId}`
+  const postUrl = `${FRONTEND_URL}/${contentType}/${contentId}`
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(postUrl).then(() => {
