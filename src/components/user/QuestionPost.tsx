@@ -35,6 +35,7 @@ interface Answer {
   content: string
   timestamp: string
   likes: number
+  dislikes: number
   replies?: Answer[]
   parent?: any
 }
@@ -94,7 +95,9 @@ export function QuestionPost({
   const [liked, setLiked] = useState(false)
   const [disliked, setDisliked] = useState(false)
   const [likedAnswers, setLikedAnswers] = useState<Set<string>>(new Set())
+  const [dislikedAnswers, setDislikedAnswers] = useState<Set<string>>(new Set())
   const [animatingId, setAnimatingId] = useState<string | null>(null)
+  const [dislikeAnimatingId, setDislikeAnimatingId] = useState<string | null>(null)
   useEffect(() => {
     const handleClickOutside = (e: any) => {
       if (actionMenuRef.current && !actionMenuRef.current.contains(e.target)) {
@@ -182,6 +185,7 @@ export function QuestionPost({
     content: apiComment.comment,
     timestamp: new Date(Number(apiComment.created_on)).toLocaleString(),
     likes: apiComment.likes || 0,
+    dislikes: apiComment.dislikes || 0,
     replies: [],
     parent: apiComment.parent || null,
   })
@@ -249,12 +253,21 @@ export function QuestionPost({
     }
   }
 
-  // Recursively update like count at any depth in the answers tree
-  const updateAnswerLikesRecursive = (list: Answer[], targetId: string, newLikes: number): Answer[] =>
+  // Recursively update vote counts at any depth in the answers tree
+  const updateAnswerVotesRecursive = (
+    list: Answer[],
+    targetId: string,
+    upvotes?: number,
+    downvotes?: number
+  ): Answer[] =>
     list.map(a =>
       a.id === targetId
-        ? { ...a, likes: newLikes }
-        : { ...a, replies: updateAnswerLikesRecursive(a.replies || [], targetId, newLikes) }
+        ? {
+            ...a,
+            ...(upvotes !== undefined ? { likes: upvotes } : {}),
+            ...(downvotes !== undefined ? { dislikes: downvotes } : {}),
+          }
+        : { ...a, replies: updateAnswerVotesRecursive(a.replies || [], targetId, upvotes, downvotes) }
     )
 
   // =========================
@@ -265,20 +278,39 @@ export function QuestionPost({
     if (vote === 'up') {
       setAnimatingId(answerId)
       setTimeout(() => setAnimatingId(null), 300)
-
-      const newLiked = new Set(likedAnswers)
-      if (newLiked.has(answerId)) {
-        newLiked.delete(answerId)
-      } else {
-        newLiked.add(answerId)
-      }
-      setLikedAnswers(newLiked)
+      setLikedAnswers(prev => {
+        const next = new Set(prev)
+        next.has(answerId) ? next.delete(answerId) : next.add(answerId)
+        return next
+      })
+      // clear dislike if switching
+      setDislikedAnswers(prev => {
+        if (!prev.has(answerId)) return prev
+        const next = new Set(prev)
+        next.delete(answerId)
+        return next
+      })
+    } else {
+      setDislikeAnimatingId(answerId)
+      setTimeout(() => setDislikeAnimatingId(null), 300)
+      setDislikedAnswers(prev => {
+        const next = new Set(prev)
+        next.has(answerId) ? next.delete(answerId) : next.add(answerId)
+        return next
+      })
+      // clear like if switching
+      setLikedAnswers(prev => {
+        if (!prev.has(answerId)) return prev
+        const next = new Set(prev)
+        next.delete(answerId)
+        return next
+      })
     }
 
     try {
       const res = await apiClient.voteComment(answerId, vote)
-      if (res?.upvotes !== undefined) {
-        setAnswersList(prev => updateAnswerLikesRecursive(prev, answerId, res.upvotes))
+      if (res?.upvotes !== undefined || res?.downvotes !== undefined) {
+        setAnswersList(prev => updateAnswerVotesRecursive(prev, answerId, res.upvotes, res.downvotes))
       } else {
         // fallback: refetch if API doesn't return vote counts
         const updated = await apiClient.getPostComments(id)
@@ -320,8 +352,19 @@ export function QuestionPost({
                       }`}
                     /> {reply.likes}
                   </button>
-                  <button onClick={() => handleVoteAnswer(reply.id, 'down')} className="flex items-center gap-1">
-                    <ThumbsDown className="inline w-4 h-4" /> Disagree
+                  <button
+                    onClick={() => handleVoteAnswer(reply.id, 'down')}
+                    className={`flex items-center gap-1 px-2 py-0.5 rounded-lg transition-all duration-200 active:scale-90 hover:scale-105 ${
+                      dislikedAnswers.has(reply.id)
+                        ? 'bg-red-50 text-red-500 scale-105'
+                        : 'text-gray-500 hover:bg-red-50 hover:text-red-500'
+                    }`}
+                  >
+                    <ThumbsDown
+                      className={`inline w-4 h-4 transition-all duration-200 ${
+                        dislikeAnimatingId === reply.id ? 'scale-150 -rotate-12' : ''
+                      }`}
+                    /> {reply.dislikes}
                   </button>
                   <button onClick={() => setReplyingTo(reply.id)}>
                     Reply
@@ -563,8 +606,19 @@ export function QuestionPost({
                       }`}
                     /> Agree ({answer.likes})
                   </button>
-                  <button onClick={() => handleVoteAnswer(answer.id, 'down')} className="flex items-center gap-1">
-                    <ThumbsDown className="inline w-4 h-4" /> Disagree
+                  <button
+                    onClick={() => handleVoteAnswer(answer.id, 'down')}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-all duration-200 active:scale-90 hover:scale-105 ${
+                      dislikedAnswers.has(answer.id)
+                        ? 'bg-red-50 text-red-500 scale-105'
+                        : 'text-gray-600 hover:bg-red-50 hover:text-red-500'
+                    }`}
+                  >
+                    <ThumbsDown
+                      className={`inline w-4 h-4 transition-all duration-200 ${
+                        dislikeAnimatingId === answer.id ? 'scale-150 -rotate-12' : ''
+                      }`}
+                    /> Disagree ({answer.dislikes})
                   </button>
                   <button onClick={() => setReplyingTo(answer.id)}>
                     Reply

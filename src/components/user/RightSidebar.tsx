@@ -54,7 +54,7 @@ export function TrendingItem({
       <p className="text-sm font-semibold text-black line-clamp-2 mb-1">{displayText}</p>
       <p className="text-xs text-gray-500">
         {type === 'question' && (
-          <>{item.answers || item.answerCount || 0} Answers</>
+          <>{item.answers || item.answerCount || item.answer_count || item.comments_count || item.comment_count || 0} Answers</>
         )}
         {type === 'story' && (
           <>{timeAgo} ago</>

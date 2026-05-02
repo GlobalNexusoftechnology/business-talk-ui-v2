@@ -19,6 +19,7 @@ import {
   // Lock,
   // Settings,
   LogOut,
+  MessageSquare,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useRedux'
 import { logout } from '@/redux/slices/authSlice'
@@ -36,6 +37,7 @@ const adminSidebarItems = [
   { label: 'Notifications', href: '/admin/notifications', icon: Bell },
   // { label: 'Advertisements', href: '/admin/advertisements', icon: Megaphone },
   { label: 'Analytics', href: '/admin/analytics', icon: TrendingUp },
+  { label: 'Feedback', href: '/admin/feedback', icon: MessageSquare },
   // { label: 'Revenue', href: '/admin/revenue', icon: DollarSign },
   // { label: 'Roles', href: '/admin/roles', icon: Lock },
   // { label: 'Settings', href: '/admin/settings', icon: Settings },

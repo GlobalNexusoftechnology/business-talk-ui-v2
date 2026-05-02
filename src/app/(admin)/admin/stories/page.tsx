@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Card } from '@/components/shared/Card'
 import { Button } from '@/components/shared/Button'
 import { AdminCreateStoryBox } from '@/components/admin/AdminCreateStoryBox'
 import { useAdminStories, useDeleteStory } from '@/hooks/useAdminStories'
 import { useBanUser, useWarnUser } from '@/hooks/useAdminPosts'
+import { AdminContentCard } from '@/components/admin/AdminContentCard'
 
 const filters = ['All', 'Latest', 'Trending', 'Reported']
 
@@ -19,67 +19,61 @@ export default function AdminStoriesPage() {
   const banUser = useBanUser()
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-6">Stories Management</h1>
-
-      <div className="mb-4 flex gap-2 items-center">
-        {filters.map((f) => (
-          <Button
-            key={f}
-            variant={activeFilter === f ? 'primary' : 'outline'}
-            onClick={() => setActiveFilter(f)}
-          >
-            {f}
-          </Button>
-        ))}
-
-        <Button className="ml-auto" onClick={() => setShowCreate(true)}>
-          Create Story
-        </Button>
-      </div>
-
-      <Card>
-        <div className="divide-y">
-          {isLoading ? (
-            <div className="py-8 text-center">Loading...</div>
-          ) : stories.map((s: any) => {
-              const userId = s.user?.id
-
-              return (
-                <div key={s.id} className="flex justify-between py-4">
-                  <div>
-                    <p>{s.content}</p>
-                    <p className="text-xs text-gray-500">{s.user?.username}</p>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => userId && warnUser.mutate(userId)}
-                      disabled={!userId}
-                    >
-                      Warn
-                    </Button>
-
-                    <Button
-                      onClick={() => userId && banUser.mutate(userId)}
-                      disabled={!userId}
-                      variant="secondary"
-                    >
-                      Ban
-                    </Button>
-
-                    <Button
-                      variant="danger"
-                      onClick={() => deleteStory.mutate(s.id)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </div>
-              )
-            })}
+    <div className="p-6 min-h-screen" style={{ backgroundColor: '#F8F9FA' }}>
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold" style={{ color: '#212529' }}>Stories Management</h1>
+          <Button onClick={() => setShowCreate(true)}>Create Story</Button>
         </div>
-      </Card>
+
+        <div className="flex gap-2 mb-6 flex-wrap">
+          {filters.map((f) => (
+            <button
+              key={f}
+              onClick={() => setActiveFilter(f)}
+              className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              style={{
+                backgroundColor: activeFilter === f ? '#212529' : '#fff',
+                color: activeFilter === f ? '#fff' : '#5F6368',
+                border: '1px solid #E8E8E8',
+              }}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+
+        {isLoading ? (
+          <div className="py-16 text-center text-gray-400">Loading...</div>
+        ) : stories.length === 0 ? (
+          <div className="py-16 text-center text-gray-400">No stories found.</div>
+        ) : (
+          stories.map((s: any) => (
+            <AdminContentCard
+              key={s.id}
+              id={s.id}
+              type="story"
+              author={{
+                id: s.user?.id || '',
+                name: s.user?.full_name || s.user?.username || 'Unknown',
+                avatar: s.user?.profile_photo,
+                title: s.user?.profession,
+              }}
+              title={s.title}
+              content={s.content}
+              coverImage={s.cover_image}
+              media={s.media || []}
+              likes={s.upvotes ?? s.likes ?? 0}
+              commentsCount={s.comments_count ?? 0}
+              views={s.views}
+              createdOn={s.created_on}
+              onWarn={(uid) => warnUser.mutate(uid)}
+              onBan={(uid) => banUser.mutate(uid)}
+              onDelete={(id) => deleteStory.mutate(id)}
+            />
+          ))
+        )}
+      </div>
 
       {showCreate && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">

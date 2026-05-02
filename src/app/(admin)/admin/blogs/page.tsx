@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Card } from '@/components/shared/Card'
 import { Button } from '@/components/shared/Button'
 import { AdminCreateBlogBox } from '@/components/admin/AdminCreateBlogBox'
 import { useAdminBlogs, useDeleteBlog } from '@/hooks/useAdminBlogs'
 import { useBanUser, useWarnUser } from '@/hooks/useAdminPosts'
+import { AdminContentCard } from '@/components/admin/AdminContentCard'
 
 const filters = ['All', 'Latest', 'Trending', 'Reported']
 
@@ -19,67 +19,62 @@ export default function AdminBlogsPage() {
   const banUser = useBanUser()
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-6">Blogs Management</h1>
-
-      <div className="mb-4 flex gap-2 items-center">
-        {filters.map((f) => (
-          <Button
-            key={f}
-            variant={activeFilter === f ? 'primary' : 'outline'}
-            onClick={() => setActiveFilter(f)}
-          >
-            {f}
-          </Button>
-        ))}
-
-        <Button className="ml-auto" onClick={() => setShowCreate(true)}>
-          Create Blog
-        </Button>
-      </div>
-
-      <Card>
-        <div className="divide-y">
-          {isLoading ? (
-            <div className="py-8 text-center">Loading...</div>
-          ) : blogs.map((b: any) => {
-              const userId = b.user?.id
-
-              return (
-                <div key={b.id} className="flex justify-between py-4">
-                  <div>
-                    <p>{b.content}</p>
-                    <p className="text-xs text-gray-500">{b.user?.username}</p>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => userId && warnUser.mutate(userId)}
-                      disabled={!userId}
-                    >
-                      Warn
-                    </Button>
-
-                    <Button
-                      onClick={() => userId && banUser.mutate(userId)}
-                      disabled={!userId}
-                      variant="secondary"
-                    >
-                      Ban
-                    </Button>
-
-                    <Button
-                      variant="danger"
-                      onClick={() => deleteBlog.mutate(b.id)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </div>
-              )
-            })}
+    <div className="p-6 min-h-screen" style={{ backgroundColor: '#F8F9FA' }}>
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold" style={{ color: '#212529' }}>Blogs Management</h1>
+          <Button onClick={() => setShowCreate(true)}>Create Blog</Button>
         </div>
-      </Card>
+
+        <div className="flex gap-2 mb-6 flex-wrap">
+          {filters.map((f) => (
+            <button
+              key={f}
+              onClick={() => setActiveFilter(f)}
+              className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              style={{
+                backgroundColor: activeFilter === f ? '#212529' : '#fff',
+                color: activeFilter === f ? '#fff' : '#5F6368',
+                border: '1px solid #E8E8E8',
+              }}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+
+        {isLoading ? (
+          <div className="py-16 text-center text-gray-400">Loading...</div>
+        ) : blogs.length === 0 ? (
+          <div className="py-16 text-center text-gray-400">No blogs found.</div>
+        ) : (
+          blogs.map((b: any) => (
+            <AdminContentCard
+              key={b.id}
+              id={b.id}
+              type="blog"
+              author={{
+                id: b.user?.id || '',
+                name: b.user?.full_name || b.user?.username || 'Unknown',
+                avatar: b.user?.profile_photo,
+                title: b.user?.profession,
+              }}
+              title={b.title}
+              content={b.content}
+              coverImage={b.cover_image}
+              media={b.media || []}
+              tags={b.tags || []}
+              likes={b.upvotes ?? b.likes ?? 0}
+              commentsCount={b.comments_count ?? 0}
+              views={b.views}
+              createdOn={b.created_on}
+              onWarn={(uid) => warnUser.mutate(uid)}
+              onBan={(uid) => banUser.mutate(uid)}
+              onDelete={(id) => deleteBlog.mutate(id)}
+            />
+          ))
+        )}
+      </div>
 
       {showCreate && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">

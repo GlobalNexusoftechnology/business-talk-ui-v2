@@ -22,6 +22,8 @@ export default function AdminUsersPage() {
   const [filter, setFilter] = useState<'all' | 'active' | 'suspended' | 'reported'>('all')
   const [loading, setLoading] = useState(true)
   const [selectedUser, setSelectedUser] = useState<any | null>(null)
+  const [fullProfile, setFullProfile] = useState<any | null>(null)
+  const [profileLoading, setProfileLoading] = useState(false)
   const [selectedUsers, setSelectedUsers] = useState<string[]>([])
   const [currentUser, setCurrentUser] = useState<any>(null)
 
@@ -93,6 +95,25 @@ export default function AdminUsersPage() {
 
   // ================= HELPERS =================
   const isSameUser = (user: any) => currentUser?.id === user.id
+
+  const openUserModal = async (u: any) => {
+    setSelectedUser(u)
+    setFullProfile(null)
+    setProfileLoading(true)
+    try {
+      const res = await apiClient.getUserById(u.id)
+      setFullProfile(res.data)
+    } catch {
+      /* leave as null, modal shows fallback */
+    } finally {
+      setProfileLoading(false)
+    }
+  }
+
+  const closeUserModal = () => {
+    setSelectedUser(null)
+    setFullProfile(null)
+  }
 
   const toggleUserSelection = (id: string) => {
     setSelectedUsers((prev) =>
@@ -288,7 +309,7 @@ export default function AdminUsersPage() {
                 {/* ACTIONS */}
                 <td className="flex gap-2 justify-end p-3">
 
-                  <button onClick={() => setSelectedUser(u)}>
+                  <button onClick={() => openUserModal(u)}>
                     <Eye size={16} />
                   </button>
 
@@ -315,48 +336,193 @@ export default function AdminUsersPage() {
         </table>
       </div>
 
-      {/* MODAL */}
+      {/* FULL PROFILE MODAL */}
       {selectedUser && (
-        <div className="fixed inset-0 bg-black/40 flex justify-center items-center">
-          <div className="bg-white p-6 rounded w-[400px] relative">
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl w-full max-w-lg relative shadow-2xl">
 
-            <button onClick={() => setSelectedUser(null)} className="absolute top-2 right-2">
-              <X />
+            <button
+              onClick={closeUserModal}
+              className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/80 hover:bg-white transition-colors"
+            >
+              <X size={16} />
             </button>
 
-            <h2 className="font-bold text-lg mb-4">User Details</h2>
-
-            <p><b>Name:</b> {selectedUser.name}</p>
-            <p><b>Email:</b> {selectedUser.email}</p>
-
-            <div className="flex gap-2 mt-4">
-
-              <button onClick={() => handleWarn(selectedUser.id)} className="bg-yellow-500 text-white px-3 py-1 rounded">
-                Warn
-              </button>
-
-              {!isSameUser(selectedUser) && (
-                <button
-                  onClick={() => handleBanToggle(selectedUser)}
-                  className={`px-3 py-1 rounded text-white ${
-                    selectedUser.is_banned ? 'bg-green-600' : 'bg-red-600'
-                  }`}
-                >
-                  {selectedUser.is_banned ? 'Unban' : 'Ban'}
-                </button>
+            {/* Cover image */}
+            <div
+              className="w-full h-32 rounded-t-2xl bg-gradient-to-r from-blue-400 to-blue-600 relative overflow-hidden"
+            >
+              {(fullProfile?.cover_image) && (
+                <img
+                  src={fullProfile.cover_image}
+                  alt="cover"
+                  className="w-full h-full object-cover"
+                />
               )}
-
-              {!isSameUser(selectedUser) && (
-                <button
-                  onClick={() => handleDelete(selectedUser.id)}
-                  className="bg-black text-white px-3 py-1 rounded"
-                >
-                  Delete
-                </button>
-              )}
-
             </div>
 
+            {/* Avatar + name */}
+            <div className="px-6 pb-6">
+              <div className="-mt-10 mb-3 flex items-end justify-between z-10 relative">
+                <img
+                  src={
+                    fullProfile?.profile_photo ||
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedUser.name)}&size=80&background=1976D2&color=fff`
+                  }
+                  alt={selectedUser.name}
+                  className="w-20 h-20 rounded-full border-4 border-white object-cover shadow z-10 relative"
+                />
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    selectedUser.status === 'active'
+                      ? 'bg-green-100 text-green-700'
+                      : selectedUser.status === 'suspended'
+                      ? 'bg-red-100 text-red-700'
+                      : 'bg-yellow-100 text-yellow-700'
+                  }`}
+                >
+                  {selectedUser.status}
+                </span>
+              </div>
+
+              {profileLoading ? (
+                <div className="py-8 text-center text-gray-400 text-sm">Loading profile…</div>
+              ) : (
+                <>
+                  <h2 className="text-lg font-bold">{fullProfile?.full_name || selectedUser.name}</h2>
+                  {(fullProfile?.username) && (
+                    <p className="text-sm text-gray-500 mb-1">@{fullProfile.username}</p>
+                  )}
+                  {(fullProfile?.profession || selectedUser.role) && (
+                    <p className="text-sm font-medium text-blue-700 mb-3">
+                      {fullProfile?.profession || selectedUser.role}
+                    </p>
+                  )}
+
+                  {/* Info grid */}
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm mb-4">
+                    {(fullProfile?.email || selectedUser.email) && (
+                      <div>
+                        <span className="text-xs text-gray-400 uppercase tracking-wide">Email</span>
+                        <p className="font-medium truncate">{fullProfile?.email || selectedUser.email}</p>
+                      </div>
+                    )}
+                    {(fullProfile?.phone_number) && (
+                      <div>
+                        <span className="text-xs text-gray-400 uppercase tracking-wide">Phone</span>
+                        <p className="font-medium">{fullProfile.phone_number}</p>
+                      </div>
+                    )}
+                    {(fullProfile?.company || selectedUser.company) && (
+                      <div>
+                        <span className="text-xs text-gray-400 uppercase tracking-wide">Company</span>
+                        <p className="font-medium">{fullProfile?.company || selectedUser.company}</p>
+                      </div>
+                    )}
+                    {(fullProfile?.location) && (
+                      <div>
+                        <span className="text-xs text-gray-400 uppercase tracking-wide">Location</span>
+                        <p className="font-medium">{fullProfile.location}</p>
+                      </div>
+                    )}
+                    <div>
+                      <span className="text-xs text-gray-400 uppercase tracking-wide">Warnings</span>
+                      <p className={`font-semibold ${selectedUser.warning_count > 0 ? 'text-yellow-600' : 'text-green-600'}`}>
+                        {selectedUser.warning_count}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-400 uppercase tracking-wide">Banned</span>
+                      <p className={`font-semibold ${selectedUser.is_banned ? 'text-red-600' : 'text-green-600'}`}>
+                        {selectedUser.is_banned ? 'Yes' : 'No'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* About */}
+                  {(fullProfile?.about || fullProfile?.short_bio) && (
+                    <div className="mb-4">
+                      <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">About</p>
+                      <p className="text-sm text-gray-700">{fullProfile.about || fullProfile.short_bio}</p>
+                    </div>
+                  )}
+
+                  {/* Experience */}
+                  {fullProfile?.experience?.length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Experience</p>
+                      <div className="space-y-2">
+                        {fullProfile.experience.map((exp: any, i: number) => (
+                          <div key={i} className="text-sm border-l-2 border-blue-200 pl-3">
+                            <p className="font-semibold">{exp.title || exp.position}</p>
+                            <p className="text-gray-500">{exp.company}</p>
+                            {(exp.start_date || exp.startDate) && (
+                              <p className="text-xs text-gray-400">
+                                {exp.start_date || exp.startDate} – {exp.end_date || exp.endDate || 'Present'}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Education */}
+                  {fullProfile?.education?.length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Education</p>
+                      <div className="space-y-2">
+                        {fullProfile.education.map((edu: any, i: number) => (
+                          <div key={i} className="text-sm border-l-2 border-purple-200 pl-3">
+                            <p className="font-semibold">{edu.degree || edu.field}</p>
+                            <p className="text-gray-500">{edu.institution || edu.school}</p>
+                            {(edu.start_year || edu.year) && (
+                              <p className="text-xs text-gray-400">
+                                {edu.start_year || edu.year} – {edu.end_year || 'Present'}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Action buttons */}
+              <div
+                className="flex gap-2 pt-4 flex-wrap"
+                style={{ borderTop: '1px solid #F0F0F0' }}
+              >
+                <button
+                  onClick={() => handleWarn(selectedUser.id)}
+                  className="px-4 py-2 text-sm rounded-lg font-medium"
+                  style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}
+                >
+                  ⚠ Warn
+                </button>
+
+                {!isSameUser(selectedUser) && (
+                  <button
+                    onClick={() => { handleBanToggle(selectedUser); closeUserModal() }}
+                    className={`px-4 py-2 text-sm rounded-lg font-medium text-white ${
+                      selectedUser.is_banned ? 'bg-green-600' : 'bg-orange-600'
+                    }`}
+                  >
+                    {selectedUser.is_banned ? '✓ Unban' : '⊘ Ban'}
+                  </button>
+                )}
+
+                {!isSameUser(selectedUser) && (
+                  <button
+                    onClick={() => { handleDelete(selectedUser.id); closeUserModal() }}
+                    className="px-4 py-2 text-sm rounded-lg font-medium text-white bg-red-600"
+                  >
+                    🗑 Delete
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

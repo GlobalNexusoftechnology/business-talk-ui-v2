@@ -29,6 +29,74 @@ const adminApi = {
     return apiClient.patch(`/admin/users/${id}/unban`)
   },
 
+  shadowBanUser(id: string) {
+    return apiClient.patch(`/admin/users/${id}/shadow-ban`)
+  },
+
+  unshadowBanUser(id: string) {
+    return apiClient.patch(`/admin/users/${id}/unshadow-ban`)
+  },
+
+  // MEDIA LIBRARY
+  uploadMedia(file: File) {
+    const form = new FormData()
+    form.append('file', file)
+    return apiClient.post('/admin/media/upload', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+
+  getMedia(page = 1, type?: 'image' | 'video') {
+    return apiClient.get('/admin/media', { params: { page, ...(type ? { type } : {}) } })
+  },
+
+  // CONTENT MODERATION
+  getPendingContent() {
+    return apiClient.get('/admin/content')
+  },
+
+  approveContent(id: string, type: 'post' | 'blog') {
+    return apiClient.patch(`/admin/content/${id}/approve`, null, { params: { type } })
+  },
+
+  rejectContent(id: string, type: 'post' | 'blog', reason: string) {
+    return apiClient.patch(`/admin/content/${id}/reject`, { reason }, { params: { type } })
+  },
+
+  deleteContent(id: string, type: 'post' | 'blog') {
+    return apiClient.delete(`/admin/content/${id}`, { params: { type } })
+  },
+
+  // DRAFTS
+  createDraft(payload: { type: 'blog'; content: { title: string; body: string; cover_image?: string } }) {
+    return apiClient.post('/admin/drafts', payload)
+  },
+
+  getDrafts() {
+    return apiClient.get('/admin/drafts')
+  },
+
+  updateDraft(id: string, fields: Record<string, any>) {
+    return apiClient.patch(`/admin/drafts/${id}`, fields)
+  },
+
+  publishDraft(id: string) {
+    return apiClient.post(`/admin/drafts/${id}/publish`)
+  },
+
+  deleteDraft(id: string) {
+    return apiClient.delete(`/admin/drafts/${id}`)
+  },
+
+  // FEEDBACK / SUPPORT
+  getFeedback(type?: 'issue' | 'suggestion' | 'bug') {
+    return apiClient.get('/admin/feedback', { params: type ? { type } : {} })
+  },
+
+  resolveFeedback(id: string) {
+    return apiClient.patch(`/admin/feedback/${id}/resolve`)
+  },
+
   // REPORTS
   getReports(params?: any) {
     return apiClient.get('/admin/reports', { params })
@@ -60,8 +128,8 @@ const adminApi = {
   },
 
   getAllUsers() {
-    return apiClient.get(`/user`) // this give all the users, we can filter on client side for admin panel, since we don't expect more than 10k users. If it grows we can add pagination and filtering on server side
-  }
+    return apiClient.get(`/user`)
+  },
 }
 
 export default adminApi

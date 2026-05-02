@@ -15,6 +15,7 @@ import {
   Shield,
   FileCheck,
   Info,
+  FileEdit,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useRedux'
 import { logout } from '@/redux/slices/authSlice'
@@ -36,6 +37,7 @@ export const userSidebarSections = [
       { label: 'People', href: '/people', icon: Users },
       { label: 'Groups', href: '/groups', icon: UsersRound },
       { label: 'Blogs', href: '/blogs', icon: BookOpen },
+      { label: 'Drafts', href: '/drafts', icon: FileEdit },
     ],
   },
   {
