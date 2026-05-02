@@ -1,6 +1,6 @@
 export const ROLES = {
   ADMIN: '261af5ac-b7e1-40a9-b36a-efb23b837871', // bc6cd1f9-44b6-4688-b78c-94abbe97ae4a
-  SUPER_ADMIN: '63765d88-d6de-4fd3-8528-a9de0107ba4d', // 🔥 replace with real one
+  SUPER_ADMIN: '133af800-4c6f-4006-9f0c-6ccb8ad35376', // 🔥 replace with real one
 }
 
 export const isAdmin = (roleId?: string) => {

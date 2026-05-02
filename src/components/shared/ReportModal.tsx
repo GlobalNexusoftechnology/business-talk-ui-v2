@@ -39,8 +39,14 @@ export function ReportModal({ isOpen, onClose, contentId, contentType }: Props) 
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white w-full max-w-md rounded-lg p-5 relative">
+    <div
+      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white w-full max-w-md rounded-lg p-5 relative"
+        onClick={e => e.stopPropagation()}
+      >
 
         <button
           onClick={onClose}

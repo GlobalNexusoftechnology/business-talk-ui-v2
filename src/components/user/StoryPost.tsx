@@ -5,24 +5,28 @@ import {
   MessageCircle,
   Send,
   MoreVertical,
-  // BookOpen,
   Eye,
   Bookmark,
-  Users,
-  EyeOff,
+  UserCheck, 
+  UserMinus, 
+  UserPlus,
   Flag,
 } from 'lucide-react'
 
 import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { ShareModal } from '@/components/shared/ShareModal'
 import { useOpenContent } from '@/hooks/useOpenContent'
 import { useStoryComments } from '@/hooks/useStoryComments'
 import { useStoryLike } from '@/hooks/useStoryLike'
+import { useFollow } from '@/hooks/useFollow'
+import { useSavedStatus } from '@/hooks/useSavedStatus'
+import { getTimeAgo } from '@/lib/utils'
 import { ReportModal } from '../shared/ReportModal'
-import apiClient from '@/lib/api-client'
 
 interface StoryPostProps {
   id?: string
+  authorId?: string
   author: {
     name: string
     title: string
@@ -41,6 +45,7 @@ interface StoryPostProps {
 
 export function StoryPost({
   id = '',
+  authorId = '',
   author,
   storyTitle,
   excerpt,
@@ -52,6 +57,7 @@ export function StoryPost({
   // category,
 }: StoryPostProps) {
   const { openStory } = useOpenContent()
+  const router = useRouter()
 
   const [showShareModal, setShowShareModal] = useState(false)
   const [showComments, setShowComments] = useState(false)
@@ -62,12 +68,12 @@ export function StoryPost({
   const [showReportModal, setShowReportModal] = useState(false)
   const actionMenuRef = useRef<HTMLDivElement>(null)
   const [animatingId, setAnimatingId] = useState<string | null>(null)
-  const [saved, setSaved] = useState(false)
-  const [showSavedToast, setShowSavedToast] = useState(false)
 
   // ✅ HOOKS (STANDARDIZED)
   const { comments, addComment, likeComment } = useStoryComments(id)
   const { likeStory } = useStoryLike(id)
+  const { state: followState, follow, unfollow } = useFollow(authorId)
+  const { isSaved, toggle: toggleSave, showToast: showSavedToast } = useSavedStatus(id || undefined, 'blog')
 
   useEffect(() => {
     const handleClickOutside = (e: any) => {
@@ -118,23 +124,10 @@ export function StoryPost({
   const nestedComments = nestComments(comments)
 
   // =========================
-  // 🔖 SAVE STORY
+  // 🔖 SAVE STORY — handled by useSavedStatus hook
   // =========================
   const handleSave = async () => {
-    try {
-      if (saved) {
-        await apiClient.unsaveContent(id, 'blog')
-        setSaved(false)
-      } else {
-        await apiClient.saveContent(id, 'blog')
-        setSaved(true)
-        setShowSavedToast(true)
-        setTimeout(() => setShowSavedToast(false), 2500)
-      }
-      setShowActionMenu(false)
-    } catch {
-      // ignore
-    }
+    await toggleSave(() => setShowActionMenu(false))
   }
 
   // =========================
@@ -271,21 +264,24 @@ export function StoryPost({
 
         {/* HEADER */}
         <div className="flex justify-between mb-4">
-          <div className="flex gap-3">
+          <div
+            className="flex gap-3 cursor-pointer"
+            onClick={() => authorId && router.push(`/profile/${authorId}`)}
+          >
             <img
-              src={author.avatar}
+              src={author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(author.name)}&background=E8E8E8&color=212529&size=48`}
               alt={author.name}
               className="w-12 h-12 rounded-full"
             />
             <div>
-              <h3 className="font-semibold">
+              <h3 className="font-semibold hover:underline">
                 {author.name}
               </h3>
               <p className="text-sm text-gray-500">
                 {author.title}
               </p>
               <p className="text-xs text-gray-400">
-                {timestamp}
+                {getTimeAgo(timestamp)}
               </p>
             </div>
           </div>
@@ -298,27 +294,65 @@ export function StoryPost({
               <div className="absolute right-0 bg-white border rounded shadow p-2 flex gap-1">
                 <button
                   onClick={handleSave}
-                  className="p-2 rounded transition flex items-center gap-1 text-xs hover:bg-gray-100"
-                  title={saved ? 'Unsave' : 'Save post'}
-                  style={{ color: saved ? '#1d9bf0' : '#374151' }}
+                  className="group p-2 rounded transition-all duration-200 flex items-center gap-1 text-xs hover:bg-gray-100 hover:gap-2"
+                  title={isSaved ? 'Unsave' : 'Save post'}
+                  style={{ color: isSaved ? '#1d9bf0' : '#374151' }}
                 >
-                  <Bookmark className={`w-4 h-4 ${saved ? 'fill-[#1d9bf0]' : ''}`} />
+                  {/* Bookmark Icon */}
+                  <Bookmark
+                    className={`w-4 h-4 transition-all duration-200 ${
+                      isSaved ? 'fill-[#1d9bf0]' : ''
+                    }`}
+                  />
+
+                  {/* Text (only on hover) */}
+                  <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-200 whitespace-nowrap">
+                    {isSaved ? 'Unsave' : 'Save'}
+                  </span>
                 </button>
-                <button className="text-gray-700 hover:text-black hover:bg-gray-100 p-2 rounded transition flex items-center gap-1 text-xs" title="Disconnect">
-                  <Users className="w-4 h-4" />
-                </button>
-                <button className="text-gray-700 hover:text-black hover:bg-gray-100 p-2 rounded transition flex items-center gap-1 text-xs" title="Not interested">
-                  <EyeOff className="w-4 h-4" />
+                <button
+                  onClick={followState === 'connected' ? unfollow : follow}
+                  className="group p-2 rounded transition flex items-center gap-1 text-xs hover:bg-gray-100"
+                  style={{ color: '#374151' }}
+                  title={
+                    followState === 'connected'
+                      ? 'Disconnect'
+                      : followState === 'pending'
+                      ? 'Requested'
+                      : 'Connect'
+                  }
+                >
+                  {/* Icon based on state */}
+                  {followState === 'connected' ? (
+                    <UserCheck className="w-4 h-4" />
+                  ) : followState === 'pending' ? (
+                    <UserMinus className="w-4 h-4" />
+                  ) : (
+                    <UserPlus className="w-4 h-4" />
+                  )}
+
+                  {/* Text appears only on hover */}
+                  <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-200 whitespace-nowrap">
+                    {followState === 'connected'
+                      ? 'Disconnect'
+                      : followState === 'pending'
+                      ? 'Requested'
+                      : 'Connect'}
+                  </span>
                 </button>
                 <button
                   onClick={() => {
                     setShowReportModal(true)
                     setShowActionMenu(false)
                   }}
-                  className="flex items-center gap-2 text-red-600 hover:bg-gray-100 px-2 py-1 rounded"
+                  title='Report'
+                  className="group flex items-center gap-1 text-red-600 hover:bg-gray-100 px-2 py-1 rounded transition-all duration-200 hover:gap-2"
                 >
                   <Flag className="w-4 h-4" />
-                  Report
+
+                  <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-200 whitespace-nowrap">
+                    Report
+                  </span>
                 </button>
               </div>
             )}

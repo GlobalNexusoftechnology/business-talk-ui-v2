@@ -45,10 +45,14 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     ws.on('connect', () => setIsConnected(true))
     ws.on('disconnect', () => setIsConnected(false))
 
-    ws.connect(userId)
+    // Delay connection slightly so auth cookies/session are fully established
+    const timer = setTimeout(() => {
+      ws.connect(userId)
+    }, 1500)
     wsManagerRef.current = ws
 
     return () => {
+      clearTimeout(timer)
       ws.disconnect()
       setIsConnected(false)
     }

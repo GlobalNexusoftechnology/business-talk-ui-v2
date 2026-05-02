@@ -9,6 +9,7 @@ export function useStoriesFeed() {
 
       return (res.data || []).map((story: any) => ({
         id: story.id,
+        authorId: story.user?.id || '',
         author: {
           name: story.user?.full_name || story.user?.username || 'Unknown',
           avatar: story.user?.profile_photo || `https://ui-avatars.com/api/name=${encodeURIComponent(story.user?.full_name || story.user?.username)}`,

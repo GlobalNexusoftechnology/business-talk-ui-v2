@@ -130,7 +130,7 @@ export function GroupCard({
 }: {
   group: any
   onClick: (group: any) => void
-  joinState: 'join' | 'joined'
+  joinState: 'join' | 'requested' | 'joined'
   onJoinClick: (group: any) => void
 }) {
   return (
@@ -182,25 +182,39 @@ export function GroupCard({
         )}
         {/* Join Button */}
         <button
-          className={`w-full py-2 text-xs font-semibold rounded-lg transition-all duration-200 active:scale-95 ${joinState === 'joined' ? 'bg-[#212529] text-white' : 'bg-[#212529] text-white'}`}
+          disabled={joinState === 'requested'}
+          className={`w-full py-2 text-xs font-semibold rounded-lg border transition-all duration-200 active:scale-95 ${joinState === 'requested' ? 'cursor-not-allowed opacity-70' : ''}`}
           style={{
-            backgroundColor: joinState === 'joined' ? '#212529' : '#212529',
-            color: '#fff',
-            opacity: joinState === 'joined' ? 0.85 : 1,
+            backgroundColor: 'transparent',
+            color: joinState === 'joined' ? '#DC2626' : joinState === 'requested' ? '#5F6368' : '#212529',
+            borderColor: joinState === 'joined' ? '#DC2626' : joinState === 'requested' ? '#9CA3AF' : '#212529',
           }}
           onClick={e => {
             e.stopPropagation();
             onJoinClick(group);
           }}
           onMouseEnter={e => {
-            (e.currentTarget).style.backgroundColor = '#3D3D3D';
+            if (joinState === 'joined') {
+              e.currentTarget.style.backgroundColor = '#DC2626';
+              e.currentTarget.style.color = '#FFFFFF';
+            } else if (joinState === 'join') {
+              e.currentTarget.style.backgroundColor = '#212529';
+              e.currentTarget.style.color = '#FFFFFF';
+            }
           }}
           onMouseLeave={e => {
-            (e.currentTarget).style.backgroundColor = '#212529';
+            if (joinState === 'joined') {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = '#DC2626';
+            } else if (joinState === 'join') {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = '#212529';
+            }
           }}
         >
-          {joinState === 'join' && 'Join Group'}
-          {joinState === 'joined' && 'Joined'}
+          {joinState === 'join' && (group.visibility === 'PRIVATE' ? 'Request to Join' : 'Join Group')}
+          {joinState === 'requested' && 'Requested'}
+          {joinState === 'joined' && 'Leave Group'}
         </button>
       </div>
     </div>
@@ -215,7 +229,7 @@ export function RightSidebar() {
   const [questions, setQuestions] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
   const [connectStates, setConnectStates] = useState<{ [id: string]: 'connect' | 'pending' | 'connected' }>({});
-  const [joinStates, setJoinStates] = useState<{ [id: string]: 'join' | 'joined' }>({});
+  const [joinStates, setJoinStates] = useState<{ [id: string]: 'join' | 'requested' | 'joined' }>({});
   const [isMobile, setIsMobile] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -255,7 +269,7 @@ export function RightSidebar() {
         );
         setJoinStates(
           (groupsRes.data || []).reduce((acc: any, g: any) => {
-            acc[g.id] = 'join';
+            acc[g.id] = g.isJoined ? 'joined' : g.isRequested ? 'requested' : 'join';
             return acc;
           }, {})
         );
@@ -302,14 +316,25 @@ export function RightSidebar() {
     router.push(`/groups/${group.id}`);
   };
 
-  const handleJoinClick = (group: any) => {
-    setJoinStates(prev => {
-      if (prev[group.id] === 'join') {
-        return { ...prev, [group.id]: 'joined' };
+  const handleJoinClick = async (group: any) => {
+    const current = joinStates[group.id] || 'join';
+    try {
+      if (current === 'joined') {
+        await apiClient.leaveGroup(group.id);
+        setJoinStates(prev => ({ ...prev, [group.id]: 'join' }));
+      } else if (current === 'requested') {
+        // no cancel endpoint
+        return;
+      } else if (group.visibility === 'PRIVATE') {
+        await apiClient.requestToJoinGroup(group.id);
+        setJoinStates(prev => ({ ...prev, [group.id]: 'requested' }));
       } else {
-        return { ...prev, [group.id]: 'join' };
+        await apiClient.joinGroup(group.id);
+        setJoinStates(prev => ({ ...prev, [group.id]: 'joined' }));
       }
-    });
+    } catch (err) {
+      console.error('Group join/leave error', err);
+    }
   };
 
   // --- ANIMATION CSS ---

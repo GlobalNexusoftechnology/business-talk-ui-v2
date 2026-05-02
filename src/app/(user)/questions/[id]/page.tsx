@@ -129,17 +129,7 @@ function AnswerItem({
           {answer.replies && answer.replies.length > 0 && (
             <div className="mt-3 ml-4 pl-4 space-y-3" style={{ borderLeft: '2px solid #E8E8E8' }}>
               {answer.replies.map(reply => (
-                <div key={reply.id} className="flex gap-3">
-                  <img
-                    src={reply.user.profile_photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(reply.user.username)}&background=E8E8E8&color=212529&size=32`}
-                    alt={reply.user.username}
-                    className="w-7 h-7 rounded-full object-cover shrink-0"
-                  />
-                  <div className="flex-1 rounded-xl px-3 py-2" style={{ backgroundColor: '#F8F9FA', border: '1px solid #E8E8E8' }}>
-                    <p className="text-xs font-semibold" style={{ color: '#212529' }}>{reply.user.username}</p>
-                    <p className="text-sm mt-0.5" style={{ color: '#3D3D3D' }}>{reply.comment}</p>
-                  </div>
-                </div>
+                <AnswerItem key={reply.id} answer={reply} postId={postId} onReplyAdded={onReplyAdded} />
               ))}
             </div>
           )}
@@ -241,9 +231,13 @@ export default function QuestionDetailPage() {
   }
 
   const handleReplyAdded = (parentId: string, reply: Answer) => {
-    setAnswers(prev =>
-      prev.map(a => a.id === parentId ? { ...a, replies: [...(a.replies || []), reply] } : a)
-    )
+    const addReply = (list: Answer[]): Answer[] =>
+      list.map(a =>
+        a.id === parentId
+          ? { ...a, replies: [...(a.replies || []), reply] }
+          : { ...a, replies: a.replies ? addReply(a.replies) : [] }
+      )
+    setAnswers(prev => addReply(prev))
   }
 
   if (loading) return (

@@ -1,14 +1,19 @@
 'use client'
 
-import { ThumbsUp, MessageCircle, Send, MoreVertical, Bookmark, Users, EyeOff, Flag } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { ThumbsUp, MessageCircle, Send, MoreVertical, Bookmark, Flag, UserCheck, UserMinus, UserPlus } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { ShareModal } from '@/components/shared/ShareModal'
 import { useOpenContent } from '@/hooks/useOpenContent'
 import apiClient from '@/lib/api-client'
 import { ReportModal } from '@/components/shared/ReportModal'
+import { useFollow } from '@/hooks/useFollow'
+import { useSavedStatus } from '@/hooks/useSavedStatus'
+import { getTimeAgo } from '@/lib/utils'
 
 interface FeedPostProps {
   id?: string
+  authorId?: string
   author: {
     name: string
     title: string
@@ -24,7 +29,9 @@ interface FeedPostProps {
   sends: number
 }
 
-export function FeedPost({ id = Date.now().toString(), author, content, image, video, timestamp, likes, comments, sends }: FeedPostProps) {
+export function FeedPost({ id = Date.now().toString(), authorId = '', author, content, image, video, timestamp, likes, comments, sends }: FeedPostProps) {
+  const router = useRouter()
+  const [currentUser, setCurrentUser] = useState<{ name: string; avatar: string }>({ name: 'You', avatar: '' })
   const [liked, setLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(likes)
   const [showShareModal, setShowShareModal] = useState(false)
@@ -38,15 +45,22 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
   // forceUpdate removed (was unused)
   const actionMenuRef = useRef<HTMLDivElement>(null)
   const { openPost } = useOpenContent()
+  const { state: followState, follow, unfollow } = useFollow(authorId)
+  const { isSaved, toggle: toggleSave, showToast: showSavedToast } = useSavedStatus(id, 'post')
   const [commentCount, setCommentCount] = useState(comments || 0)
   const [showReportModal, setShowReportModal] = useState(false)
   const [animatingId, setAnimatingId] = useState<string | null>(null)
-  const [saved, setSaved] = useState(false)
-  const [showSavedToast, setShowSavedToast] = useState(false)
 
   //
   // FETCH COMMENT COUNT
   //
+
+  useEffect(() => {
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || '{}')
+      setCurrentUser({ name: u.username || u.full_name || 'You', avatar: u.profile_photo || '' })
+    } catch {}
+  }, [])
 
   useEffect(() => {
     const fetchCommentsCount = async () => {
@@ -205,20 +219,7 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
   }
 
   const handleSave = async () => {
-    try {
-      if (saved) {
-        await apiClient.unsaveContent(id?.toString() || '', 'post')
-        setSaved(false)
-      } else {
-        await apiClient.saveContent(id?.toString() || '', 'post')
-        setSaved(true)
-        setShowSavedToast(true)
-        setTimeout(() => setShowSavedToast(false), 2500)
-      }
-      setShowActionMenu(false)
-    } catch {
-      // ignore
-    }
+    await toggleSave(() => setShowActionMenu(false))
   }
 
   const handleOpenViewer = () => {
@@ -356,16 +357,19 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-4">
         {/* Post Header */}
         <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
+          <div
+            className="flex items-center gap-3 cursor-pointer"
+            onClick={() => authorId && router.push(`/profile/${authorId}`)}
+          >
             <img
-              src={author.avatar}
+              src={author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(author.name)}&background=E8E8E8&color=212529&size=48`}
               alt={author.name}
               className="w-12 h-12 rounded-full object-cover"
             />
             <div>
-              <h3 className="font-semibold text-gray-900">{author.name}</h3>
+              <h3 className="font-semibold text-gray-900 hover:underline">{author.name}</h3>
               <p className="text-sm text-gray-500">{author.title}</p>
-              <p className="text-xs text-gray-400">{timestamp}</p>
+              <p className="text-xs text-gray-400">{getTimeAgo(timestamp)}</p>
             </div>
           </div>
 
@@ -383,25 +387,64 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
               <div className="absolute right-0 mt-1 bg-white border rounded-lg shadow-lg z-10 px-3 py-2 flex items-center gap-1 whitespace-nowrap">
                 <button
                   onClick={handleSave}
-                  className="p-2 rounded transition flex items-center gap-1 text-xs hover:bg-gray-100"
-                  title={saved ? 'Unsave' : 'Save post'}
-                  style={{ color: saved ? '#1d9bf0' : '#374151' }}
+                  className="group p-2 rounded transition-all duration-200 flex items-center gap-1 text-xs hover:bg-gray-100 hover:gap-2"
+                  title={isSaved ? 'Unsave' : 'Save post'}
+                  style={{ color: isSaved ? '#1d9bf0' : '#374151' }}
                 >
-                  <Bookmark className={`w-4 h-4 ${saved ? 'fill-[#1d9bf0]' : ''}`} />
+                  {/* Bookmark Icon */}
+                  <Bookmark
+                    className={`w-4 h-4 transition-all duration-200 ${
+                      isSaved ? 'fill-[#1d9bf0]' : ''
+                    }`}
+                  />
+
+                  {/* Text (only on hover) */}
+                  <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-200 whitespace-nowrap">
+                    {isSaved ? 'Unsave' : 'Save'}
+                  </span>
                 </button>
-                <button className="text-gray-700 hover:text-black hover:bg-gray-100 p-2 rounded transition flex items-center gap-1 text-xs" title="Disconnect">
-                  <Users className="w-4 h-4" />
-                </button>
-                <button className="text-gray-700 hover:text-black hover:bg-gray-100 p-2 rounded transition flex items-center gap-1 text-xs" title="Not interested">
-                  <EyeOff className="w-4 h-4" />
+                <button
+                  onClick={followState === 'connected' ? unfollow : follow}
+                  className="group p-2 rounded transition flex items-center gap-1 text-xs hover:bg-gray-100"
+                  style={{ color: '#374151' }}
+                  title={
+                    followState === 'connected'
+                      ? 'Disconnect'
+                      : followState === 'pending'
+                      ? 'Requested'
+                      : 'Connect'
+                  }
+                >
+                  {/* Icon based on state */}
+                  {followState === 'connected' ? (
+                    <UserCheck className="w-4 h-4" />
+                  ) : followState === 'pending' ? (
+                    <UserMinus className="w-4 h-4" />
+                  ) : (
+                    <UserPlus className="w-4 h-4" />
+                  )}
+
+                  {/* Text appears only on hover */}
+                  <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-200 whitespace-nowrap">
+                    {followState === 'connected'
+                      ? 'Disconnect'
+                      : followState === 'pending'
+                      ? 'Requested'
+                      : 'Connect'}
+                  </span>
                 </button>
                 <button
                   onClick={() => {
                     setShowReportModal(true)
                     setShowActionMenu(false)
                   }}
+                  title='Report'
+                  className="group flex items-center gap-1 text-red-600 hover:bg-gray-100 px-2 py-1 rounded transition-all duration-200 hover:gap-2"
                 >
-                  <Flag className="w-4 h-4 text-red-600" />
+                <Flag className="w-4 h-4" />
+                <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-200 whitespace-nowrap">
+                  Report
+                </span>
                 </button>
               </div>
             )}
@@ -489,9 +532,9 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
             {/* Comment Input */}
             <div className="flex gap-2">
               <img
-                src={author.avatar || `https://ui-avatars.com/api/name=${encodeURIComponent(author.name)}`}
+                src={currentUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name)}&background=E8E8E8&color=212529&size=32`}
                 className="w-8 h-8 rounded-full object-cover"
-                alt={author.name || 'User'}
+                alt={currentUser.name}
               />
               <div className="flex-1 flex gap-2">
                 <input
@@ -546,9 +589,9 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
                       {replyingTo === `comment-${comment.id}` && (
                         <div className="flex gap-2 mt-2 ml-6">
                           <img
-                            src={author.avatar || `https://ui-avatars.com/api/name=${encodeURIComponent(author.name)}`}
+                            src={currentUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name)}&background=E8E8E8&color=212529&size=24`}
                             className="w-6 h-6 rounded-full object-cover"
-                            alt={author.name || 'User'}
+                            alt={currentUser.name}
                           />
                           <input
                             type="text"

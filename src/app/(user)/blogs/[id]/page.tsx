@@ -14,6 +14,7 @@ interface Author {
 
 interface Blog {
   id: string
+  authorId: string
   title: string
   excerpt: string
   content: string
@@ -40,6 +41,104 @@ interface Comment {
   replies?: Comment[]
 }
 
+function normalizeComment(c: any): Comment {
+  const u = c.user ?? c.author ?? {}
+  return {
+    id: String(c.id),
+    content: c.content ?? c.comment ?? '',
+    createdAt: c.created_on ?? c.createdAt ?? '',
+    user: {
+      name: u.full_name ?? u.username ?? u.name ?? 'Unknown',
+      avatar: u.profile_photo ?? u.avatar ?? '',
+    },
+    replies: (c.replies ?? []).map(normalizeComment),
+  }
+}
+
+function BlogCommentItem({
+  comment,
+  blogId,
+  onReplyAdded,
+}: {
+  comment: Comment
+  blogId: string
+  onReplyAdded: (parentId: string, reply: Comment) => void
+}) {
+  const [showReply, setShowReply] = useState(false)
+  const [replyText, setReplyText] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  const handleReply = async () => {
+    if (!replyText.trim()) return
+    setSubmitting(true)
+    try {
+      const data = await apiClient.addBlogComment(blogId, replyText.trim(), comment.id)
+      onReplyAdded(comment.id, normalizeComment(data))
+      setReplyText('')
+      setShowReply(false)
+    } catch { /* silent */ }
+    finally { setSubmitting(false) }
+  }
+
+  return (
+    <div>
+      <div className="flex gap-3">
+        <img
+          src={comment.user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.user.name)}&background=E8E8E8&color=212529&size=40`}
+          alt={comment.user.name}
+          className="w-9 h-9 rounded-full object-cover shrink-0"
+        />
+        <div className="flex-1">
+          <div className="rounded-2xl px-4 py-3" style={{ backgroundColor: '#F8F9FA', border: '1px solid #E8E8E8' }}>
+            <p className="text-sm font-semibold" style={{ color: '#212529' }}>{comment.user.name}</p>
+            <p className="text-sm mt-0.5 leading-relaxed" style={{ color: '#3D3D3D' }}>{comment.content}</p>
+          </div>
+          <div className="flex items-center gap-4 mt-1 px-2">
+            <button
+              className="text-xs font-medium transition-colors"
+              style={{ color: '#5F6368' }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#1976D2')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#5F6368')}
+              onClick={() => setShowReply(v => !v)}
+            >
+              Reply
+            </button>
+          </div>
+
+          {showReply && (
+            <div className="mt-2 flex gap-2 pl-2">
+              <textarea
+                value={replyText}
+                onChange={e => setReplyText(e.target.value)}
+                rows={2}
+                placeholder="Write a reply..."
+                className="flex-1 px-3 py-2 rounded-xl text-sm resize-none focus:outline-none"
+                style={{ border: '1px solid #E8E8E8', backgroundColor: '#F8F9FA', color: '#212529' }}
+              />
+              <button
+                onClick={handleReply}
+                disabled={submitting || !replyText.trim()}
+                className="self-end px-4 py-2 rounded-xl text-white text-sm disabled:opacity-50"
+                style={{ backgroundColor: '#212529' }}
+              >
+                {submitting ? '...' : 'Reply'}
+              </button>
+            </div>
+          )}
+
+          {comment.replies && comment.replies.length > 0 && (
+            <div className="mt-3 ml-4 pl-4 space-y-3" style={{ borderLeft: '2px solid #E8E8E8' }}>
+              {comment.replies.map(reply => (
+                <BlogCommentItem key={reply.id} comment={reply} blogId={blogId} onReplyAdded={onReplyAdded} />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function BlogDetailsPage() {
   const router = useRouter()
   const params = useParams()
@@ -54,8 +153,6 @@ export default function BlogDetailsPage() {
   /* ================== 🆕 ADDED: Comment States ================== */
   const [comments, setComments] = useState<Comment[]>([])
   const [newComment, setNewComment] = useState('')
-  const [replyText, setReplyText] = useState<{ [key: string]: string }>({})
-  const [showReplyBox, setShowReplyBox] = useState<{ [key: string]: boolean }>({})
 
   useEffect(() => {
     if (!blogId) return
@@ -67,6 +164,7 @@ export default function BlogDetailsPage() {
 
         const formatted: Blog = {
           id: b.id,
+          authorId: b.user?.id || '',
           title: b.title,
           excerpt: b.content?.slice(0, 150) || '',
           content: b.content,
@@ -101,8 +199,10 @@ export default function BlogDetailsPage() {
     /* ================== 🆕 ADDED: Fetch Comments ================== */
     const fetchComments = async () => {
       try {
-        const res = await apiClient.getBlogComments(blogId)
-        setComments(res.data || [])
+        // getBlogComments returns res.data directly
+        const data = await apiClient.getBlogComments(blogId)
+        const items: any[] = Array.isArray(data) ? data : (data?.items ?? data?.data ?? [])
+        setComments(items.map(normalizeComment))
       } catch (err) {
         console.error('Comments fetch error', err)
       }
@@ -135,8 +235,9 @@ export default function BlogDetailsPage() {
     if (!newComment.trim() || !blog) return
 
     try {
-      const res = await apiClient.addBlogComment(blog.id, newComment)
-      setComments(prev => [res.data, ...prev])
+      // addBlogComment returns res.data directly
+      const data = await apiClient.addBlogComment(blog.id, newComment)
+      setComments(prev => [normalizeComment(data), ...prev])
       setNewComment('')
     } catch (err) {
       console.error('Add comment error', err)
@@ -144,26 +245,14 @@ export default function BlogDetailsPage() {
   }
 
   /* ================== 🆕 ADDED: Reply Logic ================== */
-  const handleReply = async (commentId: string) => {
-    const text = replyText[commentId]
-    if (!text || !blog) return
-
-    try {
-      const res = await apiClient.addBlogComment(blog.id, text, commentId)
-
-      setComments(prev =>
-        prev.map(c =>
-          c.id === commentId
-            ? { ...c, replies: [...(c.replies || []), res.data] }
-            : c
-        )
+  const handleReplyAdded = (parentId: string, reply: Comment) => {
+    const addReply = (list: Comment[]): Comment[] =>
+      list.map(c =>
+        c.id === parentId
+          ? { ...c, replies: [...(c.replies || []), reply] }
+          : { ...c, replies: c.replies ? addReply(c.replies) : [] }
       )
-
-      setReplyText(prev => ({ ...prev, [commentId]: '' }))
-      setShowReplyBox(prev => ({ ...prev, [commentId]: false }))
-    } catch (err) {
-      console.error('Reply error', err)
-    }
+    setComments(prev => addReply(prev))
   }
 
   if (loading) return <div className="p-6">Loading blog...</div>
@@ -184,8 +273,36 @@ export default function BlogDetailsPage() {
         {/* TITLE */}
         <h1 className="text-3xl font-bold mb-4">{blog.title}</h1>
 
-        {/* CONTENT */}
+        {/* AUTHOR */}
+        <div
+          className="flex items-center gap-3 mb-8 cursor-pointer"
+          onClick={() => blog.authorId && router.push(`/profile/${blog.authorId}`)}
+        >
+          <img
+            src={blog.author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(blog.author.name)}&background=E8E8E8&color=212529&size=48`}
+            alt={blog.author.name}
+            className="w-12 h-12 rounded-full object-cover"
+          />
+          <div>
+            <p className="font-semibold hover:underline" style={{ color: '#212529' }}>{blog.author.name}</p>
+            <p className="text-sm" style={{ color: '#5F6368' }}>{blog.author.title} · {blog.publishedAt}</p>
+          </div>
+        </div>
         <p className="mb-8">{blog.content}</p>
+
+        {/* ================== 🆕 COMMENTS LIST ================== */}
+        {comments.length > 0 && (
+          <div className="bg-white rounded-xl shadow-md p-6 space-y-6 mb-6">
+            {comments.map(comment => (
+              <BlogCommentItem
+                key={comment.id}
+                comment={comment}
+                blogId={blogId}
+                onReplyAdded={handleReplyAdded}
+              />
+            ))}
+          </div>
+        )}
 
         {/* ================== 🆕 COMMENT INPUT ================== */}
         <div className="bg-white p-6 rounded-xl mb-6">
@@ -198,70 +315,6 @@ export default function BlogDetailsPage() {
           <button onClick={handleAddComment} className="bg-black text-white px-4 py-2 rounded">
             Post Comment
           </button>
-        </div>
-
-        {/* ================== 🆕 COMMENTS LIST ================== */}
-        <div className="space-y-6">
-          {comments.map(comment => (
-            <div key={comment.id} className="bg-white p-4 rounded-xl">
-
-              {/* COMMENT */}
-              <div className="flex gap-3">
-                <img src={comment.user.avatar || '/avatar.png'} alt={comment.user.name} className="w-10 h-10 rounded-full" />
-                <div>
-                  <p className="font-medium">{comment.user.name}</p>
-                  <p className="text-sm text-gray-600">{comment.content}</p>
-
-                  <button
-                    className="text-blue-600 text-sm mt-2"
-                    onClick={() =>
-                      setShowReplyBox(prev => ({
-                        ...prev,
-                        [comment.id]: !prev[comment.id],
-                      }))
-                    }
-                  >
-                    Reply
-                  </button>
-                </div>
-              </div>
-
-              {/* REPLY BOX */}
-              {showReplyBox[comment.id] && (
-                <div className="ml-12 mt-3">
-                  <input
-                    value={replyText[comment.id] || ''}
-                    onChange={(e) =>
-                      setReplyText(prev => ({
-                        ...prev,
-                        [comment.id]: e.target.value,
-                      }))
-                    }
-                    className="w-full p-2 border rounded mb-2"
-                  />
-                  <button
-                    onClick={() => handleReply(comment.id)}
-                    className="bg-black text-white px-3 py-1 rounded"
-                  >
-                    Reply
-                  </button>
-                </div>
-              )}
-
-              {/* REPLIES */}
-              <div className="ml-12 mt-3 space-y-2">
-                {comment.replies?.map(reply => (
-                  <div key={reply.id} className="flex gap-2">
-                    <img src={reply.user.avatar || '/avatar.png'} alt={reply.user.name} className="w-8 h-8 rounded-full" />
-                    <div>
-                      <p className="text-sm font-medium">{reply.user.name}</p>
-                      <p className="text-sm text-gray-600">{reply.content}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
         </div>
 
         {/* ================== UPDATED LIKE BUTTON ================== */}

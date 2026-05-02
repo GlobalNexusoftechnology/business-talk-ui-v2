@@ -236,6 +236,10 @@ export default function NotificationsPage() {
         router.push(`/messages/${entity_id}`)
         break
 
+      case 'group':
+        router.push(`/groups/${entity_id}/requests`)
+        break
+
       default:
         console.warn('Unknown notification type')
     }

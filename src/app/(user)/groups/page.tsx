@@ -22,8 +22,10 @@ interface Group {
 export default function GroupsPage() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
-  const [activeTab, setActiveTab] = useState<'all' | 'my-groups'>('all')
+  const [activeTab, setActiveTab] = useState<'all' | 'my-groups' | 'requested'>('all')
   const [groups, setGroups] = useState<Group[]>([])
+  const [myGroups, setMyGroups] = useState<Group[]>([])
+  const [requestedGroups, setRequestedGroups] = useState<Group[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
 
@@ -46,10 +48,13 @@ export default function GroupsPage() {
   useEffect(() => {
     const fetchGroups = async () => {
       try {
-        const res = await apiClient.getGroups()
-        const data = res.data || []
+        const [allRes, myRes, requestedRes] = await Promise.all([
+          apiClient.getGroups(),
+          apiClient.getMyGroups(),
+          apiClient.getMyRequestedGroups(),
+        ])
 
-        const formatted = data.map((g: any) => ({
+        const formatGroup = (g: any, joined = false): Group => ({
           id: g.id,
           name: g.name,
           description: g.description,
@@ -57,12 +62,44 @@ export default function GroupsPage() {
           members: g.memberCount || 0,
           posts: 0,
           type: g.visibility === 'PRIVATE' ? 'private' : 'public',
-          joined: g.isJoined || false,
+          joined: joined || g.isJoined || false,
           requested: g.isRequested || false,
           category: 'General',
-        }))
+        })
 
-        setGroups(formatted)
+        const myData: Group[] = (myRes.data || []).map((item: any) => {
+          // API returns { group: {...}, role, joinedAt } or flat group object
+          const g = item.group ?? item
+          return formatGroup(g, true)
+        })
+
+        const myIds = new Set(myData.map(g => g.id))
+
+        // Requested groups — API returns { group, requestId, requestStatus, requestedAt } or flat
+        const reqData: Group[] = (requestedRes.data || []).map((item: any) => {
+          const g = item.group ?? item
+          return {
+            id: g.id,
+            name: g.name,
+            description: g.description,
+            image: g.cover_image || '/placeholder.jpg',
+            members: g.memberCount || 0,
+            posts: 0,
+            type: g.visibility === 'PRIVATE' ? 'private' : 'public',
+            joined: false,
+            requested: true,
+            category: 'General',
+          } as Group
+        })
+
+        setRequestedGroups(reqData)
+
+        const allData: Group[] = (allRes.data || []).map((g: any) =>
+          formatGroup(g, myIds.has(g.id))
+        )
+
+        setGroups(allData)
+        setMyGroups(myData)
       } catch (err) {
         console.error('Groups fetch error', err)
       } finally {
@@ -107,6 +144,7 @@ export default function GroupsPage() {
       }
 
       setGroups(prev => [formatted, ...prev])
+      setMyGroups(prev => [formatted, ...prev])
       setShowCreateModal(false)
       setShowAdvanced(false)
       setRuleInput('')
@@ -125,15 +163,20 @@ export default function GroupsPage() {
       if (group.joined) {
         await apiClient.leaveGroup(groupId)
         setGroups(prev => prev.map(g => g.id === groupId ? { ...g, joined: false } : g))
+        setMyGroups(prev => prev.filter(g => g.id !== groupId))
       } else if (group.requested) {
         // request already pending — no cancel endpoint; do nothing
         return
       } else if (group.type === 'private') {
         await apiClient.requestToJoinGroup(groupId)
-        setGroups(prev => prev.map(g => g.id === groupId ? { ...g, requested: true } : g))
+        const updated = { ...group, requested: true }
+        setGroups(prev => prev.map(g => g.id === groupId ? updated : g))
+        setRequestedGroups(prev => [...prev, updated])
       } else {
         await apiClient.joinGroup(groupId)
-        setGroups(prev => prev.map(g => g.id === groupId ? { ...g, joined: true } : g))
+        const updated = { ...group, joined: true }
+        setGroups(prev => prev.map(g => g.id === groupId ? updated : g))
+        setMyGroups(prev => [...prev, updated])
       }
     } catch (err) {
       console.error('Join/Leave error', err)
@@ -148,7 +191,12 @@ export default function GroupsPage() {
     router.push(`/groups/${group.id}`)
   }
 
-  const filteredGroups = activeTab === 'my-groups' ? groups.filter(g => g.joined) : groups
+  const filteredGroups = (() => {
+    const query = searchQuery.toLowerCase()
+    if (activeTab === 'my-groups') return myGroups.filter(g => g.name.toLowerCase().includes(query))
+    if (activeTab === 'requested') return requestedGroups.filter(g => g.name.toLowerCase().includes(query))
+    return groups.filter(g => g.name.toLowerCase().includes(query))
+  })()
 
   return (
     <div className="p-6 overflow-y-auto" style={{ backgroundColor: '#F8F9FA' }}>
@@ -204,6 +252,37 @@ export default function GroupsPage() {
                 }}
               >
                 My Groups
+              </button>
+              <button
+                onClick={() => setActiveTab('requested')}
+                className="px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-1.5"
+                style={{
+                  backgroundColor: activeTab === 'requested' ? '#212529' : '#F8F9FA',
+                  color: activeTab === 'requested' ? '#FFFFFF' : '#5F6368',
+                }}
+                onMouseEnter={(e) => {
+                  if (activeTab !== 'requested') {
+                    e.currentTarget.style.backgroundColor = '#E8E8E8'
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (activeTab !== 'requested') {
+                    e.currentTarget.style.backgroundColor = '#F8F9FA'
+                  }
+                }}
+              >
+                Requested
+                {requestedGroups.length > 0 && (
+                  <span
+                    className="text-xs font-semibold rounded-full px-1.5 py-0.5 leading-none"
+                    style={{
+                      backgroundColor: activeTab === 'requested' ? 'rgba(255,255,255,0.25)' : '#E8E8E8',
+                      color: activeTab === 'requested' ? '#FFFFFF' : '#5F6368',
+                    }}
+                  >
+                    {requestedGroups.length}
+                  </span>
+                )}
               </button>
             </div>
             <button
@@ -281,29 +360,33 @@ export default function GroupsPage() {
 
                 <button
                   onClick={(e) => { e.stopPropagation(); handleJoinToggle(group.id) }}
-                  className="w-full py-2.5 rounded-lg font-medium transition-all"
+                  disabled={group.requested && !group.joined}
+                  className={`w-full py-2.5 rounded-lg font-medium border transition-all active:scale-95 ${group.requested && !group.joined ? 'cursor-not-allowed opacity-70' : ''}`}
                   style={{
-                    backgroundColor: group.joined ? '#F8F9FA' : group.requested ? '#EFF6FF' : '#212529',
-                    color: group.joined ? '#5F6368' : group.requested ? '#1d9bf0' : '#FFFFFF',
+                    backgroundColor: 'transparent',
+                    color: group.joined ? '#DC2626' : group.requested ? '#5F6368' : '#212529',
+                    borderColor: group.joined ? '#DC2626' : group.requested ? '#9CA3AF' : '#212529',
                   }}
                   onMouseEnter={(e) => {
                     if (group.joined) {
-                      e.currentTarget.style.backgroundColor = '#E8E8E8'
+                      e.currentTarget.style.backgroundColor = '#DC2626'
+                      e.currentTarget.style.color = '#FFFFFF'
                     } else if (!group.requested) {
-                      e.currentTarget.style.backgroundColor = '#3D3D3D'
+                      e.currentTarget.style.backgroundColor = '#212529'
+                      e.currentTarget.style.color = '#FFFFFF'
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (group.joined) {
-                      e.currentTarget.style.backgroundColor = '#F8F9FA'
-                    } else if (group.requested) {
-                      e.currentTarget.style.backgroundColor = '#EFF6FF'
-                    } else {
-                      e.currentTarget.style.backgroundColor = '#212529'
+                      e.currentTarget.style.backgroundColor = 'transparent'
+                      e.currentTarget.style.color = '#DC2626'
+                    } else if (!group.requested) {
+                      e.currentTarget.style.backgroundColor = 'transparent'
+                      e.currentTarget.style.color = '#212529'
                     }
                   }}
                 >
-                  {group.joined ? 'Leave Group' : group.requested ? 'Request Sent' : group.type === 'private' ? 'Request to Join' : 'Join Group'}
+                  {group.joined ? 'Leave Group' : group.requested ? 'Requested' : group.type === 'private' ? 'Request to Join' : 'Join Group'}
                 </button>
               </div>
             </div>

@@ -44,7 +44,7 @@ export function ProfileHeader({
       {/* COVER */}
       <div className="relative">
         <img
-          src={profileData.cover_image || 'https://images.unsplash.com/photo-1497366216548-37526070297c'}
+          src={profileData.cover_image || `https://ui-avatars.com/api/name=${encodeURIComponent(profileData.name || 'User')}`}
           alt="Cover"
           className="w-full h-48 object-cover"
         />

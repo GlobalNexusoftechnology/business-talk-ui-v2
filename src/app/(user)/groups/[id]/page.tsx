@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, Lock, Globe, MessageCircle, Share2, ThumbsUp, ClipboardList } from 'lucide-react'
+import { Lock, Globe, MessageCircle, Share2, ThumbsUp, ClipboardList } from 'lucide-react'
 import { useState } from 'react'
 import { ShareModal } from '@/components/shared/ShareModal'
 import { useEffect } from 'react'
@@ -69,8 +69,8 @@ export default function GroupDetailsPage() {
           category: 'General',
           membersList: (g.members || []).map((m: any) => ({
             id: m.userId,
-            name: m.name || 'User',
-            avatar: '/avatar.png',
+            name: m.full_name || m.name || 'User',
+            avatar: m.profile_photo || `https://ui-avatars.com/api/name=${encodeURIComponent(m.full_name || m.name || 'User')}`,
             title: m.role,
           })),
           recentPosts: [],
@@ -79,6 +79,7 @@ export default function GroupDetailsPage() {
 
         setGroup(formatted)
         setIsJoined(formatted.joined)
+        setRequestPending(g.isRequested || false)
       } catch (err) {
         console.error('Group fetch error', err)
       } finally {
@@ -127,7 +128,7 @@ export default function GroupDetailsPage() {
     <div className="p-6 overflow-y-auto" style={{ backgroundColor: '#F8F9FA', minHeight: '100vh' }}>
       <div className="max-w-4xl mx-auto">
         {/* Back Button */}
-        <button
+        {/* <button
           onClick={() => router.back()}
           className="flex items-center gap-2 mb-6 px-4 py-2 rounded-lg transition-colors"
           style={{ color: '#212529' }}
@@ -136,7 +137,7 @@ export default function GroupDetailsPage() {
         >
           <ArrowLeft className="w-5 h-5" />
           Back to groups
-        </button>
+        </button> */}
 
         {/* Group Card with Header */}
         <div
@@ -164,14 +165,33 @@ export default function GroupDetailsPage() {
 
               <button
                 onClick={handleJoin}
-                className="px-6 py-2 rounded-lg font-medium transition-all whitespace-nowrap"
+                disabled={requestPending && !isJoined}
+                className={`px-6 py-2 rounded-lg font-medium border transition-all whitespace-nowrap active:scale-95 ${requestPending && !isJoined ? 'cursor-not-allowed opacity-70' : ''}`}
                 style={{
-                  backgroundColor: isJoined ? '#F8F9FA' : requestPending ? '#EFF6FF' : '#212529',
-                  color: isJoined ? '#212529' : requestPending ? '#1d9bf0' : '#FFFFFF',
-                  border: isJoined ? '1px solid #E8E8E8' : requestPending ? '1px solid #BFDBFE' : 'none',
+                  backgroundColor: 'transparent',
+                  color: isJoined ? '#DC2626' : requestPending ? '#5F6368' : '#212529',
+                  borderColor: isJoined ? '#DC2626' : requestPending ? '#9CA3AF' : '#212529',
+                }}
+                onMouseEnter={(e) => {
+                  if (isJoined) {
+                    e.currentTarget.style.backgroundColor = '#DC2626'
+                    e.currentTarget.style.color = '#FFFFFF'
+                  } else if (!requestPending) {
+                    e.currentTarget.style.backgroundColor = '#212529'
+                    e.currentTarget.style.color = '#FFFFFF'
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (isJoined) {
+                    e.currentTarget.style.backgroundColor = 'transparent'
+                    e.currentTarget.style.color = '#DC2626'
+                  } else if (!requestPending) {
+                    e.currentTarget.style.backgroundColor = 'transparent'
+                    e.currentTarget.style.color = '#212529'
+                  }
                 }}
               >
-                {isJoined ? 'Leave Group' : requestPending ? 'Request Sent' : group.type === 'private' ? 'Request to Join' : 'Join Group'}
+                {isJoined ? 'Leave Group' : requestPending ? 'Requested' : group.type === 'private' ? 'Request to Join' : 'Join Group'}
               </button>
             </div>
 

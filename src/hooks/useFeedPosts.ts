@@ -26,6 +26,7 @@ export function useFeedPosts(postType: 'NORMAL' | 'QUESTION') {
 
         return {
           id: post.id,
+          authorId: post.user?.id || '',
           content: post.content,
           timestamp: new Date(Number(post.created_on)).toLocaleString(),
 

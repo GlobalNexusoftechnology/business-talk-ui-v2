@@ -1,9 +1,9 @@
 import React from 'react';
-import { Bell, ThumbsUp, MessageCircle, Users, TrendingUp } from 'lucide-react';
+import { Bell, ThumbsUp, MessageCircle, Users, TrendingUp, UserPlus } from 'lucide-react';
 
 export interface NotificationCardProps {
   id: string;
-  type: 'like' | 'comment' | 'follow' | 'mention' | 'group';
+  type: 'like' | 'comment' | 'follow' | 'mention' | 'group' | 'group_join_request';
   user: {
     name: string;
     avatar: string;
@@ -26,6 +26,8 @@ const getIcon = (type: string) => {
       return <Bell className="w-5 h-5" style={{ color: '#F57C00' }} />;
     case 'group':
       return <TrendingUp className="w-5 h-5" style={{ color: '#4527A0' }} />;
+    case 'group_join_request':
+      return <UserPlus className="w-5 h-5" style={{ color: '#0277BD' }} />;
     default:
       return <Bell className="w-5 h-5" style={{ color: '#5F6368' }} />;
   }

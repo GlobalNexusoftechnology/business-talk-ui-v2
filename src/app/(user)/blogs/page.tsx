@@ -15,6 +15,7 @@ interface Author {
 
 interface Blog {
   id: string
+  authorId: string
   title: string
   excerpt: string
   author: Author
@@ -46,12 +47,13 @@ export default function BlogsPage() {
         // map backend → UI
         const formatted = data.map((b: any) => ({
           id: b.id,
+          authorId: b.user?.id || b.author?.id || '',
           title: b.title,
           excerpt: b.content?.slice(0, 150) || '',
           author: {
-            name: b.author?.name || 'Unknown',
-            avatar: b.author?.avatar || '/avatar.png',
-            title: b.author?.title || 'User',
+            name: b.user?.username || b.author?.name || 'Unknown',
+            avatar: b.user?.profile_photo || b.author?.avatar || '/avatar.png',
+            title: b.user?.profession || b.author?.title || 'User',
           },
           image: b.cover_image || '/placeholder.jpg',
           category: (b.tags || []).map((t: any) => t.name),
@@ -160,14 +162,17 @@ export default function BlogsPage() {
               <p className="mb-4 line-clamp-3" style={{ color: '#5F6368' }}>
                 {blogs[0]?.excerpt}
               </p>
-              <div className="flex items-center gap-3 mb-4">
+              <div
+                className="flex items-center gap-3 mb-4 cursor-pointer"
+                onClick={e => { e.stopPropagation(); blogs[0]?.authorId && router.push(`/profile/${blogs[0].authorId}`) }}
+              >
                 <img
-                  src={blogs[0]?.author?.avatar}
+                  src={blogs[0]?.author?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(blogs[0]?.author?.name || 'User')}&background=E8E8E8&color=212529&size=40`}
                   alt={blogs[0]?.author?.name}
                   className="w-10 h-10 rounded-full object-cover"
                 />
                 <div>
-                  <p className="font-medium" style={{ color: '#212529' }}>
+                  <p className="font-medium hover:underline" style={{ color: '#212529' }}>
                     {blogs[0]?.author?.name}
                   </p>
                   <p className="text-sm" style={{ color: '#5F6368' }}>
@@ -218,10 +223,13 @@ export default function BlogsPage() {
                   </p>
 
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <img src={blog.author.avatar} alt={blog.author.name} className="w-8 h-8 rounded-full object-cover" />
+                    <div
+                      className="flex items-center gap-3 cursor-pointer"
+                      onClick={e => { e.stopPropagation(); blog.authorId && router.push(`/profile/${blog.authorId}`) }}
+                    >
+                      <img src={blog.author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(blog.author.name)}&background=E8E8E8&color=212529&size=32`} alt={blog.author.name} className="w-8 h-8 rounded-full object-cover" />
                       <div>
-                        <p className="font-medium text-sm" style={{ color: '#212529' }}>
+                        <p className="font-medium text-sm hover:underline" style={{ color: '#212529' }}>
                           {blog.author.name}
                         </p>
                         <p className="text-xs" style={{ color: '#5F6368' }}>

@@ -531,6 +531,16 @@ class ApiClient {
     return this.client.get('/groups')
   }
 
+  // 2b. GET MY JOINED GROUPS
+  getMyGroups() {
+    return this.client.get('/groups/me')
+  }
+
+  // 2c. GET MY PENDING JOIN REQUESTS
+  getMyRequestedGroups() {
+    return this.client.get('/groups/me/requested')
+  }
+
   // 3. GET GROUP BY ID
   getGroupById(id: string) {
     return this.client.get(`/groups/${id}`)

@@ -135,17 +135,7 @@ function CommentItem({
           {comment.replies && comment.replies.length > 0 && (
             <div className="mt-3 ml-4 pl-4 space-y-3" style={{ borderLeft: '2px solid #E8E8E8' }}>
               {comment.replies.map(reply => (
-                <div key={reply.id} className="flex gap-3">
-                  <img
-                    src={reply.user.profile_photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(reply.user.username)}&background=E8E8E8&color=212529&size=32`}
-                    alt={reply.user.username}
-                    className="w-7 h-7 rounded-full object-cover shrink-0"
-                  />
-                  <div className="flex-1 rounded-xl px-3 py-2" style={{ backgroundColor: '#F8F9FA', border: '1px solid #E8E8E8' }}>
-                    <p className="text-xs font-semibold" style={{ color: '#212529' }}>{reply.user.username}</p>
-                    <p className="text-sm mt-0.5" style={{ color: '#3D3D3D' }}>{reply.content}</p>
-                  </div>
-                </div>
+                <CommentItem key={reply.id} comment={reply} storyId={storyId} onReplyAdded={onReplyAdded} />
               ))}
             </div>
           )}
@@ -241,9 +231,13 @@ export default function StoryDetailPage() {
   }
 
   const handleReplyAdded = (parentId: string, reply: Comment) => {
-    setComments(prev =>
-      prev.map(c => c.id === parentId ? { ...c, replies: [...(c.replies || []), reply] } : c)
-    )
+    const addReply = (list: Comment[]): Comment[] =>
+      list.map(c =>
+        c.id === parentId
+          ? { ...c, replies: [...(c.replies || []), reply] }
+          : { ...c, replies: c.replies ? addReply(c.replies) : [] }
+      )
+    setComments(prev => addReply(prev))
   }
 
   if (loading) return (

@@ -4,23 +4,26 @@ import {
   Eye,
   MessageCircle,
   Send,
-  // ChevronDown,
-  // ChevronUp,
   Tag,
   PenLine,
   ThumbsUp,
   ThumbsDown,
-  EyeOff,
-  Users,
+  UserCheck, 
+  UserMinus, 
+  UserPlus ,
   Bookmark
 } from 'lucide-react'
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { ShareModal } from '@/components/shared/ShareModal'
 import { useOpenContent } from '@/hooks/useOpenContent'
 import apiClient from '@/lib/api-client'
 import { MoreVertical, Flag } from 'lucide-react'
 import { ReportModal } from '@/components/shared/ReportModal'
+import { useFollow } from '@/hooks/useFollow'
+import { useSavedStatus } from '@/hooks/useSavedStatus'
+import { getTimeAgo } from '@/lib/utils'
 
 interface Answer {
   id: string
@@ -38,6 +41,7 @@ interface Answer {
 
 interface QuestionPostProps {
   id?: string
+  authorId?: string
   author: {
     name: string
     title: string
@@ -56,6 +60,7 @@ interface QuestionPostProps {
 
 export function QuestionPost({
   id = '',
+  authorId = '',
   author,
   question,
   content,
@@ -69,6 +74,9 @@ export function QuestionPost({
 }: QuestionPostProps) {
 
   const { openQuestion } = useOpenContent()
+  const router = useRouter()
+  const { state: followState, follow, unfollow } = useFollow(authorId)
+  const { isSaved, toggle: toggleSave, showToast: showSavedToast } = useSavedStatus(id || undefined, 'post')
 
   const [answersList, setAnswersList] = useState<Answer[]>([])
   const [answerText, setAnswerText] = useState('')
@@ -87,9 +95,6 @@ export function QuestionPost({
   const [disliked, setDisliked] = useState(false)
   const [likedAnswers, setLikedAnswers] = useState<Set<string>>(new Set())
   const [animatingId, setAnimatingId] = useState<string | null>(null)
-  const [saved, setSaved] = useState(false)
-  const [showSavedToast, setShowSavedToast] = useState(false)
-
   useEffect(() => {
     const handleClickOutside = (e: any) => {
       if (actionMenuRef.current && !actionMenuRef.current.contains(e.target)) {
@@ -104,24 +109,11 @@ export function QuestionPost({
 
 
   // =========================
-  // � SAVE QUESTION
+  // 🔖 SAVE QUESTION — handled by useSavedStatus hook
   // =========================
 
   const handleSave = async () => {
-    try {
-      if (saved) {
-        await apiClient.unsaveContent(id, 'post')
-        setSaved(false)
-      } else {
-        await apiClient.saveContent(id, 'post')
-        setSaved(true)
-        setShowSavedToast(true)
-        setTimeout(() => setShowSavedToast(false), 2500)
-      }
-      setShowActionMenu(false)
-    } catch {
-      // ignore
-    }
+    await toggleSave(() => setShowActionMenu(false))
   }
 
   // =========================
@@ -374,43 +366,86 @@ export function QuestionPost({
       <div className="bg-white rounded-2xl border p-6 mb-4">
 
         {/* HEADER */}
-        <div className="flex gap-3 mb-4">
-          <img src={author.avatar} alt={author.name} className="w-12 h-12 rounded-full" />
+        <div className="flex gap-3 mb-4 justify-between items-start">
+          <div
+            className="flex items-center gap-3 cursor-pointer"
+            onClick={() => authorId && router.push(`/profile/${authorId}`)}
+          >
+          <img src={author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(author.name)}&background=E8E8E8&color=212529&size=48`} alt={author.name} className="w-12 h-12 rounded-full" />
           <div>
-            <h3 className="font-semibold">{author.name}</h3>
+            <h3 className="font-semibold hover:underline">{author.name}</h3>
             <p className="text-sm text-gray-500">{author.title}</p>
-            <p className="text-xs text-gray-400">{timestamp}</p>
+            <p className="text-xs text-gray-400">{getTimeAgo(timestamp)}</p>
+          </div>
           </div>
 
           <div ref={actionMenuRef} className="relative">
-            <button onClick={() => setShowActionMenu(!showActionMenu)}>
-              <MoreVertical />
+            <button onClick={() => setShowActionMenu(!showActionMenu)} className="text-gray-400 hover:text-gray-600 p-1 transition">
+              <MoreVertical className="w-5 h-5" />
             </button>
 
             {showActionMenu && (
-              <div className="absolute right-0 bg-white border rounded shadow p-2">
+              <div className="absolute right-0 bg-white border rounded shadow p-2 row-gap-2 flex flex-col text-sm z-10">
                 <button
                   onClick={handleSave}
-                  className="p-2 rounded transition flex items-center gap-1 text-xs hover:bg-gray-100"
-                  title={saved ? 'Unsave' : 'Save'}
-                  style={{ color: saved ? '#1d9bf0' : '#374151' }}
+                  className="group p-2 rounded transition-all duration-200 flex items-center gap-1 text-xs hover:bg-gray-100 hover:gap-2"
+                  title={isSaved ? 'Unsave' : 'Save post'}
+                  style={{ color: isSaved ? '#1d9bf0' : '#374151' }}
                 >
-                  <Bookmark className={`w-4 h-4 ${saved ? 'fill-[#1d9bf0]' : ''}`} />
+                  {/* Bookmark Icon */}
+                  <Bookmark
+                    className={`w-4 h-4 transition-all duration-200 ${
+                      isSaved ? 'fill-[#1d9bf0]' : ''
+                    }`}
+                  />
+
+                  {/* Text (only on hover) */}
+                  <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-200 whitespace-nowrap">
+                    {isSaved ? 'Unsave' : 'Save'}
+                  </span>
                 </button>
-                <button className="text-gray-700 hover:text-black hover:bg-gray-100 p-2 rounded transition flex items-center gap-1 text-xs" title="Disconnect">
-                  <Users className="w-4 h-4" />
-                </button>
-                <button className="text-gray-700 hover:text-black hover:bg-gray-100 p-2 rounded transition flex items-center gap-1 text-xs" title="Not interested">
-                  <EyeOff className="w-4 h-4" />
+                <button
+                  onClick={followState === 'connected' ? unfollow : follow}
+                  className="group p-2 rounded transition flex items-center gap-1 text-xs hover:bg-gray-100"
+                  style={{ color: '#374151' }}
+                  title={
+                    followState === 'connected'
+                      ? 'Disconnect'
+                      : followState === 'pending'
+                      ? 'Requested'
+                      : 'Connect'
+                  }
+                >
+                  {/* Icon based on state */}
+                  {followState === 'connected' ? (
+                    <UserCheck className="w-4 h-4" />
+                  ) : followState === 'pending' ? (
+                    <UserMinus className="w-4 h-4" />
+                  ) : (
+                    <UserPlus className="w-4 h-4" />
+                  )}
+
+                  {/* Text appears only on hover */}
+                  <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-200 whitespace-nowrap">
+                    {followState === 'connected'
+                      ? 'Disconnect'
+                      : followState === 'pending'
+                      ? 'Requested'
+                      : 'Connect'}
+                  </span>
                 </button>
                 <button
                   onClick={() => {
                     setShowReportModal(true)
                     setShowActionMenu(false)
                   }}
-                  className="flex items-center gap-2 text-red-600 px-2 py-1 rounded hover:bg-red-50 transition text-xs" title="Reports"
+                  title='Report'
+                  className="group flex items-center gap-1 text-red-600 hover:bg-gray-100 px-2 py-1 rounded transition-all duration-200 hover:gap-2"
                 >
-                  <Flag className="w-4 h-4" />
+                <Flag className="w-4 h-4" />
+                <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-200 whitespace-nowrap">
+                  Report
+                </span>
                 </button>
               </div>
             )}
