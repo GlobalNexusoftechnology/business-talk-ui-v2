@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { MessageSquare, Bug, Lightbulb, AlertCircle, CheckCircle, ChevronDown } from 'lucide-react'
+import { MessageSquare, Bug, Lightbulb, AlertCircle, CheckCircle } from 'lucide-react'
 import apiClient from '@/lib/api-client'
 
 const TYPES = [
