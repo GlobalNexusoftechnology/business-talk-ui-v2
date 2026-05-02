@@ -239,20 +239,20 @@ export default function AdminUsersPage() {
       {/* TABLE */}
       <div className="border rounded overflow-hidden overflow-x-auto">
         <table className="w-full text-sm min-w-[640px]">
-          <thead className="bg-white border-b">
+          <thead className="bg-white border-b text-left text-xs text-gray-500 uppercase tracking-wide">
             <tr>
-              <th className="p-3">
+              <th className="p-3 w-10">
                 <input
                   type="checkbox"
                   checked={selectedUsers.length === filteredUsers.length}
                   onChange={toggleSelectAll}
                 />
               </th>
-              <th>User</th>
-              <th>Company</th>
-              <th>Activity</th>
-              <th>Status</th>
-              <th></th>
+              <th className="p-3">User</th>
+              <th className="p-3">Company</th>
+              <th className="p-3">Activity</th>
+              <th className="p-3">Status</th>
+              <th className="p-3"></th>
             </tr>
           </thead>
 
@@ -285,16 +285,16 @@ export default function AdminUsersPage() {
                 </td>
 
                 {/* COMPANY */}
-                <td>{u.company}</td>
+                <td className="p-3">{u.company}</td>
 
                 {/* ACTIVITY */}
-                <td>
+                <td className="p-3">
                   <div>{u.posts} posts</div>
                   <div className="text-xs text-gray-500">{u.followers} followers</div>
                 </td>
 
                 {/* STATUS */}
-                <td>
+                <td className="p-3">
                   <span className={`px-2 py-1 rounded text-xs ${
                     u.status === 'active'
                       ? 'bg-green-100 text-green-800'

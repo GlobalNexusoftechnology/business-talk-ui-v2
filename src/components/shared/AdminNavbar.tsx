@@ -3,6 +3,7 @@
 import { Bell, Search, Menu } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/hooks/useRedux'
+import { useNotifications } from '@/hooks/useNotifications'
 
 interface AdminNavbarProps {
   onMenuClick?: () => void
@@ -10,6 +11,7 @@ interface AdminNavbarProps {
 
 export const AdminNavbar = ({ onMenuClick }: AdminNavbarProps) => {
   const { user, isAuthenticated } = useAuth()
+  const { unreadCount } = useNotifications()
 
   return (
     <nav className="sticky top-0 z-40 bg-white border-b border-secondary-200 lg:ml-64">
@@ -34,14 +36,18 @@ export const AdminNavbar = ({ onMenuClick }: AdminNavbarProps) => {
         {/* Right Side */}
         <div className="flex items-center gap-4">
           {/* Notifications */}
-          <button className="relative p-2 hover:bg-secondary-50 rounded-lg">
-            <Bell className="h-6 w-6 text-secondary-600" />
-            <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
-          </button>
+          <Link href="/admin/notifications">
+            <button className="relative p-2 hover:bg-secondary-50 rounded-lg">
+              <Bell className="h-6 w-6 text-secondary-600" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
+              )}
+            </button>
+          </Link>
 
           {/* User Avatar */}
           {isAuthenticated && user && (
-            <Link href="/profile">
+            <Link href="/admin/profile">
               <div className="h-10 w-10 rounded-full bg-primary-600 text-white flex items-center justify-center font-bold text-sm cursor-pointer hover:bg-primary-700 transition-colors">
                 {user.name?.charAt(0) || user.username?.charAt(0) || 'A'}
               </div>

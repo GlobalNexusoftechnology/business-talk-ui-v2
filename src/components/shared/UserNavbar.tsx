@@ -3,6 +3,7 @@
 import { Bell, Search, Menu, X } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/hooks/useRedux'
+import { useNotifications } from '@/hooks/useNotifications'
 import { useState, useEffect } from 'react'
 import { MobileSidebar } from './MobileSidebar'
 
@@ -13,6 +14,7 @@ interface UserNavbarProps {
 
 export const UserNavbar = ({ onMenuClick, children }: UserNavbarProps) => {
   const { user, isAuthenticated } = useAuth()
+  const { unreadCount } = useNotifications()
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
@@ -69,10 +71,14 @@ export const UserNavbar = ({ onMenuClick, children }: UserNavbarProps) => {
           <div className="flex items-center gap-4">
             
             {/* Notification */}
-            <button className="relative p-2 hover:bg-gray-100 rounded-lg">
-              <Bell className="h-6 w-6 text-gray-600" />
-              <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" />
-            </button>
+            <Link href="/notifications">
+              <button className="relative p-2 hover:bg-gray-100 rounded-lg">
+                <Bell className="h-6 w-6 text-gray-600" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" />
+                )}
+              </button>
+            </Link>
 
             {/* ✅ Avatar (hydration safe) */}
             {mounted && isAuthenticated && user && (
