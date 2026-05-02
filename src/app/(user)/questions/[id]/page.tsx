@@ -6,7 +6,7 @@ import {
   ArrowLeft,
   ThumbsUp,
   ThumbsDown,
-  MessageCircle,
+//   MessageCircle,
   Send,
   Tag,
   CheckCircle,

@@ -8,7 +8,7 @@ import {
   ThumbsDown,
   MessageCircle,
   Send,
-  CornerDownRight,
+//   CornerDownRight,
 } from 'lucide-react'
 import apiClient from '@/lib/api-client'
 

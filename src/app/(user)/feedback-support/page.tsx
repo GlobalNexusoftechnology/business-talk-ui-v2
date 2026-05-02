@@ -20,7 +20,6 @@ export default function FeedbackSupportPage() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [dropdownOpen, setDropdownOpen] = useState(false)
 
   const selected = TYPES.find(t => t.value === type)!
 
