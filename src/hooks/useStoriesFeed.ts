@@ -11,7 +11,7 @@ export function useStoriesFeed() {
         id: story.id,
         author: {
           name: story.user?.full_name || story.user?.username || 'Unknown',
-          avatar: story.user?.profile_photo || '/avatar.png',
+          avatar: story.user?.profile_photo || `https://ui-avatars.com/api/name=${encodeURIComponent(story.user?.full_name || story.user?.username)}`,
           title: story.user?.profession || 'User',
         },
         storyTitle: story.title,

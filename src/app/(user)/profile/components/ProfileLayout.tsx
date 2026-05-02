@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ProfileHeader } from './ProfileHeader'
 import { ProfileTabs } from './ProfileTabs'
 import { ProfileAbout } from './ProfileAbout'
@@ -25,7 +25,14 @@ export function ProfileLayout({
   activity?: any
 }) {
 
-  const [activeTab, setActiveTab] = useState<'about' | 'experience' | 'education' | 'gallery'>('about')
+  const [activeTab, setActiveTab] = useState<'about' | 'experience' | 'education' | 'gallery'>(
+    isOwnProfile ? 'about' : 'about'
+  )
+
+  // Reset to 'about' when switching to a non-own profile that doesn't have gallery
+  useEffect(() => {
+    if (!isOwnProfile && activeTab === 'gallery') setActiveTab('about')
+  }, [isOwnProfile, activeTab])
 
   const {
     state: followState,
@@ -53,7 +60,7 @@ export function ProfileLayout({
           isOwnProfile={!!isOwnProfile}
         />
 
-        <ProfileTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+        <ProfileTabs activeTab={activeTab} setActiveTab={setActiveTab} isOwnProfile={!!isOwnProfile} />
 
         <div className="grid grid-cols-3 gap-6 mt-6">
 

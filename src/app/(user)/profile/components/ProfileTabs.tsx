@@ -1,5 +1,15 @@
-export function ProfileTabs({ activeTab, setActiveTab }: any) {
-  const tabs = ['about', 'experience', 'education', 'gallery']
+export function ProfileTabs({
+  activeTab,
+  setActiveTab,
+  isOwnProfile,
+}: {
+  activeTab: string
+  setActiveTab: (tab: any) => void
+  isOwnProfile?: boolean
+}) {
+  const tabs = isOwnProfile
+    ? ['about', 'experience', 'education', 'gallery']
+    : ['about', 'experience', 'education']
 
   return (
     <div className="flex gap-6 border-b px-6 bg-white rounded-xl">
