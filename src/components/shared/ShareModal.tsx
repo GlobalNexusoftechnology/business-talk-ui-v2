@@ -12,7 +12,7 @@ interface ShareModalProps {
   onClose: () => void
   title?: string
   postContent?: string
-  contentType?: 'blog' | 'question' | 'story' | 'post' | 'group'
+  contentType?: 'blogs' | 'questions' | 'stories' | 'posts' | 'groups'
   contentId?: string
 }
 
@@ -21,7 +21,7 @@ export function ShareModal({
   onClose, 
   title = 'Share with Friends',
   postContent = 'Check this out on Business Talk 24!',
-  contentType = 'post',
+  contentType = 'posts',
   contentId = '12345'
 }: ShareModalProps) {
   const [copied, setCopied] = useState(false)
@@ -120,7 +120,7 @@ export function ShareModal({
           {/* Social Share Section */}
           <div>
             <p className="text-sm font-medium text-[#212529] mb-3">Share to</p>
-            <div className="flex justify-between gap-2">
+            <div className="flex flex-wrap justify-center gap-3">
               {[
                 { name: 'Facebook', key: 'facebook', color: '#1877F2' },
                 { name: 'X', key: 'x', color: '#000' },

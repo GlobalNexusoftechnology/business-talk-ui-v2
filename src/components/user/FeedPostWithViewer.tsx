@@ -86,7 +86,7 @@ export function FeedPostWithViewer({
 
   return (
     <>
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-4">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 sm:p-6 mb-4">
         {/* Post Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -145,7 +145,7 @@ export function FeedPostWithViewer({
             <img
               src={image}
               alt="Post content"
-              className="w-full h-80 object-cover"
+              className="w-full h-48 sm:h-80 object-cover"
             />
           </div>
         )}
@@ -155,7 +155,7 @@ export function FeedPostWithViewer({
           <div className="mb-4 rounded-xl overflow-hidden">
             <video
               src={video}
-              className="w-full h-80 object-cover"
+              className="w-full h-48 sm:h-80 object-cover"
               controls
             >
               <source src={video} type="video/mp4" />
@@ -201,7 +201,7 @@ export function FeedPostWithViewer({
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         postContent={content}
-        contentType="post"
+        contentType="posts"
         contentId={id}
       />
     </>

@@ -34,7 +34,7 @@ export const UserLayoutWrapper = ({ children }: UserLayoutWrapperProps) => {
           apiClient.getFollowSuggestions(),
           apiClient.getGroups(),
           apiClient.getStories(),
-          apiClient.getHotPosts(),
+          apiClient.getTrendingPosts(),
         ])
         setPeople(peopleRes.data || [])
         setGroups(groupsRes.data || [])
@@ -42,8 +42,8 @@ export const UserLayoutWrapper = ({ children }: UserLayoutWrapperProps) => {
           (a: any, b: any) => new Date(b.created_on).getTime() - new Date(a.created_on).getTime()
         )
         setStories(sortedStories.slice(0, 5))
-        const hotPosts = hotRes.data || []
-        const questionPosts = hotPosts
+        const trendingPosts = hotRes.data || []
+        const questionPosts = trendingPosts
           .filter((p: any) => (p.post_type || p.type)?.toUpperCase() === 'QUESTION')
           .sort((a: any, b: any) => (b.hot_score || 0) - (a.hot_score || 0))
         setQuestions(questionPosts.slice(0, 5))

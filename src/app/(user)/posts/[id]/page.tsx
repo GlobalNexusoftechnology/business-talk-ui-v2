@@ -169,6 +169,12 @@ export default function PostDetailPage() {
       try {
         const res = await apiClient.getPostById(postId)
         const d = res.data
+
+        if (d.type === 'QUESTION') {
+          router.replace(`/questions/${postId}`)
+          return
+        }
+
         const formatted: Post = {
           id: d.id,
           type: d.type || 'POST',
@@ -195,9 +201,7 @@ export default function PostDetailPage() {
       }
     }
     load()
-  }, [postId])
-
-  /* fetch comments */
+  }, [postId, router])
   useEffect(() => {
     if (!postId) return
     const load = async () => {

@@ -406,7 +406,7 @@ export function PostViewCard({ data }: PostViewCardProps) {
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         postContent={data.content}
-        contentType="post"
+        contentType="posts"
         contentId={data.id}
       />
     </div>

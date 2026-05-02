@@ -6,6 +6,18 @@ import { useContentViewerContext } from '@/providers/ContentViewerProvider'
 import { useState, useEffect } from 'react'
 import apiClient from '@/lib/api-client'
 
+interface SuggestedGroup {
+  id: string
+  name: string
+  description: string
+  image: string
+  members: number
+  visibility: 'PUBLIC' | 'PRIVATE'
+  category: string
+  joined: boolean
+  requested: boolean
+}
+
 const getTimeAgo = (timestamp: string | number) => {
   const now = Date.now()
   const time = Number(timestamp)
@@ -54,7 +66,7 @@ export function TrendingItem({
       <p className="text-sm font-semibold text-black line-clamp-2 mb-1">{displayText}</p>
       <p className="text-xs text-gray-500">
         {type === 'question' && (
-          <>{item.answers || item.answerCount || item.answer_count || item.comments_count || item.comment_count || 0} Answers</>
+          <>{item.commentsCount || item.comment_count || 0} Answers</>
         )}
         {type === 'story' && (
           <>{timeAgo} ago</>
@@ -227,7 +239,7 @@ export function RightSidebar() {
   const [people, setPeople] = useState<any[]>([]);
   const [stories, setStories] = useState<any[]>([]);
   const [questions, setQuestions] = useState<any[]>([]);
-  const [groups, setGroups] = useState<any[]>([]);
+  const [groups, setGroups] = useState<SuggestedGroup[]>([]);
   const [connectStates, setConnectStates] = useState<{ [id: string]: 'connect' | 'pending' | 'connected' }>({});
   const [joinStates, setJoinStates] = useState<{ [id: string]: 'join' | 'requested' | 'joined' }>({});
   const [isMobile, setIsMobile] = useState(false);
@@ -243,14 +255,36 @@ export function RightSidebar() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [peopleRes, groupsRes, storiesRes, hotRes] = await Promise.all([
+        const [peopleRes, groupsRes, myGroupsRes, requestedGroupsRes, storiesRes, hotRes] = await Promise.all([
           apiClient.getFollowSuggestions(),
           apiClient.getGroups(),
-          apiClient.getStories(),
-          apiClient.getHotPosts(),
+          apiClient.getMyGroups(),
+          apiClient.getMyRequestedGroups(),
+          apiClient.getTrendingStories(),
+          apiClient.getTrendingPosts(),
         ]);
         setPeople((peopleRes.data || []).slice(0, 5));
-        setGroups((groupsRes.data || []).slice(0, 5));
+
+        const myGroupIds = new Set(
+          (myGroupsRes.data || []).map((item: any) => (item.group ?? item).id)
+        );
+        const requestedGroupIds = new Set(
+          (requestedGroupsRes.data || []).map((item: any) => (item.group ?? item).id)
+        );
+
+        const formattedGroups: SuggestedGroup[] = (groupsRes.data || []).map((g: any) => ({
+          id: g.id,
+          name: g.name,
+          description: g.description,
+          image: g.cover_image || '/placeholder.jpg',
+          members: g.memberCount || 0,
+          visibility: g.visibility === 'PRIVATE' ? 'PRIVATE' : 'PUBLIC',
+          category: 'General',
+          joined: myGroupIds.has(g.id) || g.isJoined || false,
+          requested: requestedGroupIds.has(g.id) || g.isRequested || false,
+        }));
+
+        setGroups(formattedGroups.slice(0, 5));
         const sortedStories = (storiesRes.data || []).sort(
           (a: any, b: any) => new Date(b.created_on).getTime() - new Date(a.created_on).getTime()
         );
@@ -268,8 +302,8 @@ export function RightSidebar() {
           }, {})
         );
         setJoinStates(
-          (groupsRes.data || []).reduce((acc: any, g: any) => {
-            acc[g.id] = g.isJoined ? 'joined' : g.isRequested ? 'requested' : 'join';
+          formattedGroups.reduce((acc: any, g: SuggestedGroup) => {
+            acc[g.id] = g.joined ? 'joined' : g.requested ? 'requested' : 'join';
             return acc;
           }, {})
         );
@@ -322,15 +356,24 @@ export function RightSidebar() {
       if (current === 'joined') {
         await apiClient.leaveGroup(group.id);
         setJoinStates(prev => ({ ...prev, [group.id]: 'join' }));
+        setGroups(prev => prev.map(item =>
+          item.id === group.id ? { ...item, joined: false, requested: false } : item
+        ));
       } else if (current === 'requested') {
         // no cancel endpoint
         return;
       } else if (group.visibility === 'PRIVATE') {
         await apiClient.requestToJoinGroup(group.id);
         setJoinStates(prev => ({ ...prev, [group.id]: 'requested' }));
+        setGroups(prev => prev.map(item =>
+          item.id === group.id ? { ...item, joined: false, requested: true } : item
+        ));
       } else {
         await apiClient.joinGroup(group.id);
         setJoinStates(prev => ({ ...prev, [group.id]: 'joined' }));
+        setGroups(prev => prev.map(item =>
+          item.id === group.id ? { ...item, joined: true, requested: false } : item
+        ));
       }
     } catch (err) {
       console.error('Group join/leave error', err);

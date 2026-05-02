@@ -12,6 +12,35 @@ export function ShareStoryBox() {
   const [tags, setTags] = useState<string[]>([])
   const [showTagsPopup, setShowTagsPopup] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [savingDraft, setSavingDraft] = useState(false)
+  const [draftToast, setDraftToast] = useState<string | null>(null)
+
+  const showDraftToast = (msg: string) => {
+    setDraftToast(msg)
+    setTimeout(() => setDraftToast(null), 3000)
+  }
+
+  const handleSaveDraft = async () => {
+    if (!storyTitle.trim() && !storyText.trim()) return
+    try {
+      setSavingDraft(true)
+      await apiClient.saveDraft({
+        type: 'story',
+        autoSaved: false,
+        content: { title: storyTitle, content: storyText, tags },
+      })
+      setStoryTitle('')
+      setStoryText('')
+      setCoverImage([])
+      setTags([])
+      showDraftToast('Story saved to drafts!')
+    } catch (err) {
+      console.error('Save draft failed:', err)
+      showDraftToast('Failed to save draft.')
+    } finally {
+      setSavingDraft(false)
+    }
+  }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -53,7 +82,8 @@ export function ShareStoryBox() {
   }
 
   return (
-    <div className="bg-white p-6 rounded-2xl border">
+    <>
+    <div className="bg-white p-3 sm:p-6 rounded-2xl border">
       <div className="flex items-center gap-3 mb-4">
         <div className="bg-gray-100 p-2 rounded-full">
           <BookOpen className="w-5 h-5" />
@@ -75,7 +105,7 @@ export function ShareStoryBox() {
         className="w-full p-3 mt-3 bg-gray-50 border rounded-xl"
       />
 
-      <div className="flex justify-between mt-4">
+      <div className="flex flex-wrap justify-between gap-2 mt-4">
         <div className="flex gap-4 items-center">
           <input
             type="file"
@@ -94,13 +124,22 @@ export function ShareStoryBox() {
           </button>
         </div>
 
-        <button
-          onClick={handleShareStory}
-          disabled={loading || !storyText.trim()}
-          className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-400 disabled:bg-gray-400 disabled:cursor-not-allowed"
-        >
-          {loading ? 'Publishing...' : 'Publish Story'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleSaveDraft}
+            disabled={savingDraft || loading || (!storyTitle.trim() && !storyText.trim())}
+            className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {savingDraft ? 'Saving...' : 'Save Draft'}
+          </button>
+          <button
+            onClick={handleShareStory}
+            disabled={loading || !storyText.trim()}
+            className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-400 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Publishing...' : 'Publish Story'}
+          </button>
+        </div>
       </div>
 
       {coverImage.length > 0 && (
@@ -129,5 +168,12 @@ export function ShareStoryBox() {
         selectedTags={tags}
       />
     </div>
+
+    {draftToast && (
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white text-sm font-medium px-5 py-3 rounded-full shadow-xl">
+        {draftToast}
+      </div>
+    )}
+  </>
   )
 }

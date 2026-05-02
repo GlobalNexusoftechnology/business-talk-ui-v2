@@ -75,7 +75,7 @@ export default function AdminQuestionsPage() {
       </div>
 
       {showCreate && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="w-full max-w-2xl">
             <AdminCreateQuestionBox />
             <div className="text-center mt-4">

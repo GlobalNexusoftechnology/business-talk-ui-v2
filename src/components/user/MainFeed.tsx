@@ -137,7 +137,7 @@ export default function MainFeed() {
 
   // ── Render ─────────────────────────────────────────────────────────
   return (
-    <main className="flex-1 p-6 overflow-y-auto bg-[#F8F9FA]">
+    <main className="flex-1 p-3 sm:p-6 overflow-y-auto bg-[#F8F9FA]">
       <div className="max-w-3xl mx-auto">
 
         {/* 🔍 Search Bar */}
@@ -411,7 +411,7 @@ export default function MainFeed() {
                         {searchResults.users.length}
                       </span>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {searchResults.users.map((u: any) => (
                         <div
                           key={u.id}
@@ -447,7 +447,7 @@ export default function MainFeed() {
                         {searchResults.groups.length}
                       </span>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {searchResults.groups.map((g: any) => (
                         <div
                           key={g.id}

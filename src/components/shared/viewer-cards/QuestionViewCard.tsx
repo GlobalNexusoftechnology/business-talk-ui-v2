@@ -154,7 +154,7 @@ export function QuestionViewCard({ data }: Props) {
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         postContent={data.content}
-        contentType="question"
+        contentType="questions"
         contentId={data.id}
       />
     </div>

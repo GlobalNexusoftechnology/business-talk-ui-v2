@@ -47,9 +47,24 @@ export const useStoryComments = (storyId: string) => {
     },
   })
 
+  // =========================
+  // DELETE COMMENT
+  // =========================
+  const deleteCommentMutation = useMutation({
+    mutationFn: async (commentId: string) => {
+      return await apiClient.deleteBlogComment(commentId)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['story-comments', storyId],
+      })
+    },
+  })
+
   return {
     comments: data || [],
     addComment: addCommentMutation.mutate,
     likeComment: likeCommentMutation.mutate,
+    deleteComment: deleteCommentMutation.mutate,
   }
 }

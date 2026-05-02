@@ -55,7 +55,7 @@ export function AdminCreateStoryBox() {
         className="w-full mt-3 p-3 bg-gray-50 border rounded-xl"
       />
 
-      <div className="flex justify-between mt-4">
+      <div className="flex flex-wrap justify-between gap-2 mt-4">
         <div className="flex gap-4">
           <input hidden type="file" id="story-img" onChange={(e) => setCover(Array.from(e.target.files || []))} />
           <label htmlFor="story-img" className="cursor-pointer">

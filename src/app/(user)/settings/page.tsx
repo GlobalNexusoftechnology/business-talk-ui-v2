@@ -4,7 +4,8 @@
 
 import {
 
-  User, Lock, Bell, Shield, Mail, Smartphone, Eye, Globe,
+  User, Lock, Bell, Shield, Mail, 
+  // Smartphone, Eye, Globe,
 
   Upload, X, Briefcase, GraduationCap, Plus, Pencil, Trash2,
 
@@ -14,9 +15,6 @@ import { useState, useEffect } from 'react'
 
 import apiClient from '@/lib/api-client'
 
-
-
-// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type ExperienceEntry = {
 
@@ -538,7 +536,7 @@ export default function SettingsPage() {
 
   const [pwError, setPwError] = useState('')
 
-  const [twoFactorAuth, setTwoFactorAuth] = useState(false)
+  // const [twoFactorAuth, setTwoFactorAuth] = useState(false)
 
 
 
@@ -548,7 +546,7 @@ export default function SettingsPage() {
 
   const [pushNotifications, setPushNotifications] = useState(true)
 
-  const [profileVisibility, setProfileVisibility] = useState('public')
+  // const [profileVisibility, setProfileVisibility] = useState('public')
 
 
 
@@ -728,13 +726,13 @@ export default function SettingsPage() {
 
   return (
 
-    <div className="p-6 overflow-y-auto" style={{ backgroundColor: '#F8F9FA' }}>
+    <div className="p-3 sm:p-6 overflow-y-auto" style={{ backgroundColor: '#F8F9FA' }}>
 
       <div className="max-w-5xl mx-auto">
 
         <div className="mb-6">
 
-          <h1 className="text-3xl font-semibold mb-2" style={{ color: '#212529' }}>Settings</h1>
+          <h1 className="text-2xl sm:text-3xl font-semibold mb-2" style={{ color: '#212529' }}>Settings</h1>
 
           <p style={{ color: '#5F6368' }}>Manage your account settings and preferences</p>
 
@@ -858,7 +856,7 @@ export default function SettingsPage() {
 
                   <h2 className="text-xl font-semibold mb-4" style={{ color: '#212529' }}>Profile Photo</h2>
 
-                  <div className="flex items-center gap-6">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
 
                     <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center shrink-0">
 
@@ -1230,7 +1228,10 @@ export default function SettingsPage() {
 
                     <div className="flex items-center justify-between p-4 rounded-lg" style={{ backgroundColor: '#F8F9FA' }}>
 
-                      <div className="flex items-center gap-3">
+                     {/*write acode saying we are continuously improving security features and will have 2FA soon, but for now we recommend using a strong password and keeping it safe. */ }
+
+                      <p className="text-sm" style={{ color: '#5F6368' }}>We are continuously improving our security features and will have Two-Factor Authentication (2FA) available soon. For now, we recommend using a strong password and keeping it safe.</p>
+                      {/* <div className="flex items-center gap-3">
 
                         <Smartphone className="w-5 h-5" style={{ color: '#5F6368' }} />
 
@@ -1254,7 +1255,7 @@ export default function SettingsPage() {
 
                           style={{ transform: twoFactorAuth ? 'translateX(24px)' : 'translateX(4px)' }} />
 
-                      </button>
+                      </button> */}
 
                     </div>
 
@@ -1356,7 +1357,12 @@ export default function SettingsPage() {
 
                     </div>
 
-                    <div className="p-4 rounded-lg" style={{ backgroundColor: '#F8F9FA' }}>
+                    {/* write a code saying that we are continuously improving notification features and will have more options soon, but for now you can toggle email and push notifications. */}
+
+                    <div className="text-sm text-gray-500 bg-gray-50 rounded-xl p-4 border border-gray-200">
+                      We are continuously improving our notification features and will have more options soon. For now, you can toggle email and push notifications.
+                    </div>
+                    {/* <div className="p-4 rounded-lg" style={{ backgroundColor: '#F8F9FA' }}>
 
                       <p className="font-medium mb-3" style={{ color: '#212529' }}>Email me about:</p>
 
@@ -1376,7 +1382,7 @@ export default function SettingsPage() {
 
                       </div>
 
-                    </div>
+                    </div> */}
 
                     <button className="px-6 py-3 text-white rounded-lg transition-all"
 
@@ -1411,6 +1417,12 @@ export default function SettingsPage() {
                   <h2 className="text-xl font-semibold mb-4" style={{ color: '#212529' }}>Privacy Settings</h2>
 
                   <div className="space-y-4">
+                    {/* write a code saying that feature is coming soon */}
+                    <div className="text-sm text-gray-500 bg-gray-50 rounded-xl p-4 border border-gray-200">
+                      Privacy settings will be available soon. Stay tuned!
+                    </div>
+                    </div>
+                  {/* <div className="space-y-4">
 
                     <div className="p-4 rounded-lg" style={{ backgroundColor: '#F8F9FA' }}>
 
@@ -1468,7 +1480,7 @@ export default function SettingsPage() {
 
                         {['Connections list','Email address','Phone number','Posts and activity'].map(item => (
 
-                          <div key={item} className="flex items-center justify-between">
+                          <div key={item} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
 
                             <span className="text-sm" style={{ color: '#212529' }}>{item}</span>
 
@@ -1506,7 +1518,7 @@ export default function SettingsPage() {
 
                     </button>
 
-                  </div>
+                  </div> */}
 
                 </div>
 

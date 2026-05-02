@@ -12,6 +12,13 @@ export function useAdminStories(filter: string) {
         return stories.sort((a: { created_on: string }, b: { created_on: string }) => Number(b.created_on) - Number(a.created_on))
       }
 
+      if (filter === 'Trending') {
+        const trendingRes = await apiClient.getTrendingStories()
+        const trendingStories = trendingRes.data || []
+        const trendingIds = new Set(trendingStories.map((s: any) => s.id))
+        return stories.filter((s: any) => trendingIds.has(s.id))
+      }
+
       if (filter === 'Reported') {
         return stories.filter((s: any) => s.report_count > 0)
       }

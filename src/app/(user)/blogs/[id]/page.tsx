@@ -49,7 +49,7 @@ function normalizeComment(c: any): Comment {
     createdAt: c.created_on ?? c.createdAt ?? '',
     user: {
       name: u.full_name ?? u.username ?? u.name ?? 'Unknown',
-      avatar: u.profile_photo ?? u.avatar ?? '',
+      avatar: u.profile_photo ?? u.avatar ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name ?? u.username ?? u.name ?? 'Unknown')}&background=E8E8E8&color=212529&size=24`,
     },
     replies: (c.replies ?? []).map(normalizeComment),
   }
@@ -162,6 +162,11 @@ export default function BlogDetailsPage() {
         const res = await apiClient.getBlogById(blogId)
         const b = res.data
 
+        if (b.type === 'STORY') {
+          router.replace(`/stories/${blogId}`)
+          return
+        }
+
         const formatted: Blog = {
           id: b.id,
           authorId: b.user?.id || '',
@@ -169,8 +174,8 @@ export default function BlogDetailsPage() {
           excerpt: b.content?.slice(0, 150) || '',
           content: b.content,
           author: {
-            name: b.user?.username || 'Unknown',
-            avatar: b.user?.profile_photo || '/avatar.png',
+            name: b.user?.full_name || b.user?.username || 'Unknown',
+            avatar: b.user?.profile_photo || `https://ui-avatars.com/api/name=${encodeURIComponent(b.user?.full_name || b.user?.username || 'Unknown')}`,
             title: b.user?.profession || 'User',
           },
           image:
@@ -210,7 +215,7 @@ export default function BlogDetailsPage() {
 
     fetchBlog()
     fetchComments()
-  }, [blogId])
+  }, [blogId, router])
 
   /* ================== 🆕 ADDED: Like Logic ================== */
   // const handleLike = async () => {
@@ -268,7 +273,7 @@ export default function BlogDetailsPage() {
         </button>
 
         {/* IMAGE */}
-        <img src={blog.image} alt={blog.title} className="w-full h-80 object-cover rounded-xl mb-6" />
+        <img src={blog.image} alt={blog.title} className="w-full h-48 sm:h-64 md:h-80 object-cover rounded-xl mb-6" />
 
         {/* TITLE */}
         <h1 className="text-3xl font-bold mb-4">{blog.title}</h1>
@@ -279,7 +284,7 @@ export default function BlogDetailsPage() {
           onClick={() => blog.authorId && router.push(`/profile/${blog.authorId}`)}
         >
           <img
-            src={blog.author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(blog.author.name)}&background=E8E8E8&color=212529&size=48`}
+            src={blog.author.avatar || `https://ui-avatars.com/api/name=${encodeURIComponent(blog.author.name)}`}
             alt={blog.author.name}
             className="w-12 h-12 rounded-full object-cover"
           />
@@ -328,7 +333,7 @@ export default function BlogDetailsPage() {
         onClose={() => setShowShareModal(false)}
         postContent={blog.excerpt}
         title={blog.title}
-        contentType="blog"
+        contentType="blogs"
         contentId={blog.id}
       />
     </div>

@@ -171,6 +171,10 @@ class ApiClient {
     return this.client.get('/posts/hot')
   }
 
+  getTrendingPosts() {
+    return this.client.get('/trending/posts')
+  }
+
   getForYouFeed() {
     return this.client.get('/posts/feed/for-you')
   }
@@ -263,12 +267,29 @@ class ApiClient {
     return res.data
   }
 
+  // Delete a post (author only)
+  deletePost(id: string) {
+    return this.client.delete(`/posts/${id}`)
+  }
+
+  // Delete a post comment (author only)
+  deletePostComment(id: string) {
+    return this.client.delete(`/posts/comments/${id}`)
+  }
+
   // =========================
   // 📰 STORIES
   // =========================
 
   async getStories() {
     const res = await this.client.get('/blogs')
+    return {
+      data: (res.data || []).filter((b: any) => b.type === 'STORY'),
+    }
+  }
+
+  async getTrendingStories() {
+    const res = await this.client.get('/trending/blogs')
     return {
       data: (res.data || []).filter((b: any) => b.type === 'STORY'),
     }
@@ -285,6 +306,10 @@ class ApiClient {
     }
   }
 
+  getTrendingBlogs() {  
+    return this.client.get('/trending/blogs')
+  }
+
   getBlogById(id: string) {
     return this.client.get(`/blogs/${id}`)
   }
@@ -299,6 +324,11 @@ class ApiClient {
   // Delete blog
   deleteBlog(id: string) {
     return this.client.delete(`/blogs/${id}`)
+  }
+
+  // Delete a blog comment (author only)
+  deleteBlogComment(id: string) {
+    return this.client.delete(`/blogs/comments/${id}`)
   }
 
   // Share blog

@@ -451,7 +451,7 @@ export function BlogViewCard({ data }: BlogViewCardProps) {
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         postContent={data.excerpt}
-        contentType="blog"
+        contentType="blogs"
         contentId={data.id}
       />
     </div>

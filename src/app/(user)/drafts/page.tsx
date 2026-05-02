@@ -1,11 +1,11 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+// import { useRouter } from 'next/navigation'
 import apiClient from '@/lib/api-client'
 import {
   FileText,
-  BookOpen,
+  // BookOpen,
   HelpCircle,
   BookMarked,
   Trash2,
@@ -14,7 +14,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 
-type DraftType = 'post' | 'blog' | 'question' | 'story'
+type DraftType = 'post' | 'question' | 'story'
 
 interface Draft {
   id: string
@@ -36,11 +36,6 @@ const TYPE_META: Record<DraftType, { label: string; icon: React.ReactNode; badge
     label: 'Post',
     icon: <FileText className="w-4 h-4 text-blue-500" />,
     badge: 'bg-blue-100 text-blue-700',
-  },
-  blog: {
-    label: 'Blog',
-    icon: <BookOpen className="w-4 h-4 text-purple-500" />,
-    badge: 'bg-purple-100 text-purple-700',
   },
   question: {
     label: 'Question',
@@ -67,7 +62,7 @@ function formatDate(value: string | number) {
 }
 
 export default function DraftsPage() {
-  const router = useRouter()
+  // const router = useRouter()
   const [drafts, setDrafts] = useState<Draft[]>([])
   const [loading, setLoading] = useState(true)
   const [activeType, setActiveType] = useState<'all' | DraftType>('all')
@@ -136,7 +131,6 @@ export default function DraftsPage() {
   const tabs: { value: 'all' | DraftType; label: string }[] = [
     { value: 'all', label: `All (${drafts.length})` },
     { value: 'post', label: `Posts (${counts.post ?? 0})` },
-    { value: 'blog', label: `Blogs (${counts.blog ?? 0})` },
     { value: 'question', label: `Questions (${counts.question ?? 0})` },
     { value: 'story', label: `Stories (${counts.story ?? 0})` },
   ]

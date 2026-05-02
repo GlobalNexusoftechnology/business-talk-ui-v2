@@ -9,7 +9,7 @@ export function useAdminPosts(filter: string) {
       let posts: any[] = []
 
       if (filter === 'Trending') {
-        const res = await apiClient.getHotPosts()
+        const res = await apiClient.getTrendingPosts()
         posts = res.data || []
       } else {
         const res = await apiClient.getForYouFeed()

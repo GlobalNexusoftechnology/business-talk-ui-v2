@@ -8,6 +8,33 @@ export function CreatePostBox() {
   const [postContent, setPostContent] = useState('')
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [loading, setLoading] = useState(false)
+  const [savingDraft, setSavingDraft] = useState(false)
+  const [draftToast, setDraftToast] = useState<string | null>(null)
+
+  const showDraftToast = (msg: string) => {
+    setDraftToast(msg)
+    setTimeout(() => setDraftToast(null), 3000)
+  }
+
+  const handleSaveDraft = async () => {
+    if (!postContent.trim()) return
+    try {
+      setSavingDraft(true)
+      await apiClient.saveDraft({
+        type: 'post',
+        autoSaved: false,
+        content: { content: postContent, tags: [] },
+      })
+      setPostContent('')
+      setSelectedFiles([])
+      showDraftToast('Post saved to drafts!')
+    } catch (err) {
+      console.error('Save draft failed:', err)
+      showDraftToast('Failed to save draft.')
+    } finally {
+      setSavingDraft(false)
+    }
+  }
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -49,7 +76,8 @@ export function CreatePostBox() {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm p-6 mb-6 border">
+    <>
+    <div className="bg-white rounded-2xl shadow-sm p-3 sm:p-6 mb-6 border">
       <textarea
         value={postContent}
         onChange={(e) => setPostContent(e.target.value)}
@@ -61,7 +89,7 @@ export function CreatePostBox() {
         <p className="text-sm mt-2">{selectedFiles.length} file(s) selected</p>
       )}
 
-      <div className="flex justify-between mt-4">
+      <div className="flex flex-wrap justify-between gap-2 mt-4">
         <input
           type="file"
           id="media-upload"
@@ -74,14 +102,30 @@ export function CreatePostBox() {
           <ImageIcon /> <Video />
         </label>
 
-        <button
-          onClick={handleCreatePost}
-          disabled={loading || !postContent.trim()}
-          className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-400 disabled:bg-gray-400 disabled:cursor-not-allowed"
-        >
-          {loading ? 'Posting...' : 'Create Post'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleSaveDraft}
+            disabled={savingDraft || loading || !postContent.trim()}
+            className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {savingDraft ? 'Saving...' : 'Save Draft'}
+          </button>
+          <button
+            onClick={handleCreatePost}
+            disabled={loading || !postContent.trim()}
+            className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-400 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Posting...' : 'Create Post'}
+          </button>
+        </div>
       </div>
     </div>
+
+    {draftToast && (
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white text-sm font-medium px-5 py-3 rounded-full shadow-xl">
+        {draftToast}
+      </div>
+    )}
+  </>
   )
 }

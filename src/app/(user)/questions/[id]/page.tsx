@@ -256,7 +256,7 @@ export default function QuestionDetailPage() {
   )
 
   return (
-    <div className="p-6 min-h-screen" style={{ backgroundColor: '#F8F9FA' }}>
+    <div className="p-3 sm:p-6 min-h-screen" style={{ backgroundColor: '#F8F9FA' }}>
       <div className="max-w-2xl mx-auto space-y-4">
 
         {/* Back */}
@@ -313,7 +313,7 @@ export default function QuestionDetailPage() {
           )}
 
           {/* Vote + stats row */}
-          <div className="flex items-center gap-4 pt-4" style={{ borderTop: '1px solid #F0F0F0' }}>
+          <div className="flex items-center flex-wrap gap-3 pt-4" style={{ borderTop: '1px solid #F0F0F0' }}>
             <button
               onClick={() => handleVote('up')}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all"

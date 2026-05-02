@@ -49,14 +49,14 @@ export const useGroupFeed = (groupId: string, page = 1, limit = 20) => {
 }
 
 // GET PENDING JOIN REQUESTS (admin only)
-export const useGroupJoinRequests = (groupId: string) => {
+export const useGroupJoinRequests = (groupId: string, enabled = true) => {
   return useQuery({
     queryKey: ['group-join-requests', groupId],
     queryFn: async () => {
       const res = await apiClient.getGroupJoinRequests(groupId)
       return res.data
     },
-    enabled: !!groupId,
+    enabled: !!groupId && enabled,
   })
 }
 

@@ -92,7 +92,7 @@ export default function AdminFeedbackPage() {
       </div>
 
       {/* Type Filter Tabs */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2 mb-6 flex-wrap">
         {TYPE_TABS.map(tab => (
           <button
             key={tab.value}

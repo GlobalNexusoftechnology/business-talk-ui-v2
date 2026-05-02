@@ -11,6 +11,7 @@ import {
   UserMinus, 
   UserPlus,
   Flag,
+  Trash2,
 } from 'lucide-react'
 
 import { useEffect, useRef, useState } from 'react'
@@ -23,6 +24,7 @@ import { useFollow } from '@/hooks/useFollow'
 import { useSavedStatus } from '@/hooks/useSavedStatus'
 import { getTimeAgo } from '@/lib/utils'
 import { ReportModal } from '../shared/ReportModal'
+import apiClient from '@/lib/api-client'
 
 interface StoryPostProps {
   id?: string
@@ -68,9 +70,11 @@ export function StoryPost({
   const [showReportModal, setShowReportModal] = useState(false)
   const actionMenuRef = useRef<HTMLDivElement>(null)
   const [animatingId, setAnimatingId] = useState<string | null>(null)
+  const [currentUserId, setCurrentUserId] = useState('')
+  const [isDeleted, setIsDeleted] = useState(false)
 
   // ✅ HOOKS (STANDARDIZED)
-  const { comments, addComment, likeComment } = useStoryComments(id)
+  const { comments, addComment, likeComment, deleteComment } = useStoryComments(id)
   const { likeStory } = useStoryLike(id)
   const { state: followState, follow, unfollow } = useFollow(authorId)
   const { isSaved, toggle: toggleSave, showToast: showSavedToast } = useSavedStatus(id || undefined, 'blog')
@@ -85,6 +89,13 @@ export function StoryPost({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  useEffect(() => {
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || '{}')
+      setCurrentUserId(u.id || '')
+    } catch {}
+  }, [])
+
   // =========================
   // 🧠 NEST COMMENTS
   // =========================
@@ -95,6 +106,7 @@ export function StoryPost({
     comments.forEach((c) => {
       map[c.id] = {
         id: c.id,
+        authorId: c.user?.id || '',
         content: c.content,
         likes: c.likes || 0,
         timestamp: new Date(Number(c.created_on)).toLocaleString(),
@@ -173,6 +185,22 @@ export function StoryPost({
     likeComment(id)
   }
 
+  // Delete this story (only shown to author)
+  const handleDeleteStory = async () => {
+    if (!window.confirm('Delete this story? This cannot be undone.')) return
+    try {
+      await apiClient.deleteBlog(id)
+      setIsDeleted(true)
+    } catch (err) {
+      console.error('Failed to delete story')
+    }
+  }
+
+  // Delete a blog comment (only shown to comment author)
+  const handleDeleteComment = (commentId: string) => {
+    deleteComment(commentId)
+  }
+
   // =========================
   // 🔁 RENDER REPLIES
   // =========================
@@ -218,6 +246,15 @@ export function StoryPost({
                   >
                     Reply
                   </button>
+                  {currentUserId && currentUserId === reply.authorId && (
+                    <button
+                      onClick={() => handleDeleteComment(reply.id)}
+                      className="flex items-center gap-1 text-red-500 hover:text-red-700 transition-colors"
+                      title="Delete comment"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -260,7 +297,8 @@ export function StoryPost({
           Saved to your collection
         </div>
       )}
-      <div className="bg-white rounded-2xl border p-6 mb-4">
+      {isDeleted ? null : (
+      <div className="bg-white rounded-2xl border p-3 sm:p-6 mb-4">
 
         {/* HEADER */}
         <div className="flex justify-between mb-4">
@@ -354,6 +392,18 @@ export function StoryPost({
                     Report
                   </span>
                 </button>
+                {currentUserId && currentUserId === authorId && (
+                  <button
+                    onClick={handleDeleteStory}
+                    title='Delete story'
+                    className="group flex items-center gap-1 text-red-600 hover:bg-red-50 px-2 py-1 rounded transition-all duration-200 hover:gap-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-200 whitespace-nowrap">
+                      Delete
+                    </span>
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -386,7 +436,7 @@ export function StoryPost({
         </p>
 
         {/* ACTION BAR */}
-        <div className="flex gap-4 mt-4 border-y py-3">
+        <div className="flex flex-wrap gap-3 mt-4 border-y py-3">
 
           <button
             onClick={handleLike}
@@ -445,26 +495,39 @@ export function StoryPost({
                 </p>
                 <p>{c.content}</p>
 
-                <button
-                  onClick={() =>
-                    handleLikeComment(c.id)
-                  }
-                  style={{ color: animatingId === c.id ? '#1d9bf0' : undefined }}
-                >
-                  <ThumbsUp
-                        className={`w-5 h-5 transition-all duration-200 ${
-                          animatingId === c.id ? 'scale-150 rotate-12' : ''
-                        }`}
-                      /> {c.likes}
-                </button>
+                <div className="flex gap-3 mt-1 text-xs text-gray-500">
+                  <button
+                    onClick={() =>
+                      handleLikeComment(c.id)
+                    }
+                    style={{ color: animatingId === c.id ? '#1d9bf0' : undefined }}
+                    className="flex items-center gap-1"
+                  >
+                    <ThumbsUp
+                          className={`w-5 h-5 transition-all duration-200 ${
+                            animatingId === c.id ? 'scale-150 rotate-12' : ''
+                          }`}
+                        /> {c.likes}
+                  </button>
 
-                <button
-                  onClick={() =>
-                    setReplyingTo(c.id)
-                  }
-                >
-                  Reply
-                </button>
+                  <button
+                    onClick={() =>
+                      setReplyingTo(c.id)
+                    }
+                  >
+                    Reply
+                  </button>
+
+                  {currentUserId && currentUserId === c.authorId && (
+                    <button
+                      onClick={() => handleDeleteComment(c.id)}
+                      className="flex items-center gap-1 text-red-500 hover:text-red-700 transition-colors"
+                      title="Delete comment"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
 
                 {replyingTo === c.id && (
                   <div className="flex gap-2 mt-2">
@@ -492,12 +555,13 @@ export function StoryPost({
           </div>
         )}
       </div>
+      )}
 
       <ShareModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         postContent={excerpt}
-        contentType="story"
+        contentType="stories"
         contentId={id}
       />
 

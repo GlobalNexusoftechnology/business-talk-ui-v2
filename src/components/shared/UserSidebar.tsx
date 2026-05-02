@@ -37,12 +37,13 @@ export const userSidebarSections = [
       { label: 'People', href: '/people', icon: Users },
       { label: 'Groups', href: '/groups', icon: UsersRound },
       { label: 'Blogs', href: '/blogs', icon: BookOpen },
-      { label: 'Drafts', href: '/drafts', icon: FileEdit },
+      // { label: 'Drafts', href: '/drafts', icon: FileEdit },
     ],
   },
   {
     title: 'Other',
     items: [
+      { label: 'Drafts', href: '/drafts', icon: FileEdit },
       { label: 'Notifications', href: '/notifications', icon: Bell },
       { label: 'Settings', href: '/settings', icon: Settings },
     ],

@@ -237,8 +237,8 @@ export default function AdminUsersPage() {
       </div>
 
       {/* TABLE */}
-      <div className="border rounded overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="border rounded overflow-hidden overflow-x-auto">
+        <table className="w-full text-sm min-w-[640px]">
           <thead className="bg-white border-b">
             <tr>
               <th className="p-3">

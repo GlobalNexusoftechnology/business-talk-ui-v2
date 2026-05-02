@@ -154,7 +154,7 @@ export function AdminContentCard({
       className="bg-white rounded-xl p-5 mb-4"
       style={{ border: '1px solid #E8E8E8' }}
     >
-      <div className="flex items-start gap-4">
+      <div className="flex flex-col sm:flex-row items-start gap-4">
         {/* ── Left: content ── */}
         <div className="flex-1 min-w-0">
           {/* Author row */}
@@ -319,7 +319,7 @@ export function AdminContentCard({
         </div>
 
         {/* ── Right: admin action buttons ── */}
-        <div className="flex flex-col gap-2 shrink-0 pt-1">
+        <div className="flex sm:flex-col gap-2 shrink-0 pt-1">
           <button
             onClick={() => author.id && onWarn(author.id)}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg transition-colors"

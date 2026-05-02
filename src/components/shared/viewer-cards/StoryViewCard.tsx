@@ -115,7 +115,7 @@ export function StoryViewCard({ data }: Props) {
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         postContent={data.content}
-        contentType="story"
+        contentType="stories"
         contentId={data.id}
       />
     </div>

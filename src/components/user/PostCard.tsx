@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { ThumbsUp, MessageCircle, Send } from 'lucide-react'
+import { ThumbsUp, MessageCircle, Send, Trash2 } from 'lucide-react'
 import { ShareModal } from '@/components/shared/ShareModal'
+import apiClient from '@/lib/api-client'
 
 const MOCK_COMMENTS = [
   {
@@ -35,11 +36,15 @@ export default function PostCard({ post }: any) {
   const [showActionMenu, setShowActionMenu] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
   const [showComments, setShowComments] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState('')
+  const [isDeleted, setIsDeleted] = useState(false)
   const [replyingTo, setReplyingTo] = useState<number | null>(null)
   const [commentInput, setCommentInput] = useState('')
   const [replyInput, setReplyInput] = useState('')
   const [commentsList, setCommentsList] = useState(MOCK_COMMENTS)
   const actionMenuRef = useRef<HTMLDivElement>(null)
+
+  const postAuthorId = post?.author?.id || ''
 
   const handleAddComment = () => {
     if (commentInput.trim()) {
@@ -98,8 +103,31 @@ export default function PostCard({ post }: any) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  useEffect(() => {
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}')
+      setCurrentUserId(user.id || '')
+    } catch {
+      setCurrentUserId('')
+    }
+  }, [])
+
+  const handleDeletePost = async () => {
+    if (!post?.id) return
+    if (!window.confirm('Delete this post? This cannot be undone.')) return
+
+    try {
+      await apiClient.deletePost(post.id)
+      setIsDeleted(true)
+      setShowActionMenu(false)
+    } catch {
+      console.error('Failed to delete post')
+    }
+  }
+
   return (
     <>
+      {isDeleted ? null : (
       <div className="bg-white border rounded-xl p-4 shadow-sm">
         {/* Header */}
         <div className="flex items-start justify-between mb-3">
@@ -144,6 +172,14 @@ export default function PostCard({ post }: any) {
                 <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
                   🚩 Report post
                 </button>
+                {currentUserId && currentUserId === postAuthorId && (
+                  <button
+                    onClick={handleDeletePost}
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 border-t flex items-center gap-2"
+                  >
+                    <Trash2 size={14} /> Delete post
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -156,7 +192,7 @@ export default function PostCard({ post }: any) {
         {post.image && (
           <img
             src={post.image}
-            className="w-full h-64 object-cover rounded-lg mb-3"
+            className="w-full h-48 sm:h-64 object-cover rounded-lg mb-3"
             alt={post.content || 'Post Image'}
           />
         )}
@@ -325,13 +361,14 @@ export default function PostCard({ post }: any) {
         </div>
       )}
     </div>
+      )}
 
     {/* Share Modal - Using reusable component */}
     <ShareModal
       isOpen={showShareModal}
       onClose={() => setShowShareModal(false)}
       postContent={post.content}
-      contentType="post"
+      contentType="posts"
       contentId={post.id || Date.now().toString()}
     />
     </>

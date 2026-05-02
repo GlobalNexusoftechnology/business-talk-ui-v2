@@ -213,23 +213,23 @@ export default function NotificationsPage() {
         break
 
       case 'post':
-        if (type === 'question') {
-          router.push(`/question/${entity_id}`)
+        if (type === 'QUESTION') {
+          router.push(`/questions/${entity_id}`)
         } else {
-          router.push(`/post/${entity_id}`)
+          router.push(`/posts/${entity_id}`)
         }
         break
 
       case 'blog':
-        if (type === 'story') {
-          router.push(`/story/${entity_id}`)
+        if (type === 'STORY') {
+          router.push(`/stories/${entity_id}`)
         } else {
-          router.push(`/blog/${entity_id}`)
+          router.push(`/blogs/${entity_id}`)
         }
         break
 
       case 'comment':
-        router.push(`/post/${entity_id}?highlight=comment`)
+        router.push(`/posts/${entity_id}?highlight=comment`)
         break
 
       case 'conversation':

@@ -10,6 +10,33 @@ export function PostQuestionBox() {
   const [tags, setTags] = useState<string[]>([])
   const [showTagsPopup, setShowTagsPopup] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [savingDraft, setSavingDraft] = useState(false)
+  const [draftToast, setDraftToast] = useState<string | null>(null)
+
+  const showDraftToast = (msg: string) => {
+    setDraftToast(msg)
+    setTimeout(() => setDraftToast(null), 3000)
+  }
+
+  const handleSaveDraft = async () => {
+    if (!questionText.trim()) return
+    try {
+      setSavingDraft(true)
+      await apiClient.saveDraft({
+        type: 'question',
+        autoSaved: false,
+        content: { content: questionText, tags },
+      })
+      setQuestionText('')
+      setTags([])
+      showDraftToast('Question saved to drafts!')
+    } catch (err) {
+      console.error('Save draft failed:', err)
+      showDraftToast('Failed to save draft.')
+    } finally {
+      setSavingDraft(false)
+    }
+  }
 
   const handlePostQuestion = async () => {
     if (!questionText.trim()) return
@@ -35,7 +62,8 @@ export function PostQuestionBox() {
   }
 
   return (
-    <div className="bg-white rounded-2xl p-6 mb-6 border">
+    <>
+    <div className="bg-white rounded-2xl p-3 sm:p-6 mb-6 border">
       <div className="flex items-center gap-3 mb-4">
         <div className="bg-gray-100 p-2 rounded-full">
           <HelpCircle className="w-5 h-5" />
@@ -50,19 +78,28 @@ export function PostQuestionBox() {
         className="w-full p-3 bg-gray-50 border rounded-xl"
       />
 
-      <div className="flex justify-between mt-3">
+      <div className="flex flex-wrap justify-between gap-2 mt-3">
         <button onClick={() => setShowTagsPopup(true)} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-all">
           <Tag className="w-4 h-4" />
           Add Tags ({tags.length})
         </button>
 
-        <button
-          onClick={handlePostQuestion}
-          disabled={loading || !questionText.trim()}
-          className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-400 disabled:bg-gray-400 disabled:cursor-not-allowed"
-        >
-          {loading ? 'Posting...' : 'Post Question'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleSaveDraft}
+            disabled={savingDraft || loading || !questionText.trim()}
+            className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {savingDraft ? 'Saving...' : 'Save Draft'}
+          </button>
+          <button
+            onClick={handlePostQuestion}
+            disabled={loading || !questionText.trim()}
+            className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-400 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Posting...' : 'Post Question'}
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-nowrap overflow-x-auto gap-2 mt-2 pb-1">
@@ -87,5 +124,12 @@ export function PostQuestionBox() {
         selectedTags={tags}
       />
     </div>
+
+    {draftToast && (
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white text-sm font-medium px-5 py-3 rounded-full shadow-xl">
+        {draftToast}
+      </div>
+    )}
+  </>
   )
 }

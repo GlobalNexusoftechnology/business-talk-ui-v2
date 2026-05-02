@@ -21,7 +21,7 @@ const menu = [
 
 export default function Sidebar() {
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 min-h-screen p-4">
+    <aside className="hidden lg:block w-64 bg-white border-r border-gray-200 min-h-screen p-4">
       <h1 className="text-xl font-bold text-[#212529] mb-6">BT24</h1>
 
       <nav className="space-y-2">

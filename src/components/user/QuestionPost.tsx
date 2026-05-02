@@ -11,7 +11,8 @@ import {
   UserCheck, 
   UserMinus, 
   UserPlus ,
-  Bookmark
+  Bookmark,
+  Trash2
 } from 'lucide-react'
 
 import { useState, useEffect, useRef } from 'react'
@@ -27,6 +28,7 @@ import { getTimeAgo } from '@/lib/utils'
 
 interface Answer {
   id: string
+  authorId?: string
   author: {
     name: string
     title: string
@@ -98,6 +100,16 @@ export function QuestionPost({
   const [dislikedAnswers, setDislikedAnswers] = useState<Set<string>>(new Set())
   const [animatingId, setAnimatingId] = useState<string | null>(null)
   const [dislikeAnimatingId, setDislikeAnimatingId] = useState<string | null>(null)
+  const [currentUserId, setCurrentUserId] = useState('')
+  const [isDeleted, setIsDeleted] = useState(false)
+
+  useEffect(() => {
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || '{}')
+      setCurrentUserId(u.id || '')
+    } catch {}
+  }, [])
+
   useEffect(() => {
     const handleClickOutside = (e: any) => {
       if (actionMenuRef.current && !actionMenuRef.current.contains(e.target)) {
@@ -177,6 +189,7 @@ export function QuestionPost({
 
   const mapApiAnswerToUi = (apiComment: any): Answer => ({
     id: apiComment.id,
+    authorId: apiComment.user?.id || '',
     author: {
       name: apiComment.user?.full_name || apiComment.user?.username || 'Unknown',
       avatar: apiComment.user?.profile_photo || `https://ui-avatars.com/api/name=${encodeURIComponent(apiComment.user?.full_name || 'User')}`,
@@ -250,6 +263,36 @@ export function QuestionPost({
       setReplyingTo(null)
     } catch (err) {
       console.error('Reply failed')
+    }
+  }
+
+  // Delete this question (only shown to author)
+  const handleDeleteQuestion = async () => {
+    if (!window.confirm('Delete this question? This cannot be undone.')) return
+    try {
+      await apiClient.deletePost(id)
+      setIsDeleted(true)
+    } catch (err) {
+      console.error('Failed to delete question')
+    }
+  }
+
+  // Delete an answer/comment (only shown to answer author)
+  const removeAnswerRecursive = (list: Answer[], targetId: string): Answer[] =>
+    list
+      .filter((a) => String(a.id) !== targetId)
+      .map((a) => ({
+        ...a,
+        replies: removeAnswerRecursive(a.replies || [], targetId),
+      }))
+
+  const handleDeleteAnswer = async (answerId: string) => {
+    try {
+      await apiClient.deletePostComment(answerId)
+      const targetId = String(answerId)
+      setAnswersList(prev => removeAnswerRecursive(prev, targetId))
+    } catch (err) {
+      console.error('Failed to delete answer')
     }
   }
 
@@ -369,6 +412,15 @@ export function QuestionPost({
                   <button onClick={() => setReplyingTo(reply.id)}>
                     Reply
                   </button>
+                  {currentUserId && currentUserId === reply.authorId && (
+                    <button
+                      onClick={() => handleDeleteAnswer(reply.id)}
+                      className="flex items-center gap-1 text-red-500 hover:text-red-700 transition-colors"
+                      title="Delete answer"
+                    >
+                      <Trash2 className="w-3 h-3" /> Delete
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -406,7 +458,8 @@ export function QuestionPost({
           Saved to your collection
         </div>
       )}
-      <div className="bg-white rounded-2xl border p-6 mb-4">
+      {isDeleted ? null : (
+      <div className="bg-white rounded-2xl border p-3 sm:p-6 mb-4">
 
         {/* HEADER */}
         <div className="flex gap-3 mb-4 justify-between items-start">
@@ -490,6 +543,18 @@ export function QuestionPost({
                   Report
                 </span>
                 </button>
+                {currentUserId && currentUserId === authorId && (
+                  <button
+                    onClick={handleDeleteQuestion}
+                    title='Delete question'
+                    className="group flex items-center gap-1 text-red-600 hover:bg-red-50 px-2 py-1 rounded transition-all duration-200 hover:gap-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-200 whitespace-nowrap">
+                      Delete
+                    </span>
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -532,7 +597,7 @@ export function QuestionPost({
         )}
 
         {/* ACTION BAR */}
-        <div className="flex gap-6 mt-4 border-y py-3 text-sm text-gray-500">
+        <div className="flex flex-wrap gap-3 sm:gap-6 mt-4 border-y py-3 text-sm text-gray-500">
           {/* 👍 LIKE */}
           <button
             onClick={handleLikeQuestion}
@@ -623,6 +688,15 @@ export function QuestionPost({
                   <button onClick={() => setReplyingTo(answer.id)}>
                     Reply
                   </button>
+                  {currentUserId && currentUserId === answer.authorId && (
+                    <button
+                      onClick={() => handleDeleteAnswer(answer.id)}
+                      className="flex items-center gap-1 text-red-500 hover:text-red-700 transition-colors"
+                      title="Delete answer"
+                    >
+                      <Trash2 className="w-3 h-3" /> Delete
+                    </button>
+                  )}
                 </div>
 
                 {replyingTo === answer.id && (
@@ -644,12 +718,13 @@ export function QuestionPost({
           </div>
         )}
       </div>
+      )}
 
       <ShareModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         postContent={displayQuestion}
-        contentType="question"
+        contentType="questions"
         contentId={id}
       />
 

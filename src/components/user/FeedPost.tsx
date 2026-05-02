@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { ThumbsUp, MessageCircle, Send, MoreVertical, Bookmark, Flag, UserCheck, UserMinus, UserPlus } from 'lucide-react'
+import { ThumbsUp, MessageCircle, Send, MoreVertical, Bookmark, Flag, UserCheck, UserMinus, UserPlus, Trash2 } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { ShareModal } from '@/components/shared/ShareModal'
 import { useOpenContent } from '@/hooks/useOpenContent'
@@ -31,7 +31,7 @@ interface FeedPostProps {
 
 export function FeedPost({ id = Date.now().toString(), authorId = '', author, content, image, video, timestamp, likes, comments, sends }: FeedPostProps) {
   const router = useRouter()
-  const [currentUser, setCurrentUser] = useState<{ name: string; avatar: string }>({ name: 'You', avatar: '' })
+  const [currentUser, setCurrentUser] = useState<{ id: string; name: string; avatar: string }>({ id: '', name: 'You', avatar: '' })
   const [liked, setLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(likes)
   const [showShareModal, setShowShareModal] = useState(false)
@@ -50,6 +50,7 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
   const [commentCount, setCommentCount] = useState(comments || 0)
   const [showReportModal, setShowReportModal] = useState(false)
   const [animatingId, setAnimatingId] = useState<string | null>(null)
+  const [isDeleted, setIsDeleted] = useState(false)
 
   //
   // FETCH COMMENT COUNT
@@ -58,7 +59,7 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
   useEffect(() => {
     try {
       const u = JSON.parse(localStorage.getItem('user') || '{}')
-      setCurrentUser({ name: u.username || u.full_name || 'You', avatar: u.profile_photo || '' })
+      setCurrentUser({ id: u.id || '', name: u.username || u.full_name || 'You', avatar: u.profile_photo || '' })
     } catch {}
   }, [])
 
@@ -121,6 +122,15 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
                         hover:scale-110 active:scale-90">
                       Reply
                     </button>
+                    {currentUser.id && currentUser.id === nestedReply.authorId && (
+                          <button
+                            onClick={() => handleDeleteComment(nestedReply.id)}
+                            className="hover:text-red-600 flex items-center gap-1"
+                            title="Delete comment"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
                   </div>
                 </div>
               </div>
@@ -301,6 +311,7 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
   // Helper to map API comment to UI comment structure
   const mapApiCommentToUi = (apiComment: any) => ({
     id: apiComment.id,
+    authorId: apiComment.user?.id || '',
     author: {
       name: apiComment.user?.full_name || 'Unknown',
       avatar: apiComment.user?.profile_photo || `https://ui-avatars.com/api/name=${encodeURIComponent(apiComment.user?.full_name || 'User')}`,
@@ -345,6 +356,37 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showComments, id])
 
+  // Delete this post (only shown to author)
+  const handleDeletePost = async () => {
+    if (!window.confirm('Delete this post? This cannot be undone.')) return
+    try {
+      await apiClient.deletePost(id)
+      setIsDeleted(true)
+    } catch (err) {
+      console.error('Failed to delete post')
+    }
+  }
+
+  // Delete a comment (only shown to comment author)
+  const removeCommentRecursive = (list: any[], targetId: string): any[] =>
+    list
+      .filter((c) => String(c.id) !== targetId)
+      .map((c) => ({
+        ...c,
+        replies: removeCommentRecursive(c.replies || [], targetId),
+      }))
+
+  const handleDeleteComment = async (commentId: string) => {
+    try {
+      await apiClient.deletePostComment(commentId)
+      const targetId = String(commentId)
+      setCommentsList(prev => removeCommentRecursive(prev, targetId))
+      setCommentCount(prev => Math.max(0, prev - 1))
+    } catch (err) {
+      console.error('Failed to delete comment')
+    }
+  }
+
   return (
     <>
       {/* Instagram-style saved toast */}
@@ -354,7 +396,8 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
           Saved to your collection
         </div>
       )}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-4">
+      {isDeleted ? null : (
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 sm:p-6 mb-4">
         {/* Post Header */}
         <div className="flex items-start justify-between mb-4">
           <div
@@ -446,6 +489,18 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
                   Report
                 </span>
                 </button>
+                {currentUser.id && currentUser.id === authorId && (
+                  <button
+                    onClick={handleDeletePost}
+                    title='Delete post'
+                    className="group flex items-center gap-1 text-red-600 hover:bg-red-50 px-2 py-1 rounded transition-all duration-200 hover:gap-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-200 whitespace-nowrap">
+                      Delete
+                    </span>
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -468,7 +523,7 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
             <img
               src={image}
               alt="Post content"
-              className="w-full h-80 object-contain"
+              className="w-full h-48 sm:h-80 object-contain"
             />
           </div>
         )}
@@ -478,7 +533,7 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
           <div className="mb-4 rounded-xl overflow-hidden">
             <video
               src={video}
-              className="w-full h-80 object-contain"
+              className="w-full h-48 sm:h-80 object-contain"
               controls
             >
               <source src={video} type="video/mp4" />
@@ -583,6 +638,15 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
                         <button onClick={() => setReplyingTo(replyingTo === `comment-${comment.id}` ? null : `comment-${comment.id}`)} className="hover:text-blue-600">
                           Reply
                         </button>
+                        {currentUser.id && currentUser.id === comment.authorId && (
+                          <button
+                            onClick={() => handleDeleteComment(comment.id)}
+                            className="hover:text-red-600 flex items-center gap-1"
+                            title="Delete comment"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
                       </div>
 
                       {/* Reply Input */}
@@ -621,13 +685,14 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
           </div>
         )}
       </div>
+      )}
 
       {/* Share Modal */}
       <ShareModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         postContent={content}
-        contentType="post"
+        contentType="posts"
         contentId={id}
       />
 

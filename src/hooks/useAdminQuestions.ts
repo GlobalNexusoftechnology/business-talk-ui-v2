@@ -16,6 +16,13 @@ export function useAdminQuestions(filter: string) {
         return questions.sort((a: any, b: any) => Number(b.created_on) - Number(a.created_on))
       }
 
+      if (filter === 'Trending') {
+        const trendingRes = await apiClient.getTrendingBlogs()
+        const trendingPosts = trendingRes.data || []
+        const trendingIds = new Set(trendingPosts.map((p: any) => p.id))
+        return questions.filter((q: any) => trendingIds.has(q.id))
+      }
+
       if (filter === 'Reported') {
         return questions.filter((q: any) => q.report_count > 0)
       }

@@ -12,6 +12,13 @@ export function useAdminBlogs(filter: string) {
         return blogs.sort((a: any, b: any) => Number(b.created_on) - Number(a.created_on))
       }
 
+      if (filter === 'Trending') {
+        const trendingRes = await apiClient.getTrendingBlogs()
+        const trendingBlogs = trendingRes.data || []
+        const trendingIds = new Set(trendingBlogs.map((b: any) => b.id))
+        return blogs.filter((b: any) => trendingIds.has(b.id))
+      }
+
       if (filter === 'Reported') {
         return blogs.filter((b: any) => b.report_count > 0)
       }

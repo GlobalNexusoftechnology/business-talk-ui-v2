@@ -266,7 +266,7 @@ export default function StoryDetailPage() {
         </div>
       )}
 
-      <div className="p-6">
+      <div className="p-3 sm:p-6">
         <div className="max-w-2xl mx-auto space-y-4">
 
           {/* Back */}
@@ -300,7 +300,7 @@ export default function StoryDetailPage() {
                   <p className="text-xs" style={{ color: '#5F6368' }}>{story.author.profession}</p>
                 )}
               </div>
-              <div className="flex items-center gap-3 text-xs" style={{ color: '#9E9E9E' }}>
+              <div className="flex items-center flex-wrap gap-2 text-xs" style={{ color: '#9E9E9E' }}>
                 <span className="flex items-center gap-1">
                   <Clock className="w-3.5 h-3.5" /> {story.readTime}
                 </span>
@@ -326,7 +326,7 @@ export default function StoryDetailPage() {
             )}
 
             {/* Like + views row */}
-            <div className="flex items-center gap-4 pt-4" style={{ borderTop: '1px solid #F0F0F0' }}>
+            <div className="flex items-center flex-wrap gap-3 pt-4" style={{ borderTop: '1px solid #F0F0F0' }}>
               <button
                 onClick={handleLike}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all"

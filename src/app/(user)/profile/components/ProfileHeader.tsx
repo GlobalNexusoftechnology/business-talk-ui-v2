@@ -46,33 +46,33 @@ export function ProfileHeader({
         <img
           src={profileData.cover_image || `https://ui-avatars.com/api/name=${encodeURIComponent(profileData.name || 'User')}`}
           alt="Cover"
-          className="w-full h-48 object-cover"
+          className="w-full h-28 sm:h-40 md:h-48 object-cover"
         />
       </div>
 
-      <div className="px-6 pb-6">
+      <div className="px-4 sm:px-6 pb-5 sm:pb-6">
 
-        <div className="flex items-end gap-6 -mt-16">
+        <div className="flex flex-wrap items-end gap-3 sm:gap-6 -mt-10 sm:-mt-14 md:-mt-16">
 
           {/* AVATAR */}
           <img
             src={profileData.avatar || `https://ui-avatars.com/api/name=${encodeURIComponent(profileData.name || 'User')}`}
             alt="Avatar"
-            className="w-32 h-32 rounded-full border-4 border-white shadow-lg object-cover z-10 bg-white"
+            className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full border-4 border-white shadow-lg object-cover z-10 bg-white"
           />
 
-          <div className="flex-1 mt-16">
-            <h1 className="text-2xl font-semibold">{profileData.name}</h1>
-            <p className="text-gray-500">{profileData.title}</p>
+          <div className="flex-1 min-w-0 mt-10 sm:mt-12 md:mt-16">
+            <h1 className="text-xl sm:text-2xl font-semibold truncate">{profileData.name}</h1>
+            <p className="text-gray-500 text-sm sm:text-base truncate">{profileData.title}</p>
 
-            <div className="flex gap-4 text-sm text-gray-400 mt-2">
+            <div className="flex flex-wrap gap-3 text-xs sm:text-sm text-gray-400 mt-2">
               <span className="flex gap-1 items-center">
-                <MapPin className="w-4 h-4" />
+                <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 {profileData.location || 'N/A'}
               </span>
 
               <span className="flex gap-1 items-center">
-                <Briefcase className="w-4 h-4" />
+                <Briefcase className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 {profileData.company || 'N/A'}
               </span>
             </div>
@@ -80,7 +80,7 @@ export function ProfileHeader({
 
           {/* ACTION BUTTONS */}
           {!isOwnProfile && (
-            <div className="flex gap-3 mt-4">
+            <div className="flex gap-2 sm:gap-3 mt-3 sm:mt-4 w-full sm:w-auto">
 
               {/* CONNECT */}
               <button

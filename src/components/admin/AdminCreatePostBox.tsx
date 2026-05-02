@@ -51,7 +51,7 @@ export function AdminCreatePostBox() {
         className="w-full p-4 rounded-xl bg-gray-50 border"
       />
 
-      <div className="flex justify-between mt-4">
+      <div className="flex flex-wrap justify-between gap-2 mt-4">
         <input type="file" multiple hidden id="post-media" onChange={handleFileSelect} />
         <label htmlFor="post-media" className="flex gap-2 cursor-pointer">
           <ImageIcon /> <Video />

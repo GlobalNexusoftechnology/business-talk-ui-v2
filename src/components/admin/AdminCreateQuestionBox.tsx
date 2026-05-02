@@ -42,7 +42,7 @@ export function AdminCreateQuestionBox() {
         className="w-full p-3 bg-gray-50 border rounded-xl"
       />
 
-      <div className="flex justify-between mt-3">
+      <div className="flex flex-wrap justify-between gap-2 mt-3">
         <button onClick={() => setShowTags(true)} className="flex gap-2 text-sm">
           <Tag /> Tags ({tags.length})
         </button>

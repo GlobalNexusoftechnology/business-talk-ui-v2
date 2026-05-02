@@ -6,10 +6,11 @@ import {
   useGroupJoinRequests,
   useApproveJoinRequest,
   useRejectJoinRequest,
+  useGroupById,
 } from '@/hooks/useGroups'
 import { useFollow } from '@/hooks/useFollow'
 import apiClient from '@/lib/api-client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 // ── Per-request card with connect + message ──────────────────────────────────
 function RequestCard({ req, approveMutation, rejectMutation, router }: {
@@ -141,12 +142,46 @@ export default function GroupRequestsPage() {
   const router = useRouter()
   const params = useParams()
   const groupId = params.id as string
+  const [currentUserId, setCurrentUserId] = useState('')
+  const [authResolved, setAuthResolved] = useState(false)
 
-  const { data: requests = [], isLoading, error } = useGroupJoinRequests(groupId)
+  useEffect(() => {
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}')
+      setCurrentUserId(user.id || '')
+    } catch {
+      setCurrentUserId('')
+    } finally {
+      setAuthResolved(true)
+    }
+  }, [])
+
+  const { data: groupData, isLoading: groupLoading } = useGroupById(groupId)
+
+  const ownerId =
+    groupData?.created_by ||
+    groupData?.createdBy ||
+    groupData?.owner?.id ||
+    ''
+
+  const isOwnerByMemberRole = Boolean(
+    currentUserId &&
+      (groupData?.members || []).some((m: any) => {
+        const memberId = m.userId || m.user?.id || ''
+        const memberRole = String(m.role || '').toUpperCase()
+        return memberId === currentUserId && memberRole === 'OWNER'
+      })
+  )
+
+  const isGroupOwner = Boolean(
+    currentUserId && (ownerId === currentUserId || isOwnerByMemberRole)
+  )
+
+  const { data: requests = [], isLoading, error } = useGroupJoinRequests(groupId, isGroupOwner)
   const approveMutation = useApproveJoinRequest(groupId)
   const rejectMutation = useRejectJoinRequest(groupId)
 
-  if (isLoading) {
+  if (groupLoading || !authResolved || (isGroupOwner && isLoading)) {
     return (
       <div className="p-6" style={{ backgroundColor: '#F8F9FA', minHeight: '100vh' }}>
         <div className="max-w-2xl mx-auto">
@@ -167,6 +202,30 @@ export default function GroupRequestsPage() {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isGroupOwner) {
+    return (
+      <div
+        className="p-6 text-center"
+        style={{ backgroundColor: '#F8F9FA', minHeight: '100vh' }}
+      >
+        <div className="max-w-2xl mx-auto mt-20">
+          <p className="font-semibold mb-2" style={{ color: '#212529' }}>
+            Access Denied
+          </p>
+          <p className="text-sm mb-6" style={{ color: '#5F6368' }}>
+            Only group owners can view join requests.
+          </p>
+          <button
+            onClick={() => router.back()}
+            className="px-4 py-2 bg-black text-white rounded-lg text-sm"
+          >
+            Go Back
+          </button>
         </div>
       </div>
     )
