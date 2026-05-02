@@ -40,6 +40,9 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
   const { openPost } = useOpenContent()
   const [commentCount, setCommentCount] = useState(comments || 0)
   const [showReportModal, setShowReportModal] = useState(false)
+  const [animatingId, setAnimatingId] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
+  const [showSavedToast, setShowSavedToast] = useState(false)
 
   //
   // FETCH COMMENT COUNT
@@ -72,8 +75,6 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
         {replies.map((nestedReply) => {
           const newAncestry = [...ancestry, nestedReply.id]
           const replyPath = newAncestry.join('-')
-          // DEBUG: Log replyPath and like count
-          console.log('DEBUG: renderNestedReplies', { replyPath, likes: nestedReply.likes, nestedReply })
           return (
             <div key={replyPath}>
               <div className="flex gap-2">
@@ -92,12 +93,18 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
                       onClick={() => handleLikeComment(nestedReply.id, parentReplyId || parentId, replyPath)}
                       className="hover:opacity-70 transition-all font-medium flex items-center gap-1"
                       style={{ color: likedComments.has(replyPath) ? '#1d9bf0' : '#5F6368' }}>
-                      <ThumbsUp className="w-4 h-4" />
+                      <ThumbsUp
+                        className={`w-5 h-5 transition-all duration-200 ${
+                          animatingId === replyPath ? 'scale-150 rotate-12' : ''
+                        }`}
+                      />
                       <span>{nestedReply.likes}</span>
                     </button>
                     <button 
                       onClick={() => setReplyingTo(replyingTo === `reply-${nestedReply.id}` ? null : `reply-${nestedReply.id}`)}
-                      className="hover:opacity-70 transition-all">
+                      className="flex items-center gap-1 
+                        transition-all duration-200
+                        hover:scale-110 active:scale-90">
                       Reply
                     </button>
                   </div>
@@ -108,9 +115,9 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
               {replyingTo === `reply-${nestedReply.id}` && (
                 <div className="flex gap-2 mt-2 ml-8">
                   <img
-                    src="/avatar.png"
+                    src={nestedReply.author?.profile_photo || `https://ui-avatars.com/api/name=${encodeURIComponent(nestedReply.author?.name)}`}
                     className="w-6 h-6 rounded-full object-cover"
-                    alt="Your avatar"
+                    alt={nestedReply.author?.name || 'User'}
                   />
                   <input
                     type="text"
@@ -141,30 +148,32 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
     )
   }
 
+  // Recursively update like count at any depth in the comment tree
+  const updateLikesRecursive = (list: any[], commentId: number, newLikes: number): any[] =>
+    list.map(c =>
+      c.id === commentId
+        ? { ...c, likes: newLikes }
+        : { ...c, replies: updateLikesRecursive(c.replies || [], commentId, newLikes) }
+    )
+
   // Like/Unlike a comment or reply using API
   const handleLikeComment = async (commentId: number, parentId?: number, replyPath?: string) => {
     const itemId = replyPath || (parentId ? `${parentId}-reply-${commentId}` : `comment-${commentId}`)
     const isLiked = likedComments.has(itemId)
     const newLikedComments = new Set(likedComments)
+
+    setAnimatingId(itemId)
+    setTimeout(() => setAnimatingId(null), 300)
+
     try {
-      // Call comment vote API (toggle up)
-      const res = await apiClient.voteComment(commentId.toString(), isLiked ? 'down' : 'up')
-      // API returns updated vote counts and user's vote
-      // Update UI state accordingly
+      const res = await apiClient.voteComment(commentId.toString(), 'up')
       if (isLiked) {
         newLikedComments.delete(itemId)
       } else {
         newLikedComments.add(itemId)
       }
       setLikedComments(newLikedComments)
-      // Optionally update comment likes in UI (refetch or optimistic)
-      setCommentsList(prev => prev.map(comment => {
-        if (comment.id === commentId) {
-          return { ...comment, likes: res.upvotes }
-        }
-        // Update nested replies if needed (not implemented for deep nesting here)
-        return comment
-      }))
+      setCommentsList(prev => updateLikesRecursive(prev, commentId, res.upvotes))
     } catch (err) {
       // fallback: do nothing or show error
     }
@@ -172,6 +181,9 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
 
   // Like/Unlike post using API
   const handleLike = async () => {
+    setAnimatingId('post')
+    setTimeout(() => setAnimatingId(null), 300)
+
     try {
       // Call vote API (toggle UP)
       const postId = id?.toString() || ''
@@ -189,6 +201,23 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
         setLiked(true)
         setLikeCount(likeCount + 1)
       }
+    }
+  }
+
+  const handleSave = async () => {
+    try {
+      if (saved) {
+        await apiClient.unsaveContent(id?.toString() || '', 'post')
+        setSaved(false)
+      } else {
+        await apiClient.saveContent(id?.toString() || '', 'post')
+        setSaved(true)
+        setShowSavedToast(true)
+        setTimeout(() => setShowSavedToast(false), 2500)
+      }
+      setShowActionMenu(false)
+    } catch {
+      // ignore
     }
   }
 
@@ -272,8 +301,8 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
   const mapApiCommentToUi = (apiComment: any) => ({
     id: apiComment.id,
     author: {
-      name: apiComment.user?.full_name || apiComment.user?.username || 'Unknown',
-      avatar: apiComment.user?.profile_photo || '/avatar.png',
+      name: apiComment.user?.full_name || 'Unknown',
+      avatar: apiComment.user?.profile_photo || `https://ui-avatars.com/api/name=${encodeURIComponent(apiComment.user?.full_name || 'User')}`,
       title: apiComment.user?.profession || '',
     },
     content: apiComment.comment,
@@ -317,6 +346,13 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
 
   return (
     <>
+      {/* Instagram-style saved toast */}
+      {showSavedToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-gray-900 text-white text-sm font-medium px-5 py-3 rounded-full shadow-xl animate-fade-in-up">
+          <Bookmark className="w-4 h-4 fill-white" />
+          Saved to your collection
+        </div>
+      )}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-4">
         {/* Post Header */}
         <div className="flex items-start justify-between mb-4">
@@ -345,8 +381,13 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
             {/* Action Menu Dropdown */}
             {showActionMenu && (
               <div className="absolute right-0 mt-1 bg-white border rounded-lg shadow-lg z-10 px-3 py-2 flex items-center gap-1 whitespace-nowrap">
-                <button className="text-gray-700 hover:text-black hover:bg-gray-100 p-2 rounded transition flex items-center gap-1 text-xs" title="Save post">
-                  <Bookmark className="w-4 h-4" />
+                <button
+                  onClick={handleSave}
+                  className="p-2 rounded transition flex items-center gap-1 text-xs hover:bg-gray-100"
+                  title={saved ? 'Unsave' : 'Save post'}
+                  style={{ color: saved ? '#1d9bf0' : '#374151' }}
+                >
+                  <Bookmark className={`w-4 h-4 ${saved ? 'fill-[#1d9bf0]' : ''}`} />
                 </button>
                 <button className="text-gray-700 hover:text-black hover:bg-gray-100 p-2 rounded transition flex items-center gap-1 text-xs" title="Disconnect">
                   <Users className="w-4 h-4" />
@@ -407,13 +448,21 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
         <div className="flex items-center gap-2 pt-4 border-t border-gray-100">
           <button
             onClick={handleLike}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-              liked
-                ? 'bg-gray-100 text-black'
-                : 'text-gray-600 hover:bg-gray-50'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg 
+              transition-all duration-200 ease-in-out
+              active:scale-90
+              hover:scale-105 hover:shadow-sm
+              ${
+                liked
+                  ? 'bg-blue-50 text-[#1d9bf0] scale-105'
+                  : 'text-gray-600 hover:text-[#1d9bf0] hover:bg-blue-50'
+              }`}
           >
-            <ThumbsUp className="w-5 h-5" />
+            <ThumbsUp
+              className={`w-5 h-5 transition-all duration-200 ${
+                animatingId === 'post' ? 'scale-150 rotate-12' : ''
+              }`}
+            />
             <span className="text-sm font-medium">{likeCount}</span>
           </button>
 
@@ -440,9 +489,9 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
             {/* Comment Input */}
             <div className="flex gap-2">
               <img
-                src="/avatar.png"
+                src={author.avatar || `https://ui-avatars.com/api/name=${encodeURIComponent(author.name)}`}
                 className="w-8 h-8 rounded-full object-cover"
-                alt="Your avatar"
+                alt={author.name || 'User'}
               />
               <div className="flex-1 flex gap-2">
                 <input
@@ -468,8 +517,8 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
                 {commentsList.map((comment) => (
                   <div key={comment.id} className="flex gap-2">
                     <img
-                      src={comment.author.avatar}
-                      alt={comment.author.name}
+                      src={comment.author.avatar || `https://ui-avatars.com/api/name=${encodeURIComponent(comment.author.name)}`}
+                      alt={comment.author.name || 'User'}
                       className="w-6 h-6 rounded-full object-cover flex-shrink-0"
                     />
                     <div className="flex-1">
@@ -482,7 +531,11 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
                           onClick={() => handleLikeComment(comment.id)}
                           className="hover:text-blue-600 flex items-center gap-1 font-medium"
                           style={{ color: likedComments.has(`comment-${comment.id}`) ? '#1d9bf0' : '#5F6368' }}>
-                          <ThumbsUp className="w-3 h-3" /> {comment.likes}
+                          <ThumbsUp
+                            className={`w-5 h-5 transition-all duration-200 ${
+                              animatingId === `comment-${comment.id}` ? 'scale-150 rotate-12' : ''
+                            }`}
+                          /> {comment.likes}
                         </button>
                         <button onClick={() => setReplyingTo(replyingTo === `comment-${comment.id}` ? null : `comment-${comment.id}`)} className="hover:text-blue-600">
                           Reply
@@ -493,9 +546,9 @@ export function FeedPost({ id = Date.now().toString(), author, content, image, v
                       {replyingTo === `comment-${comment.id}` && (
                         <div className="flex gap-2 mt-2 ml-6">
                           <img
-                            src="/avatar.png"
+                            src={author.avatar || `https://ui-avatars.com/api/name=${encodeURIComponent(author.name)}`}
                             className="w-6 h-6 rounded-full object-cover"
-                            alt="Your avatar"
+                            alt={author.name || 'User'}
                           />
                           <input
                             type="text"

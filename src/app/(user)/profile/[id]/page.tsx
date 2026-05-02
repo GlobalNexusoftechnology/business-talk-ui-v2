@@ -8,9 +8,14 @@ import { ProfileLayout } from '../components/ProfileLayout'
 export default function UserProfilePage() {
   const { id } = useParams()
   const [profile, setProfile] = useState<any>(null)
+  const [isOwnProfile, setIsOwnProfile] = useState(false)
 
-  const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
-  const isOwnProfile = currentUser?.id === id
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+      setIsOwnProfile(currentUser?.id === id)
+    }
+  }, [id])
 
   useEffect(() => {
     apiClient.getUserById(id as string).then((res) => {
@@ -18,6 +23,7 @@ export default function UserProfilePage() {
 
       setProfile({
         name: p.full_name || p.username,
+        cover_image: p.cover_image,
         avatar: p.profile_photo,
         title: p.profession,
         location: p.location,
@@ -25,6 +31,8 @@ export default function UserProfilePage() {
         email: p.email,
         phone_number: p.phone_number,
         about: p.about || p.short_bio,
+        experience: p.experience,
+        education: p.education,
       })
     })
   }, [id])

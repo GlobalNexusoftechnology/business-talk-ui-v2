@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, Lock, Globe, MessageCircle, Share2, ThumbsUp } from 'lucide-react'
+import { ArrowLeft, Lock, Globe, MessageCircle, Share2, ThumbsUp, ClipboardList } from 'lucide-react'
 import { useState } from 'react'
 import { ShareModal } from '@/components/shared/ShareModal'
 import { useEffect } from 'react'
@@ -46,14 +46,15 @@ export default function GroupDetailsPage() {
   const [group, setGroup] = useState<Group | null>(null)
   const [loading, setLoading] = useState(true)
   const [showShareModal, setShowShareModal] = useState(false)
-  const [isJoined, setIsJoined] = useState(group?.joined || false)
+  const [isJoined, setIsJoined] = useState(false)
+  const [requestPending, setRequestPending] = useState(false)
 
   useEffect(() => {
     if (!groupId) return
 
     const fetchGroup = async () => {
       try {
-        const res = await apiClient.getGroupBySlug(groupId)
+        const res = await apiClient.getGroupById(groupId)
         const g = res.data
 
         const formatted = {
@@ -61,7 +62,7 @@ export default function GroupDetailsPage() {
           name: g.name,
           description: g.description,
           image: g.cover_image || '/placeholder.jpg',
-          members: g.members?.length || 0,
+          members: g.memberCount || 0,
           posts: 0,
           type: (g.visibility === 'PRIVATE' ? 'private' : 'public') as 'public' | 'private',
           joined: g.isJoined || false, // optional
@@ -77,6 +78,7 @@ export default function GroupDetailsPage() {
         }
 
         setGroup(formatted)
+        setIsJoined(formatted.joined)
       } catch (err) {
         console.error('Group fetch error', err)
       } finally {
@@ -97,11 +99,17 @@ export default function GroupDetailsPage() {
     try {
       if (isJoined) {
         await apiClient.leaveGroup(group.id)
+        setIsJoined(false)
+      } else if (requestPending) {
+        // request already sent — no cancel endpoint
+        return
+      } else if (group.type === 'private') {
+        await apiClient.requestToJoinGroup(group.id)
+        setRequestPending(true)
       } else {
         await apiClient.joinGroup(group.id)
+        setIsJoined(true)
       }
-
-      setIsJoined(!isJoined)
     } catch (err) {
       console.error(err)
     }
@@ -158,12 +166,12 @@ export default function GroupDetailsPage() {
                 onClick={handleJoin}
                 className="px-6 py-2 rounded-lg font-medium transition-all whitespace-nowrap"
                 style={{
-                  backgroundColor: isJoined ? '#F8F9FA' : '#212529',
-                  color: isJoined ? '#212529' : '#FFFFFF',
-                  border: isJoined ? '1px solid #E8E8E8' : 'none',
+                  backgroundColor: isJoined ? '#F8F9FA' : requestPending ? '#EFF6FF' : '#212529',
+                  color: isJoined ? '#212529' : requestPending ? '#1d9bf0' : '#FFFFFF',
+                  border: isJoined ? '1px solid #E8E8E8' : requestPending ? '1px solid #BFDBFE' : 'none',
                 }}
               >
-                {isJoined ? 'Leave Group' : 'Join Group'}
+                {isJoined ? 'Leave Group' : requestPending ? 'Request Sent' : group.type === 'private' ? 'Request to Join' : 'Join Group'}
               </button>
             </div>
 
@@ -311,6 +319,18 @@ export default function GroupDetailsPage() {
             <Share2 className="w-5 h-5" />
             Share
           </button>
+          {group.type === 'private' && (
+            <button
+              onClick={() => router.push(`/groups/${group.id}/requests`)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg flex-1 transition-colors"
+              style={{ backgroundColor: '#212529', color: '#FFFFFF' }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#3D3D3D')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#212529')}
+            >
+              <ClipboardList className="w-5 h-5" />
+              Manage Requests
+            </button>
+          )}
         </div>
       </div>
 

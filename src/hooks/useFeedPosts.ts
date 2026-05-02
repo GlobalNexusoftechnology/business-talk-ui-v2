@@ -38,7 +38,7 @@ export function useFeedPosts(postType: 'NORMAL' | 'QUESTION') {
             name: post.user?.full_name || post.user?.username || 'Unknown',
             avatar:
               post.user?.profile_photo ||
-              `https://ui-avatars.com/api/?name=${post.user?.username || 'User'}`,
+              `https://ui-avatars.com/api/name=${encodeURIComponent(post.user?.full_name || post.user?.username)}`,
             title: post.user?.profession || '',
           },
 

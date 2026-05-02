@@ -8,16 +8,21 @@ import { ProfileExperience } from './ProfileExperience'
 import { ProfileEducation } from './ProfileEducation'
 import { ProfileGallery } from './ProfileGallery'
 import { ProfileSidebar } from './ProfileSidebar'
+import { ProfileRecentActivity } from './ProfileRecentActivity'
 import { useFollow } from '@/hooks/useFollow'
 
 export function ProfileLayout({
   profile,
   userId,
-  isOwnProfile
+  isOwnProfile,
+  stats,
+  activity,
 }: {
   profile: any
   userId?: string
   isOwnProfile?: boolean
+  stats?: any
+  activity?: any
 }) {
 
   const [activeTab, setActiveTab] = useState<'about' | 'experience' | 'education' | 'gallery'>('about')
@@ -53,13 +58,18 @@ export function ProfileLayout({
         <div className="grid grid-cols-3 gap-6 mt-6">
 
           <div className="col-span-2 space-y-6">
-            {activeTab === 'about' && <ProfileAbout profile={profile} />}
-            {activeTab === 'experience' && <ProfileExperience />}
-            {activeTab === 'education' && <ProfileEducation />}
+            {activeTab === 'about' && (
+              <>
+                <ProfileAbout profile={profile} />
+                {userId && <ProfileRecentActivity userId={userId} activity={activity} />}
+              </>
+            )}
+            {activeTab === 'experience' && <ProfileExperience experiences={profile?.experience} />}
+            {activeTab === 'education' && <ProfileEducation educations={profile?.education} />}
             {activeTab === 'gallery' && <ProfileGallery />}
           </div>
 
-          <ProfileSidebar profile={profile} />
+          <ProfileSidebar profile={profile} userId={userId} statsProp={stats} />
 
         </div>
       </div>

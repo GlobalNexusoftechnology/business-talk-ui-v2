@@ -58,8 +58,8 @@ export function PostQuestionBox() {
 
         <button
           onClick={handlePostQuestion}
-          disabled={loading}
-          className="bg-black text-white px-5 py-2 rounded-lg"
+          disabled={loading || !questionText.trim()}
+          className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-400 disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
           {loading ? 'Posting...' : 'Post Question'}
         </button>

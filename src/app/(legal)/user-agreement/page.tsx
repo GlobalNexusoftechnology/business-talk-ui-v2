@@ -1,19 +1,13 @@
 'use client'
 
-import Link from 'next/link'
-
 export default function UserAgreementPage() {
   return (
     <div className="min-h-screen py-12" style={{ backgroundColor: '#F8F9FA' }}>
       <div className="max-w-3xl mx-auto px-4">
-        <Link href="/" className="mb-6 inline-block transition-colors" style={{ color: '#1976D2' }} onMouseEnter={(e) => e.currentTarget.style.color = '#1565C0'} onMouseLeave={(e) => e.currentTarget.style.color = '#1976D2'}>
-          ← Back home
-        </Link>
-
         <div className="bg-white rounded-2xl shadow-sm border p-8" style={{ border: '1px solid #E8E8E8' }}>
           <div>
             <h1 className="text-3xl font-bold mb-6" style={{ color: '#212529' }}>Terms of Service & User Agreement</h1>
-            <p className="mb-6" style={{ color: '#5F6368' }}>Last updated: January 2024</p>
+            <p className="mb-6" style={{ color: '#5F6368' }}>Last updated: 2nd May, 2026</p>
 
             <div className="space-y-6" style={{ color: '#212529' }}>
               <section>

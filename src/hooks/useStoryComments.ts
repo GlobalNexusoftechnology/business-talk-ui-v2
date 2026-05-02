@@ -38,7 +38,7 @@ export const useStoryComments = (storyId: string) => {
   // =========================
   const likeCommentMutation = useMutation({
     mutationFn: async (commentId: string) => {
-      return await apiClient.voteComment(commentId, 'up')
+      return await apiClient.voteBlogComment(storyId, commentId, 'up')
     },
     onSuccess: () => {
       queryClient.invalidateQueries({

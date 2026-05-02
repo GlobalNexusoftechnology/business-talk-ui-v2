@@ -1,96 +1,131 @@
 'use client'
 
-import Link from 'next/link'
-
 export default function PrivacyPolicyPage() {
   return (
     <div className="min-h-screen py-12" style={{ backgroundColor: '#F8F9FA' }}>
       <div className="max-w-3xl mx-auto px-4">
-        <Link href="/" className="mb-6 inline-block transition-colors" style={{ color: '#1976D2' }} onMouseEnter={(e) => e.currentTarget.style.color = '#1565C0'} onMouseLeave={(e) => e.currentTarget.style.color = '#1976D2'}>
-          ← Back home
-        </Link>
-
         <div className="bg-white rounded-2xl shadow-sm border p-8" style={{ border: '1px solid #E8E8E8' }}>
           <div>
-            <h1 className="text-3xl font-bold mb-6" style={{ color: '#212529' }}>Privacy Policy</h1>
-            <p className="mb-6" style={{ color: '#5F6368' }}>Last updated: January 2024</p>
+            <h1 className="text-3xl font-bold mb-2" style={{ color: '#212529' }}>Privacy Policy</h1>
+            <p className="mb-8 text-sm" style={{ color: '#5F6368' }}>Effective Date: 2nd May, 2026</p>
+            <p className="mb-8" style={{ color: '#5F6368' }}>
+              Businesstalk24 is committed to protecting user privacy.
+            </p>
 
-            <div className="space-y-6" style={{ color: '#212529' }}>
-              <section>
-                <h2 className="text-2xl font-bold mb-3" style={{ color: '#212529' }}>1. Introduction</h2>
-                <p style={{ color: '#5F6368' }}>
-                  Welcome to Business Talk 24 ("Company", "we", "our", or "us"). We are committed to protecting your
-                  privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when
-                  you visit our website.
-                </p>
-              </section>
+            <div className="space-y-8" style={{ color: '#212529' }}>
 
               <section>
-                <h2 className="text-2xl font-bold mb-3" style={{ color: '#212529' }}>2. Information We Collect</h2>
-                <p style={{ color: '#5F6368' }}>We collect information in the following ways:</p>
-                <ul className="list-disc pl-6 space-y-2 mt-2" style={{ color: '#5F6368' }}>
-                  <li>Information you voluntarily provide (name, email, phone number)</li>
-                  <li>Information collected automatically (IP address, browser type, usage data)</li>
-                  <li>Information from third-party sources (social media, partners)</li>
-                  <li>Payment and billing information</li>
+                <h2 className="text-lg font-semibold mb-3" style={{ color: '#212529' }}>1. Information Collected</h2>
+                <p className="mb-2" style={{ color: '#5F6368' }}>We may collect:</p>
+                <ul className="list-disc pl-6 space-y-1" style={{ color: '#5F6368' }}>
+                  <li>Email address (required)</li>
+                  <li>Phone number (optional)</li>
+                  <li>Profile information</li>
+                  <li>Usage data and cookies</li>
                 </ul>
               </section>
 
+              <hr style={{ borderColor: '#E8E8E8' }} />
+
               <section>
-                <h2 className="text-2xl font-bold mb-3" style={{ color: '#212529' }}>3. Use of Your Information</h2>
-                <p style={{ color: '#5F6368' }}>We use the information we collect for:</p>
-                <ul className="list-disc pl-6 space-y-2 mt-2" style={{ color: '#5F6368' }}>
-                  <li>Providing and improving our services</li>
-                  <li>Processing transactions</li>
-                  <li>Sending promotional communications</li>
-                  <li>Responding to your inquiries</li>
-                  <li>Analyzing usage patterns and trends</li>
+                <h2 className="text-lg font-semibold mb-3" style={{ color: '#212529' }}>2. Use of Information</h2>
+                <p className="mb-2" style={{ color: '#5F6368' }}>We use data to:</p>
+                <ul className="list-disc pl-6 space-y-1" style={{ color: '#5F6368' }}>
+                  <li>Provide and manage services</li>
+                  <li>Improve user experience</li>
+                  <li>Communicate updates</li>
+                  <li>Ensure security</li>
                 </ul>
               </section>
 
+              <hr style={{ borderColor: '#E8E8E8' }} />
+
               <section>
-                <h2 className="text-2xl font-bold mb-3" style={{ color: '#212529' }}>4. Disclosure of Your Information</h2>
+                <h2 className="text-lg font-semibold mb-3" style={{ color: '#212529' }}>3. Optional Phone Number</h2>
                 <p style={{ color: '#5F6368' }}>
-                  We may disclose your information to third parties in the following circumstances:
+                  Providing a phone number is voluntary and not required to use the platform.
                 </p>
-                <ul className="list-disc pl-6 space-y-2 mt-2" style={{ color: '#5F6368' }}>
-                  <li>Service providers who assist us in operating our website</li>
-                  <li>Business partners for joint ventures</li>
+              </section>
+
+              <hr style={{ borderColor: '#E8E8E8' }} />
+
+              <section>
+                <h2 className="text-lg font-semibold mb-3" style={{ color: '#212529' }}>4. Data Sharing</h2>
+                <p className="mb-2" style={{ color: '#5F6368' }}>
+                  We do not sell personal data. Information may be shared:
+                </p>
+                <ul className="list-disc pl-6 space-y-1" style={{ color: '#5F6368' }}>
+                  <li>With service providers</li>
                   <li>When required by law</li>
-                  <li>To protect the rights and safety of others</li>
                 </ul>
               </section>
 
+              <hr style={{ borderColor: '#E8E8E8' }} />
+
               <section>
-                <h2 className="text-2xl font-bold mb-3" style={{ color: '#212529' }}>5. Security of Your Information</h2>
+                <h2 className="text-lg font-semibold mb-3" style={{ color: '#212529' }}>5. Data Protection</h2>
                 <p style={{ color: '#5F6368' }}>
-                  We use administrative, technical, and physical security measures to protect your personal information.
-                  However, no method of transmission over the internet is completely secure.
+                  We take reasonable steps to protect user data but cannot guarantee absolute security.
                 </p>
               </section>
 
+              <hr style={{ borderColor: '#E8E8E8' }} />
+
               <section>
-                <h2 className="text-2xl font-bold mb-3" style={{ color: '#212529' }}>6. Your Rights</h2>
-                <p style={{ color: '#5F6368' }}>You have the following rights regarding your personal information:</p>
-                <ul className="list-disc pl-6 space-y-2 mt-2" style={{ color: '#5F6368' }}>
-                  <li>Right to access your data</li>
-                  <li>Right to correct inaccurate data</li>
-                  <li>Right to request deletion</li>
-                  <li>Right to opt-out of marketing communications</li>
-                  <li>Right to data portability</li>
+                <h2 className="text-lg font-semibold mb-3" style={{ color: '#212529' }}>6. User Rights</h2>
+                <p className="mb-2" style={{ color: '#5F6368' }}>Users may:</p>
+                <ul className="list-disc pl-6 space-y-1" style={{ color: '#5F6368' }}>
+                  <li>Access or update their data</li>
+                  <li>Request deletion</li>
+                  <li>Withdraw consent where applicable</li>
                 </ul>
               </section>
 
+              <hr style={{ borderColor: '#E8E8E8' }} />
+
               <section>
-                <h2 className="text-2xl font-bold mb-3" style={{ color: '#212529' }}>7. Contact Us</h2>
+                <h2 className="text-lg font-semibold mb-3" style={{ color: '#212529' }}>7. Cookies</h2>
                 <p style={{ color: '#5F6368' }}>
-                  If you have questions about this Privacy Policy, please contact us at:
-                </p>
-                <p className="mt-3">
-                  Email: privacy@businesstalk24.com<br />
-                  Address: 123 Business Street, San Francisco, CA 94102
+                  We use cookies to improve functionality and analyse usage.
                 </p>
               </section>
+
+              <hr style={{ borderColor: '#E8E8E8' }} />
+
+              <section>
+                <h2 className="text-lg font-semibold mb-3" style={{ color: '#212529' }}>8. Third-Party Services</h2>
+                <p style={{ color: '#5F6368' }}>
+                  We are not responsible for external websites or services linked from the platform.
+                </p>
+              </section>
+
+              <hr style={{ borderColor: '#E8E8E8' }} />
+
+              <section>
+                <h2 className="text-lg font-semibold mb-3" style={{ color: '#212529' }}>9. Updates</h2>
+                <p style={{ color: '#5F6368' }}>
+                  This policy may be updated periodically.
+                </p>
+              </section>
+
+              <hr style={{ borderColor: '#E8E8E8' }} />
+
+              <section>
+                <h2 className="text-lg font-semibold mb-3" style={{ color: '#212529' }}>10. Contact</h2>
+                <p style={{ color: '#5F6368' }}>
+                  For privacy concerns:{' '}
+                  <a
+                    href="mailto:support@businesstalk24.com"
+                    className="transition-colors"
+                    style={{ color: '#1976D2' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = '#1565C0')}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = '#1976D2')}
+                  >
+                    support@businesstalk24.com
+                  </a>
+                </p>
+              </section>
+
             </div>
           </div>
         </div>

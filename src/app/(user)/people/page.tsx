@@ -153,7 +153,7 @@ export default function PeoplePage() {
                 {/* Avatar */}
                 <div className="flex flex-col items-center text-center mb-4">
                   <img
-                    src={user.profile_photo || '/avatar.png'}
+                    src={user.profile_photo || `https://ui-avatars.com/api/name=${encodeURIComponent(user.full_name || 'User')}`}
                     alt={user.full_name || 'User Avatar'}
                     className="w-20 h-20 rounded-full object-cover mb-3 border"
                   />
@@ -203,7 +203,32 @@ export default function PeoplePage() {
                 {/* Connect Button */}
                 <button
                   onClick={(e) => handleFollow(user.id, e)}
-                  className="w-full py-2.5 rounded-lg bg-black text-white hover:bg-gray-800"
+                  disabled={connecting === user.id}
+                  className={`w-full px-3 py-2 text-xs font-medium rounded-lg 
+                    transition-all duration-200 flex-shrink-0 border border-[#212529] 
+                    active:scale-95
+                    ${connecting === user.id 
+                      ? 'bg-[#212529] text-white opacity-70 cursor-not-allowed' 
+                      : 'bg-transparent text-[#212529]'
+                    }`}
+                  style={{
+                    backgroundColor: connecting === user.id ? '#212529' : 'transparent',
+                    color: connecting === user.id ? '#fff' : '#212529',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (connecting !== user.id) {
+                      e.currentTarget.style.backgroundColor = '#F8F9FA'
+                    } else {
+                      e.currentTarget.style.backgroundColor = '#3D3D3D'
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (connecting !== user.id) {
+                      e.currentTarget.style.backgroundColor = 'transparent'
+                    } else {
+                      e.currentTarget.style.backgroundColor = '#212529'
+                    }
+                  }}
                 >
                   {connecting === user.id ? 'Connecting...' : 'Connect'}
                 </button>

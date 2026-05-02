@@ -7,6 +7,10 @@ class WebSocketManager {
   private handlers: { [key: string]: MessageHandler[] } = {}
 
   connect(userId: string) {
+    if (!userId) {
+      console.warn('WebSocket: connect() called without a userId — skipping')
+      return
+    }
     if (this.socket) return
 
     this.socket = io(
@@ -20,14 +24,17 @@ class WebSocketManager {
 
     this.socket.on("connect", () => {
       console.log("✅ Socket.IO connected")
+      this.handlers['connect']?.forEach(h => h({}))
     })
 
-    this.socket.on("disconnect", () => {
-      console.log("❌ Socket.IO disconnected")
+    this.socket.on("disconnect", (reason) => {
+      console.log("❌ Socket.IO disconnected:", reason)
+      this.handlers['disconnect']?.forEach(h => h({ reason }))
     })
 
     this.socket.on("connect_error", (err) => {
       console.error("Socket.IO error:", err.message)
+      this.handlers['connect_error']?.forEach(h => h({ message: err.message }))
     })
 
     // 🔥 Generic event handler

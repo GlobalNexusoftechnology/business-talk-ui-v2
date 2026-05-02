@@ -97,7 +97,7 @@ export function ShareStoryBox() {
         <button
           onClick={handleShareStory}
           disabled={loading || !storyText.trim()}
-          className="bg-black text-white px-6 py-2 rounded-lg"
+          className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-400 disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
           {loading ? 'Publishing...' : 'Publish Story'}
         </button>

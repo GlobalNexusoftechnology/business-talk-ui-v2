@@ -78,14 +78,14 @@ export function UserCard({
   return (
     <div className="flex items-center gap-3 fade-in-card">
       <img
-        src={person.profile_photo || person.avatar || 'https://ui-avatars.com/api/?name=User'}
-        alt={person.full_name || person.name || person.username}
+        src={person.profile_photo || 'https://ui-avatars.com/api/name=' + encodeURIComponent(person.full_name || person.username)}
+        alt={person.full_name || person.username}
         className="w-10 h-10 rounded-full object-cover flex-shrink-0 cursor-pointer"
         onClick={() => onProfileClick(person)}
       />
       <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onProfileClick(person)}>
         <h3 className="font-medium text-sm truncate" style={{ color: '#212529' }}>
-          {person.full_name || person.name || person.username}
+          {person.full_name || person.username}
         </h3>
         <p className="text-xs text-gray-500 truncate">{person.profession || person.title || 'User'}</p>
       </div>

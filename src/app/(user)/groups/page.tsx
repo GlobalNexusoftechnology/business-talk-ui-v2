@@ -2,7 +2,7 @@
 
 import { Search, Users, Lock, Globe, TrendingUp, Plus } from 'lucide-react'
 import { useState } from 'react'
-// import { useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import apiClient from '@/lib/api-client'
 
@@ -15,11 +15,12 @@ interface Group {
   posts: number
   type: 'public' | 'private'
   joined: boolean
+  requested: boolean
   category: string
 }
 
 export default function GroupsPage() {
-  // const router = useRouter()
+  const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState<'all' | 'my-groups'>('all')
   const [groups, setGroups] = useState<Group[]>([])
@@ -31,12 +32,16 @@ export default function GroupsPage() {
     description: string
     visibility: 'PUBLIC' | 'PRIVATE'
     cover_image: string | File
+    rules: string[]
   }>({
     name: '',
     description: '',
     visibility: 'PUBLIC',
     cover_image: '',
+    rules: [],
   })
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [ruleInput, setRuleInput] = useState('')
 
   useEffect(() => {
     const fetchGroups = async () => {
@@ -49,10 +54,11 @@ export default function GroupsPage() {
           name: g.name,
           description: g.description,
           image: g.cover_image || '/placeholder.jpg',
-          members: g.members_count || 0,
+          members: g.memberCount || 0,
           posts: 0,
           type: g.visibility === 'PRIVATE' ? 'private' : 'public',
           joined: g.isJoined || false,
+          requested: g.isRequested || false,
           category: 'General',
         }))
 
@@ -81,6 +87,8 @@ export default function GroupsPage() {
         formData.append('cover_image', newGroup.cover_image)
       }
 
+      newGroup.rules.forEach(rule => formData.append('rules', rule))
+
       const res = await apiClient.createGroup(formData)
 
       const g = res.data
@@ -94,11 +102,15 @@ export default function GroupsPage() {
         posts: 0,
         type: g.visibility === 'PRIVATE' ? 'private' : 'public',
         joined: true,
+        requested: false,
         category: 'General',
       }
 
       setGroups(prev => [formatted, ...prev])
       setShowCreateModal(false)
+      setShowAdvanced(false)
+      setRuleInput('')
+      setNewGroup({ name: '', description: '', visibility: 'PUBLIC', cover_image: '', rules: [] })
 
     } catch (err) {
       console.error('Create group error', err)
@@ -106,22 +118,23 @@ export default function GroupsPage() {
   }
 
   const handleJoinToggle = async (groupId: string) => {
+    const group = groups.find(g => g.id === groupId)
+    if (!group) return
+
     try {
-      const group = groups.find(g => g.id === groupId)
-
-      if (!group) return
-
       if (group.joined) {
         await apiClient.leaveGroup(groupId)
+        setGroups(prev => prev.map(g => g.id === groupId ? { ...g, joined: false } : g))
+      } else if (group.requested) {
+        // request already pending — no cancel endpoint; do nothing
+        return
+      } else if (group.type === 'private') {
+        await apiClient.requestToJoinGroup(groupId)
+        setGroups(prev => prev.map(g => g.id === groupId ? { ...g, requested: true } : g))
       } else {
         await apiClient.joinGroup(groupId)
+        setGroups(prev => prev.map(g => g.id === groupId ? { ...g, joined: true } : g))
       }
-
-      setGroups(prev =>
-        prev.map(g =>
-          g.id === groupId ? { ...g, joined: !g.joined } : g
-        )
-      )
     } catch (err) {
       console.error('Join/Leave error', err)
     }
@@ -131,9 +144,9 @@ export default function GroupsPage() {
     return <div className="p-6">Loading groups...</div>
   }
 
-  // const handleGroupClick = (group: Group) => {
-  //   router.push(`/groups/${group.id}`)
-  // }
+  const handleGroupClick = (group: Group) => {
+    router.push(`/groups/${group.id}`)
+  }
 
   const filteredGroups = activeTab === 'my-groups' ? groups.filter(g => g.joined) : groups
 
@@ -228,7 +241,7 @@ export default function GroupsPage() {
           {filteredGroups.map((group) => (
             <div
               key={group.id}
-              // onClick={() => handleGroupClick(group)}
+              onClick={() => handleGroupClick(group)}
               className="bg-white rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
               style={{ border: '1px solid #E8E8E8' }}
             >
@@ -267,28 +280,30 @@ export default function GroupsPage() {
                 </div>
 
                 <button
-                  onClick={() => handleJoinToggle(group.id)}
+                  onClick={(e) => { e.stopPropagation(); handleJoinToggle(group.id) }}
                   className="w-full py-2.5 rounded-lg font-medium transition-all"
                   style={{
-                    backgroundColor: group.joined ? '#F8F9FA' : '#212529',
-                    color: group.joined ? '#5F6368' : '#FFFFFF',
+                    backgroundColor: group.joined ? '#F8F9FA' : group.requested ? '#EFF6FF' : '#212529',
+                    color: group.joined ? '#5F6368' : group.requested ? '#1d9bf0' : '#FFFFFF',
                   }}
                   onMouseEnter={(e) => {
                     if (group.joined) {
                       e.currentTarget.style.backgroundColor = '#E8E8E8'
-                    } else {
+                    } else if (!group.requested) {
                       e.currentTarget.style.backgroundColor = '#3D3D3D'
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (group.joined) {
                       e.currentTarget.style.backgroundColor = '#F8F9FA'
+                    } else if (group.requested) {
+                      e.currentTarget.style.backgroundColor = '#EFF6FF'
                     } else {
                       e.currentTarget.style.backgroundColor = '#212529'
                     }
                   }}
                 >
-                  {group.joined ? 'Joined' : group.type === 'private' ? 'Request to Join' : 'Join Group'}
+                  {group.joined ? 'Leave Group' : group.requested ? 'Request Sent' : group.type === 'private' ? 'Request to Join' : 'Join Group'}
                 </button>
               </div>
             </div>
@@ -302,7 +317,7 @@ export default function GroupsPage() {
             {/* HEADER */}
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Create Group</h2>
-              <button onClick={() => setShowCreateModal(false)}>✕</button>
+              <button onClick={() => { setShowCreateModal(false); setShowAdvanced(false); setRuleInput('') }}>✕</button>
             </div>
 
             {/* FORM */}
@@ -373,10 +388,97 @@ export default function GroupsPage() {
               </div>
             </div>
 
+            {/* ADVANCED SETTINGS */}
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                <span
+                  className="inline-block transition-transform duration-200"
+                  style={{ transform: showAdvanced ? 'rotate(90deg)' : 'rotate(0deg)' }}
+                >
+                  ▶
+                </span>
+                Advanced Settings
+              </button>
+
+              {showAdvanced && (
+                <div className="mt-3 space-y-3 border border-gray-100 rounded-lg p-4 bg-gray-50">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Group Rules</p>
+                  <p className="text-xs text-gray-400">Up to 10 rules. Press Enter or click Add.</p>
+
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="e.g. No spam or self-promotion..."
+                      value={ruleInput}
+                      maxLength={200}
+                      onChange={(e) => setRuleInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && ruleInput.trim() && newGroup.rules.length < 10) {
+                          e.preventDefault()
+                          setNewGroup(prev => ({ ...prev, rules: [...prev.rules, ruleInput.trim()] }))
+                          setRuleInput('')
+                        }
+                      }}
+                      className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button
+                      type="button"
+                      disabled={!ruleInput.trim() || newGroup.rules.length >= 10}
+                      onClick={() => {
+                        if (ruleInput.trim() && newGroup.rules.length < 10) {
+                          setNewGroup(prev => ({ ...prev, rules: [...prev.rules, ruleInput.trim()] }))
+                          setRuleInput('')
+                        }
+                      }}
+                      className="px-3 py-2 bg-black text-white text-sm rounded-lg disabled:opacity-40 transition-opacity"
+                    >
+                      Add
+                    </button>
+                  </div>
+
+                  {newGroup.rules.length > 0 && (
+                    <ol className="space-y-1">
+                      {newGroup.rules.map((rule, idx) => (
+                        <li
+                          key={idx}
+                          className="flex items-start justify-between gap-2 text-sm text-gray-700 bg-white rounded-lg px-3 py-2 border border-gray-100"
+                        >
+                          <span>
+                            <span className="font-semibold text-gray-400 mr-1">{idx + 1}.</span>
+                            {rule}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setNewGroup(prev => ({
+                                ...prev,
+                                rules: prev.rules.filter((_, i) => i !== idx),
+                              }))
+                            }
+                            className="text-red-400 hover:text-red-600 text-xs font-bold flex-shrink-0 leading-none"
+                          >
+                            ✕
+                          </button>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+
+                  {newGroup.rules.length >= 10 && (
+                    <p className="text-xs text-amber-600">Maximum of 10 rules allowed.</p>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* ACTIONS */}
             <div className="flex justify-end gap-3 mt-6">
               <button
-                onClick={() => setShowCreateModal(false)}
+                onClick={() => { setShowCreateModal(false); setShowAdvanced(false); setRuleInput('') }}
                 className="px-4 py-2 rounded-lg bg-gray-100"
               >
                 Cancel

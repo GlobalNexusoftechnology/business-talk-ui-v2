@@ -44,7 +44,7 @@ export function ProfileHeader({
       {/* COVER */}
       <div className="relative">
         <img
-          src={profileData.cover || 'https://images.unsplash.com/photo-1497366216548-37526070297c'}
+          src={profileData.cover_image || 'https://images.unsplash.com/photo-1497366216548-37526070297c'}
           alt="Cover"
           className="w-full h-48 object-cover"
         />
@@ -56,7 +56,7 @@ export function ProfileHeader({
 
           {/* AVATAR */}
           <img
-            src={profileData.avatar || '/avatar.png'}
+            src={profileData.avatar || `https://ui-avatars.com/api/name=${encodeURIComponent(profileData.name || 'User')}`}
             alt="Avatar"
             className="w-32 h-32 rounded-full border-4 border-white shadow-lg object-cover z-10 bg-white"
           />
@@ -84,25 +84,48 @@ export function ProfileHeader({
 
               {/* CONNECT */}
               <button
-                className={`px-4 py-2 rounded-full font-medium border ${
-                  connectState === 'connected'
-                    ? 'bg-green-50 border-green-500 text-green-700'
-                    : connectState === 'pending'
-                    ? 'bg-yellow-50 border-yellow-400 text-yellow-700'
-                    : 'bg-black text-white'
-                }`}
                 onClick={onConnect}
                 disabled={connectState !== 'connect' || loading}
+                className={`px-4 py-2 text-sm font-medium rounded-lg border transition-all duration-200 active:scale-95
+                  ${connectState === 'connected'
+                    ? 'border-green-500 text-green-700 cursor-default'
+                    : connectState === 'pending'
+                    ? 'border-yellow-400 text-yellow-700 cursor-default'
+                    : loading
+                    ? 'border-[#212529] bg-[#212529] text-white opacity-70 cursor-not-allowed'
+                    : 'border-[#212529] text-[#212529]'
+                  }`}
+                style={{
+                  backgroundColor:
+                    connectState === 'connected' ? '#F0FDF4'
+                    : connectState === 'pending' ? '#FEFCE8'
+                    : loading ? '#212529'
+                    : 'transparent',
+                }}
+                onMouseEnter={(e) => {
+                  if (connectState === 'connect' && !loading) {
+                    e.currentTarget.style.backgroundColor = '#F8F9FA'
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (connectState === 'connect' && !loading) {
+                    e.currentTarget.style.backgroundColor = 'transparent'
+                  }
+                }}
               >
-                {connectState === 'connect' && 'Connect'}
-                {connectState === 'pending' && 'Pending'}
-                {connectState === 'connected' && 'Connected'}
+                {loading && connectState === 'connect' ? 'Connecting...' : null}
+                {!loading && connectState === 'connect' ? 'Connect' : null}
+                {connectState === 'pending' ? 'Pending' : null}
+                {connectState === 'connected' ? 'Connected' : null}
               </button>
 
               {/* MESSAGE */}
               <button
                 onClick={handleMessage}
-                className="px-4 py-2 border rounded-full"
+                className="px-4 py-2 text-sm font-medium rounded-lg border border-[#212529] text-[#212529] transition-all duration-200 active:scale-95"
+                style={{ backgroundColor: 'transparent' }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8F9FA')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
               >
                 Message
               </button>

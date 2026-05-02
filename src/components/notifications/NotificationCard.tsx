@@ -58,7 +58,7 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
           className="w-12 h-12 rounded-full object-cover"
           onError={(e) => {
             (e.currentTarget as HTMLImageElement).src =
-              'https://ui-avatars.com/api/?name=User';
+              'https://ui-avatars.com/api/name=' + encodeURIComponent(user.name);
           }}
         />
         <div className="absolute -bottom-1 -right-1 bg-white dark:bg-black rounded-full p-1 shadow-sm">

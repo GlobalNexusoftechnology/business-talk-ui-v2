@@ -52,10 +52,10 @@ class ApiClient {
       username,
       password,
       phone_number,
-      created_by: 'dbc9e1d3-1241-471e-964a-3524cff5bf9f',
-      modified_by: 'dbc9e1d3-1241-471e-964a-3524cff5bf9f',
-      role_id: 'e360b4ab-a828-4a4f-8792-701e785f89c0',
-      // role_id: 'dbc9e1d3-1241-471e-964a-3524cff5bf9f',
+      created_by: '73f52c44-1746-49e6-ab08-8f86a8d8967f',
+      modified_by: '73f52c44-1746-49e6-ab08-8f86a8d8967f',
+      // role_id: 'e360b4ab-a828-4a4f-8792-701e785f89c0',
+      role_id: '73f52c44-1746-49e6-ab08-8f86a8d8967f',
     })
 
     if (createRes.data.UserExist) {
@@ -222,9 +222,17 @@ class ApiClient {
     return res.data
   }
 
-  // Vote on a comment (UP / DOWN)
+  // Vote on a comment (UP / DOWN) — generic post comments
   async voteComment(commentId: string, vote: 'up' | 'down') {
     const res = await this.client.post(`/comments/${commentId}/vote`, {
+      vote: vote.toLowerCase(),
+    })
+    return res.data
+  }
+
+  // Vote on a blog/story comment — POST /blogs/:blogId/comments/:commentId/vote
+  async voteBlogComment(blogId: string, commentId: string, vote: 'up' | 'down') {
+    const res = await this.client.post(`/blogs/${blogId}/comments/${commentId}/vote`, {
       vote: vote.toLowerCase(),
     })
     return res.data
@@ -523,9 +531,9 @@ class ApiClient {
     return this.client.get('/groups')
   }
 
-  // 3. GET GROUP BY SLUG
-  getGroupBySlug(slug: string) {
-    return this.client.get(`/groups/${slug}`)
+  // 3. GET GROUP BY ID
+  getGroupById(id: string) {
+    return this.client.get(`/groups/${id}`)
   }
 
   // 4. JOIN GROUP
@@ -536,6 +544,392 @@ class ApiClient {
   // 5. LEAVE GROUP
   leaveGroup(groupId: string) {
     return this.client.delete(`/groups/${groupId}/leave`)
+  }
+
+  // 6. GET GROUP BY SLUG
+  getGroupBySlug(slug: string) {
+    return this.client.get(`/groups/slug/${slug}`)
+  }
+
+  // 7. GET GROUP CHAT
+  getGroupChat(groupId: string) {
+    return this.client.get(`/groups/${groupId}/chat`)
+  }
+
+  // 8. GENERATE INVITE LINK (admin only)
+  generateGroupInvite(groupId: string, data?: { expiresIn?: number; maxUses?: number }) {
+    return this.client.post(`/groups/${groupId}/invite`, data ?? {})
+  }
+
+  // 9. JOIN BY INVITE CODE
+  joinGroupByInviteCode(code: string) {
+    return this.client.post(`/groups/invite/${code}/join`)
+  }
+
+  // 10. REQUEST TO JOIN PRIVATE GROUP
+  requestToJoinGroup(groupId: string) {
+    return this.client.post(`/groups/${groupId}/request`)
+  }
+
+  // 11. GET PENDING JOIN REQUESTS (admin)
+  getGroupJoinRequests(groupId: string) {
+    return this.client.get(`/groups/${groupId}/requests`)
+  }
+
+  // 12. APPROVE JOIN REQUEST
+  approveGroupJoinRequest(requestId: string) {
+    return this.client.post(`/groups/requests/${requestId}/approve`)
+  }
+
+  // 13. REJECT JOIN REQUEST
+  rejectGroupJoinRequest(requestId: string) {
+    return this.client.post(`/groups/requests/${requestId}/reject`)
+  }
+
+  // 14. CREATE POST INSIDE GROUP
+  createGroupPost(groupId: string, data: { type: string; content?: string; tags?: string | string[] }) {
+    return this.client.post(`/groups/${groupId}/posts`, data)
+  }
+
+  // 15. GET GROUP FEED (paginated)
+  getGroupFeed(groupId: string, page = 1, limit = 20) {
+    return this.client.get(`/groups/${groupId}/feed`, { params: { page, limit } })
+  }
+
+  // 16. REMOVE GROUP MEMBER (admin)
+  removeGroupMember(groupId: string, userId: string) {
+    return this.client.delete(`/groups/${groupId}/member/${userId}`)
+  }
+
+  // 17. TOGGLE MEMBER ROLE ADMIN <-> MEMBER
+  toggleGroupMemberRole(groupId: string, userId: string) {
+    return this.client.patch(`/groups/${groupId}/member/${userId}`)
+  }
+
+  // 18. UPDATE GROUP RULES
+  updateGroupRules(groupId: string, rules: string[]) {
+    return this.client.patch(`/groups/${groupId}/rules`, { rules })
+  }
+
+  // =========================
+  // 🔐 AUTH — ADDITIONAL
+  // =========================
+
+  refreshToken() {
+    return this.client.post('/auth/refresh-token')
+  }
+
+  changePassword(data: { userId?: string; password: string }) {
+    return this.client.post('/auth/change-password', data)
+  }
+
+  forgotPassword(email: string) {
+    return this.client.post('/auth/forgot-password', { email })
+  }
+
+  resetPassword(token: string, password: string) {
+    return this.client.post('/auth/reset-password', { token, password })
+  }
+
+  getAuthProfile() {
+    return this.client.get('/auth/profile')
+  }
+
+  // =========================
+  // 👤 USER — ADDITIONAL
+  // =========================
+
+  createUser(formData: FormData) {
+    return this.client.post('/user', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  }
+
+  getAllUsers() {
+    return this.client.get('/user')
+  }
+
+  updateProfile(formData: FormData) {
+    return this.client.patch('/user/profile', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  }
+
+  updateUserById(id: string, formData: FormData) {
+    return this.client.patch(`/user/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  }
+
+  deleteUserById(id: string) {
+    return this.client.delete(`/user/${id}`)
+  }
+
+  // =========================
+  // 📰 POSTS — ADDITIONAL
+  // =========================
+
+  // Create post with optional media files (multipart)
+  createPostWithMedia(formData: FormData) {
+    return this.client.post('/posts', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  }
+
+  // =========================
+  // 💬 CHAT — ADDITIONAL
+  // =========================
+
+  deleteMessage(messageId: string) {
+    return this.client.delete(`/chat/message/${messageId}`)
+  }
+
+  addUserToConversation(conversationId: string, userId: string) {
+    return this.client.post(`/chat/${conversationId}/add-user`, { userId })
+  }
+
+  removeUserFromConversation(conversationId: string, userId: string) {
+    return this.client.post(`/chat/${conversationId}/remove-user`, { userId })
+  }
+
+  renameConversation(conversationId: string, title: string) {
+    return this.client.post(`/chat/${conversationId}/rename`, { title })
+  }
+
+  getChatPresence() {
+    return this.client.get('/chat/presence')
+  }
+
+  sendRichMessage(
+    conversationId: string,
+    data: { message_type: 'text' | 'blog' | 'post'; content?: string; blogId?: string; postId?: string }
+  ) {
+    return this.client.post(`/chat/${conversationId}/message`, data)
+  }
+
+  // =========================
+  // 🛡️ ADMIN — ADDITIONAL
+  // =========================
+
+  shadowBanUser(userId: string) {
+    return this.client.patch(`/admin/users/${userId}/shadow-ban`)
+  }
+
+  unshadowBanUser(userId: string) {
+    return this.client.patch(`/admin/users/${userId}/unshadow-ban`)
+  }
+
+  uploadAdminMedia(file: File) {
+    const form = new FormData()
+    form.append('file', file)
+    return this.client.post('/admin/media/upload', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  }
+
+  getAdminMedia(page = 1, type?: 'image' | 'video') {
+    return this.client.get('/admin/media', { params: { page, type } })
+  }
+
+  getPendingContent() {
+    return this.client.get('/admin/content')
+  }
+
+  approveContent(id: string, type: 'post' | 'blog') {
+    return this.client.patch(`/admin/content/${id}/approve`, null, { params: { type } })
+  }
+
+  rejectContent(id: string, type: 'post' | 'blog', reason?: string) {
+    return this.client.patch(`/admin/content/${id}/reject`, reason ? { reason } : undefined, { params: { type } })
+  }
+
+  deleteAdminContent(id: string, type: 'post' | 'blog') {
+    return this.client.delete(`/admin/content/${id}`, { params: { type } })
+  }
+
+  createAdminDraft(data: { type: string; content: Record<string, unknown> }) {
+    return this.client.post('/admin/drafts', data)
+  }
+
+  getAdminDrafts() {
+    return this.client.get('/admin/drafts')
+  }
+
+  updateAdminDraft(id: string, data: { type?: string; content?: Record<string, unknown> }) {
+    return this.client.patch(`/admin/drafts/${id}`, data)
+  }
+
+  publishAdminDraft(id: string) {
+    return this.client.post(`/admin/drafts/${id}/publish`)
+  }
+
+  deleteAdminDraft(id: string) {
+    return this.client.delete(`/admin/drafts/${id}`)
+  }
+
+  getAdminFeedback(type?: 'issue' | 'suggestion' | 'bug') {
+    return this.client.get('/admin/feedback', { params: type ? { type } : undefined })
+  }
+
+  resolveAdminFeedback(id: string) {
+    return this.client.patch(`/admin/feedback/${id}/resolve`)
+  }
+
+  // =========================
+  // 🖼️ MEDIA LIBRARY
+  // =========================
+
+  uploadMedia(file: File) {
+    const form = new FormData()
+    form.append('file', file)
+    return this.client.post('/media/upload', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  }
+
+  getMediaLibrary(page = 1, type?: 'image' | 'video') {
+    return this.client.get('/media', { params: { page, type } })
+  }
+
+  // =========================
+  // 🔖 SAVED CONTENT
+  // =========================
+
+  saveContent(contentId: string, contentType: 'post' | 'blog') {
+    return this.client.post('/saved', { contentId, contentType })
+  }
+
+  unsaveContent(contentId: string, contentType: 'post' | 'blog') {
+    return this.client.delete('/saved', { data: { contentId, contentType } })
+  }
+
+  getSavedContent(page = 1) {
+    return this.client.get('/saved', { params: { page } })
+  }
+
+  // =========================
+  // 🖼️ GALLERY
+  // =========================
+
+  getGallery(page = 1, type: 'media' | 'saved' | 'all' = 'all') {
+    return this.client.get('/gallery', { params: { page, type } })
+  }
+
+  // =========================
+  // 🏷️ TAGS
+  // =========================
+
+  getTrendingTags() {
+    return this.client.get('/tags/trending')
+  }
+
+  getTagsHealth() {
+    return this.client.get('/tags/health')
+  }
+
+  // =========================
+  // 📈 TRENDING
+  // =========================
+
+  getTrendingHealth() {
+    return this.client.get('/trending/health')
+  }
+
+  // =========================
+  // 💬 FEEDBACK
+  // =========================
+
+  submitFeedback(data: { type: 'issue' | 'suggestion' | 'bug'; message: string }) {
+    return this.client.post('/feedback', data)
+  }
+
+  // =========================
+  // 📝 DRAFTS (USER)
+  // =========================
+
+  saveDraft(data: { type: string; autoSaved?: boolean; content: Record<string, unknown> }) {
+    return this.client.post('/drafts', data)
+  }
+
+  getDrafts() {
+    return this.client.get('/drafts')
+  }
+
+  getDraftById(id: string) {
+    return this.client.get(`/drafts/${id}`)
+  }
+
+  updateDraft(id: string, data: { type?: string; autoSaved?: boolean; content?: Record<string, unknown> }) {
+    return this.client.patch(`/drafts/${id}`, data)
+  }
+
+  deleteDraft(id: string) {
+    return this.client.delete(`/drafts/${id}`)
+  }
+
+  publishDraft(id: string) {
+    return this.client.post(`/drafts/${id}/publish`)
+  }
+
+  // =========================
+  // ⚕️ HEALTH CHECKS
+  // =========================
+
+  getAIHealth() {
+    return this.client.get('/ai/health')
+  }
+
+  getMonetizationHealth() {
+    return this.client.get('/monetization/health')
+  }
+
+  // =========================
+  // 🔐 GOOGLE OAUTH
+  // =========================
+
+  // Returns the Google OAuth redirect URL — navigate browser to this URL to initiate OAuth
+  getGoogleAuthUrl() {
+    return `${API_BASE_URL}/auth/google`
+  }
+
+  // =========================
+  // 🛡️ ADMIN — USER MODERATION
+  // =========================
+
+  getAdminDashboard() {
+    return this.client.get('/admin/dashboard')
+  }
+
+  warnUser(userId: string) {
+    return this.client.patch(`/admin/users/${userId}/warn`)
+  }
+
+  banUser(userId: string) {
+    return this.client.patch(`/admin/users/${userId}/ban`)
+  }
+
+  unbanUser(userId: string) {
+    return this.client.patch(`/admin/users/${userId}/unban`)
+  }
+
+  // =========================
+  // 👤 USER CONTENT (profile page)
+  // =========================
+
+  getUserPosts(userId: string, page = 1, limit = 5) {
+    return this.client.get('/posts', { params: { author: userId, page, limit } })
+  }
+
+  getUserBlogs(userId: string, page = 1, limit = 5) {
+    return this.client.get('/blogs', { params: { author: userId, page, limit } })
+  }
+
+  getUserComments(userId: string, page = 1, limit = 10) {
+    return this.client.get(`/user/${userId}/comments`, { params: { page, limit } })
+  }
+
+  getUserStats(userId: string) {
+    return this.client.get(`/user/${userId}/stats`)
   }
 }
 

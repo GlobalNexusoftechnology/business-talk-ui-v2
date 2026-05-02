@@ -15,20 +15,42 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    const userStr = localStorage.getItem('user')
+    if (typeof window === 'undefined') return
+
+    let userStr: string | null = null
+    try {
+      userStr = localStorage.getItem('user')
+    } catch {
+      return
+    }
 
     if (!userStr) return
 
-    const user = JSON.parse(userStr)
+    let user: any
+    try {
+      user = JSON.parse(userStr)
+    } catch {
+      return
+    }
+
+    const userId = user?.id
+    if (!userId) {
+      console.warn('WebSocketProvider: no userId found in localStorage user — skipping connection')
+      return
+    }
 
     const ws = new WebSocketManager()
-    ws.connect(user.id) // 🔥 CRITICAL
 
+    // Track real socket connection state
+    ws.on('connect', () => setIsConnected(true))
+    ws.on('disconnect', () => setIsConnected(false))
+
+    ws.connect(userId)
     wsManagerRef.current = ws
-    setIsConnected(true)
 
     return () => {
       ws.disconnect()
+      setIsConnected(false)
     }
   }, [])
 

@@ -4,7 +4,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       {/* Left Side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-center px-12 py-8">
         <div className="max-w-lg">
-          <h1 className="text-5xl font-bold text-primary-900 mb-4">Welcome to BusinessTalk24</h1>
+          <h1 className="text-5xl font-bold text-primary-900 mb-4" style={{ fontSize: '3.5rem' }}>Welcome to Businesstalk24</h1>
           <p className="text-lg text-secondary-600 mb-12">
             Ask questions, share thoughts, and contribute to business discussions.
           </p>
@@ -12,15 +12,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <div className="space-y-8 align-items-center">
 
             <div className="flex items-start">
-              <div className="flex-shrink-0">
-                <div className="flex items-center justify-center h-12 w-12 rounded-md bg-primary-600 text-white">
-                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-              </div>
               <div className="ml-4">
-                <h3 className="text-2xl font-bold text-primary-900 mb-2">Ask. Share. Contribute.</h3>
+                <h3 className="text-3xl font-bold text-primary-900 mb-2">Ask. Share. Contribute...</h3>
               </div>
             </div>
 
