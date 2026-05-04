@@ -29,8 +29,8 @@ export interface AdminContentCardProps {
   commentsCount: number
   views?: number
   createdOn: string | number
-  onWarn: (userId: string) => void
-  onBan: (userId: string) => void
+  onWarn?: (userId: string) => void
+  onBan?: (userId: string) => void
   onDelete: (id: string) => void
   onEdit?: (id: string) => void
 }
@@ -342,40 +342,44 @@ export function AdminContentCard({
               <Pencil className="w-3.5 h-3.5" /> Edit
             </button>
           )}
-          <button
-            onClick={() => author.id && onWarn(author.id)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg transition-colors"
-            style={{
-              border: '1px solid #FCD34D',
-              color: '#92400E',
-              backgroundColor: '#FFFBEB',
-            }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.backgroundColor = '#FEF3C7')
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.backgroundColor = '#FFFBEB')
-            }
-          >
-            <AlertTriangle className="w-3.5 h-3.5" /> Warn
-          </button>
-          <button
-            onClick={() => author.id && onBan(author.id)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg transition-colors"
-            style={{
-              border: '1px solid #FDBA74',
-              color: '#9A3412',
-              backgroundColor: '#FFF7ED',
-            }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.backgroundColor = '#FFEDD5')
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.backgroundColor = '#FFF7ED')
-            }
-          >
-            <Ban className="w-3.5 h-3.5" /> Ban
-          </button>
+          {onWarn && (
+            <button
+              onClick={() => author.id && onWarn(author.id)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg transition-colors"
+              style={{
+                border: '1px solid #FCD34D',
+                color: '#92400E',
+                backgroundColor: '#FFFBEB',
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = '#FEF3C7')
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = '#FFFBEB')
+              }
+            >
+              <AlertTriangle className="w-3.5 h-3.5" /> Warn
+            </button>
+          )}
+          {onBan && (
+            <button
+              onClick={() => author.id && onBan(author.id)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg transition-colors"
+              style={{
+                border: '1px solid #FDBA74',
+                color: '#9A3412',
+                backgroundColor: '#FFF7ED',
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = '#FFEDD5')
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = '#FFF7ED')
+              }
+            >
+              <Ban className="w-3.5 h-3.5" /> Ban
+            </button>
+          )}
           <button
             onClick={() => onDelete(id)}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg transition-colors"

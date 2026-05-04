@@ -15,6 +15,7 @@ import {
   BarChart,
   Bar,
 } from 'recharts'
+import { ThumbsUp } from 'lucide-react'
 
 export default function AdminAnalyticsPage() {
   const [activity, setActivity] = useState<any[]>([])
@@ -140,8 +141,9 @@ export default function AdminAnalyticsPage() {
                     </p>
                   </div>
 
-                  <p className="text-sm font-semibold">
-                    👍 {post.upvotes || 0}
+                  <p className="text-sm font-semibold flex items-center gap-1">
+                    <ThumbsUp className="h-4 w-4" />
+                    {post.upvotes || 0}
                   </p>
                 </div>
               ))

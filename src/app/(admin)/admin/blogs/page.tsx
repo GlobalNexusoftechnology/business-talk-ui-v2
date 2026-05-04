@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/shared/Button'
 import { AdminCreateBlogBox } from '@/components/admin/AdminCreateBlogBox'
 import { useAdminBlogs, useDeleteBlog, useUpdateBlog } from '@/hooks/useAdminBlogs'
-import { useBanUser, useWarnUser } from '@/hooks/useAdminPosts'
+// import { useBanUser, useWarnUser } from '@/hooks/useAdminPosts'
 import { AdminContentCard } from '@/components/admin/AdminContentCard'
 
 const filters = ['All', 'Latest', 'Trending', 'Reported']
@@ -23,8 +23,8 @@ export default function AdminBlogsPage() {
   const { data: blogs = [], isLoading } = useAdminBlogs(activeFilter)
   const deleteBlog = useDeleteBlog()
   const updateBlog = useUpdateBlog()
-  const warnUser = useWarnUser()
-  const banUser = useBanUser()
+  // const warnUser = useWarnUser()
+  // const banUser = useBanUser()
 
   const openEditModal = (blog: any) => {
     setEditingBlog(blog)
@@ -146,8 +146,8 @@ export default function AdminBlogsPage() {
               commentsCount={b.comments_count ?? 0}
               views={b.views}
               createdOn={b.created_on}
-              onWarn={(uid) => warnUser.mutate(uid)}
-              onBan={(uid) => banUser.mutate(uid)}
+              // onWarn={(uid) => warnUser.mutate(uid)}
+              // onBan={(uid) => banUser.mutate(uid)}
               onDelete={(id) => deleteBlog.mutate(id)}
               onEdit={b.type === 'ADMIN_BLOG' ? () => openEditModal(b) : undefined}
             />

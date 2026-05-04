@@ -18,6 +18,7 @@ import {
   Line,
   AreaChart,
   Area,
+  Legend,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -93,6 +94,20 @@ export default function AdminDashboardPage() {
     },
   ]
 
+  const activityChartData = activity.map((item: any) => ({
+    date: item?.date,
+    posts: Number(item?.posts || 0),
+    comments: Number(item?.comments || 0),
+  }))
+
+  const getUserStatus = (u: any): 'active' | 'reported' | 'suspended' => {
+    if (u?.is_banned) return 'suspended'
+    if (u?.is_reported || u?.isReported || Number(u?.warning_count || 0) > 0) {
+      return 'reported'
+    }
+    return 'active'
+  }
+
   return (
     <div className="space-y-6">
 
@@ -129,12 +144,28 @@ export default function AdminDashboardPage() {
           <h2 className="font-semibold mb-4">Platform Activity</h2>
 
           <ResponsiveContainer width="100%" height={250}>
-            <AreaChart data={activity}>
+            <AreaChart data={activityChartData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
               <YAxis />
               <Tooltip />
-              <Area dataKey="users" stroke="#3b82f6" fill="#3b82f6" />
+              <Legend />
+              <Area
+                type="monotone"
+                dataKey="posts"
+                name="Posts"
+                stroke="#2563EB"
+                fill="#60A5FA"
+                fillOpacity={0.35}
+              />
+              <Area
+                type="monotone"
+                dataKey="comments"
+                name="Comments"
+                stroke="#10B981"
+                fill="#34D399"
+                fillOpacity={0.3}
+              />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -166,20 +197,37 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="p-4 space-y-3">
-            {recentUsers.map((u: any) => (
-              <div key={u.id} className="flex justify-between">
-                <div>
-                  <p className="font-medium">
-                    {u.full_name || u.username}
-                  </p>
-                  <p className="text-xs text-gray-500">{u.email}</p>
-                </div>
+            {recentUsers.map((u: any) => {
+              const status = getUserStatus(u)
 
-                <span className="text-xs bg-green-100 px-2 py-1 rounded">
-                  {u.is_banned ? 'Suspended' : 'Active'}
-                </span>
-              </div>
-            ))}
+              return (
+                <div key={u.id} className="flex justify-between">
+                  <div>
+                    <p className="font-medium">
+                      {u.full_name || u.username}
+                    </p>
+                    <p className="text-xs text-gray-500">{u.email}</p>
+                  </div>
+
+                  <span
+                    className="text-xs px-2 py-1 rounded"
+                    style={
+                      status === 'suspended'
+                        ? { backgroundColor: '#FEE2E2', color: '#991B1B' }
+                        : status === 'reported'
+                        ? { backgroundColor: '#FEF3C7', color: '#92400E' }
+                        : { backgroundColor: '#DCFCE7', color: '#166534' }
+                    }
+                  >
+                    {status === 'suspended'
+                      ? 'Suspended'
+                      : status === 'reported'
+                      ? 'Reported'
+                      : 'Active'}
+                  </span>
+                </div>
+              )
+            })}
           </div>
         </div>
 
