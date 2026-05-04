@@ -21,6 +21,7 @@ export default function MyProfilePage() {
   if (!profile) return <div>No profile</div>
 
   const normalized = {
+    username: profile.username,
     name: profile.full_name,
     cover_image: profile.cover_image,
     avatar: profile.profile_photo,

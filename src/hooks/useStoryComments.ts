@@ -64,7 +64,8 @@ export const useStoryComments = (storyId: string) => {
   return {
     comments: data || [],
     addComment: addCommentMutation.mutate,
-    likeComment: likeCommentMutation.mutate,
+    likeComment: likeCommentMutation.mutateAsync,
+    isLikingComment: likeCommentMutation.isPending,
     deleteComment: deleteCommentMutation.mutate,
   }
 }

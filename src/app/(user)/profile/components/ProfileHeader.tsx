@@ -44,7 +44,7 @@ export function ProfileHeader({
       {/* COVER */}
       <div className="relative">
         <img
-          src={profileData.cover_image || `https://ui-avatars.com/api/name=${encodeURIComponent(profileData.name || 'User')}`}
+          src={profileData.cover_image || `https://ui-avatars.com/api/name=${encodeURIComponent(profileData.name || profileData.username || 'User')}`}
           alt="Cover"
           className="w-full h-28 sm:h-40 md:h-48 object-cover"
         />
@@ -56,7 +56,7 @@ export function ProfileHeader({
 
           {/* AVATAR */}
           <img
-            src={profileData.avatar || `https://ui-avatars.com/api/name=${encodeURIComponent(profileData.name || 'User')}`}
+            src={profileData.avatar || `https://ui-avatars.com/api/name=${encodeURIComponent(profileData.name || profileData.username || 'User')}`}
             alt="Avatar"
             className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full border-4 border-white shadow-lg object-cover z-10 bg-white"
           />

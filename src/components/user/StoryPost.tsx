@@ -76,9 +76,10 @@ export function StoryPost({
   const [isDeleted, setIsDeleted] = useState(false)
   const [isLiked, setIsLiked] = useState(liked)
   const [likeCount, setLikeCount] = useState(likes || 0)
+  const [commentLikeOverrides, setCommentLikeOverrides] = useState<Record<string, { count: number; liked?: boolean }>>({})
 
   // ✅ HOOKS (STANDARDIZED)
-  const { comments, addComment, likeComment, deleteComment } = useStoryComments(id)
+  const { comments, addComment, likeComment, isLikingComment, deleteComment } = useStoryComments(id)
   const { likeStory, isLiking } = useStoryLike(id)
   const { state: followState, follow, unfollow } = useFollow(authorId)
   const { isSaved, toggle: toggleSave, showToast: showSavedToast } = useSavedStatus(id || undefined, 'blog')
@@ -108,6 +109,11 @@ export function StoryPost({
     setIsLiked(Boolean(liked))
   }, [liked])
 
+  useEffect(() => {
+    // Fresh server comments should replace temporary local overrides.
+    setCommentLikeOverrides({})
+  }, [comments])
+
   // =========================
   // 🧠 NEST COMMENTS
   // =========================
@@ -120,7 +126,7 @@ export function StoryPost({
         id: c.id,
         authorId: c.user?.id || '',
         content: c.content,
-        likes: c.likes || 0,
+        likes: Number(c.likes ?? c.likes_count ?? c.upvotes ?? 0),
         timestamp: new Date(Number(c.created_on)).toLocaleString(),
         author: {
           name:
@@ -215,10 +221,46 @@ export function StoryPost({
   // =========================
   // 👍 LIKE COMMENT
   // =========================
-  const handleLikeComment = (id: string) => {
+  const handleLikeComment = async (id: string, currentLikes: number) => {
+    if (!id || isLikingComment) return
+
+    const prev = commentLikeOverrides[id]
+    const optimisticBase = prev?.count ?? currentLikes
+
+    setCommentLikeOverrides((old) => ({
+      ...old,
+      [id]: {
+        count: optimisticBase + 1,
+        liked: true,
+      },
+    }))
+
     setAnimatingId(id)
     setTimeout(() => setAnimatingId(null), 300)
-    likeComment(id)
+
+    try {
+      const response = await likeComment(id)
+      const payload = (response as any)?.data ?? response
+      const nextCount = payload?.likes ?? payload?.likes_count ?? payload?.upvotes
+
+      setCommentLikeOverrides((old) => ({
+        ...old,
+        [id]: {
+          count: typeof nextCount === 'number' ? nextCount : old[id]?.count ?? optimisticBase + 1,
+          liked: typeof payload?.liked === 'boolean' ? payload.liked : true,
+        },
+      }))
+    } catch {
+      setCommentLikeOverrides((old) => {
+        const updated = { ...old }
+        if (prev) {
+          updated[id] = prev
+        } else {
+          delete updated[id]
+        }
+        return updated
+      })
+    }
   }
 
   // Delete this story (only shown to author)
@@ -263,16 +305,16 @@ export function StoryPost({
 
                 <div className="flex gap-3 text-xs mt-1">
                   <button
-                    onClick={() => handleLikeComment(reply.id)}
+                    onClick={() => handleLikeComment(reply.id, reply.likes)}
                     className="flex items-center gap-1"
-                    style={{ color: animatingId === reply.id ? '#1d9bf0' : undefined }}
+                    style={{ color: animatingId === reply.id || commentLikeOverrides[reply.id]?.liked ? '#1d9bf0' : undefined }}
                   >
                     <ThumbsUp
                         className={`w-5 h-5 transition-all duration-200 ${
                           animatingId === reply.id ? 'scale-150 rotate-12' : ''
                         }`}
                       />
-                    {reply.likes}
+                    {commentLikeOverrides[reply.id]?.count ?? reply.likes}
                   </button>
 
                   <button
@@ -536,16 +578,16 @@ export function StoryPost({
                 <div className="flex gap-3 mt-1 text-xs text-gray-500">
                   <button
                     onClick={() =>
-                      handleLikeComment(c.id)
+                      handleLikeComment(c.id, c.likes)
                     }
-                    style={{ color: animatingId === c.id ? '#1d9bf0' : undefined }}
+                    style={{ color: animatingId === c.id || commentLikeOverrides[c.id]?.liked ? '#1d9bf0' : undefined }}
                     className="flex items-center gap-1"
                   >
                     <ThumbsUp
                           className={`w-5 h-5 transition-all duration-200 ${
                             animatingId === c.id ? 'scale-150 rotate-12' : ''
                           }`}
-                        /> {c.likes}
+                        /> {commentLikeOverrides[c.id]?.count ?? c.likes}
                   </button>
 
                   <button
