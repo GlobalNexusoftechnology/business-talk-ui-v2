@@ -105,7 +105,7 @@ export const UserNavbar = ({ onMenuClick, children }: UserNavbarProps) => {
               <Link href="/profile">
                 {profilePhoto && !avatarLoadFailed ? (
                   <img
-                    src={profilePhoto}
+                    src={profilePhoto || `https://ui-avatars.com/api/name=${encodeURIComponent(initials)}`}
                     alt={(user as any)?.full_name || user?.username || user?.name || 'User'}
                     className="h-9 w-9 rounded-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
                     onError={() => setAvatarLoadFailed(true)}
