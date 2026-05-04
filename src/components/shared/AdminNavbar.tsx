@@ -3,7 +3,8 @@
 import { Bell, Search, Menu } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/hooks/useRedux'
-import { useNotifications } from '@/hooks/useNotifications'
+import { useEffect, useState } from 'react'
+import apiClient from '@/lib/api-client'
 
 interface AdminNavbarProps {
   onMenuClick?: () => void
@@ -11,7 +12,32 @@ interface AdminNavbarProps {
 
 export const AdminNavbar = ({ onMenuClick }: AdminNavbarProps) => {
   const { user, isAuthenticated } = useAuth()
-  const { unreadCount } = useNotifications()
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadUnreadCount = async () => {
+      try {
+        const res = await apiClient.getAdminUnreadNotificationCount()
+        if (isMounted) {
+          setUnreadCount(Number(res.data?.unread || 0))
+        }
+      } catch {
+        if (isMounted) {
+          setUnreadCount(0)
+        }
+      }
+    }
+
+    loadUnreadCount()
+    const intervalId = window.setInterval(loadUnreadCount, 30000)
+
+    return () => {
+      isMounted = false
+      window.clearInterval(intervalId)
+    }
+  }, [])
 
   return (
     <nav className="sticky top-0 z-40 bg-white border-b border-secondary-200 lg:ml-64">

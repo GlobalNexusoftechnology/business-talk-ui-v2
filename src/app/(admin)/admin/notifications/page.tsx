@@ -66,6 +66,10 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [filter, setFilter] = useState<'all' | 'unread' >('all') /*| 'mentions' if mention is added in future */
   const [loading, setLoading] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const limit = 20
 
   const router = useRouter()
   const { wsManager } = useWebSocket()
@@ -78,17 +82,25 @@ export default function NotificationsPage() {
       setLoading(true)
 
       try {
-        const res = await apiClient.getMyNotifications()
+        const [notificationsRes, unreadRes] = await Promise.all([
+          apiClient.getAdminNotifications(page, limit),
+          apiClient.getAdminUnreadNotificationCount(),
+        ])
+
+        const notificationsData = notificationsRes.data?.data || []
+        const pagination = notificationsRes.data?.pagination
 
         const mapped = await Promise.all(
-          (res.data || []).map(async (n: any) => {
+          notificationsData.map(async (n: any) => {
             let userData = null
 
-            try {
-              const userRes = await apiClient.getUserById(n.actor_id)
-              userData = userRes.data
-            } catch {
-              userData = null
+            if (n.actor_id) {
+              try {
+                const userRes = await apiClient.getUserById(n.actor_id)
+                userData = userRes.data
+              } catch {
+                userData = null
+              }
             }
 
             return {
@@ -125,6 +137,8 @@ export default function NotificationsPage() {
         mapped.sort((a, b) => b.rawTimestamp - a.rawTimestamp)
 
         setNotifications(mapped)
+        setUnreadCount(Number(unreadRes.data?.unread || 0))
+        setTotalPages(Number(pagination?.totalPages || 1))
       } catch (e) {
         console.error('Notification fetch failed', e)
       } finally {
@@ -133,7 +147,7 @@ export default function NotificationsPage() {
     }
 
     fetchNotifications()
-  }, [])
+  }, [page])
 
   // =========================
   // 🔥 WEBSOCKET FIXED
@@ -178,6 +192,7 @@ export default function NotificationsPage() {
       }
 
       setNotifications((prev) => [newNotification, ...prev])
+      setUnreadCount((prev) => prev + 1)
     }
 
     const unsubscribe = wsManager.on('notification', handler)
@@ -189,25 +204,39 @@ export default function NotificationsPage() {
   // MARK READ
   // =========================
   const handleMarkAsRead = async (id: string) => {
+    const target = notifications.find((n) => n.id === id)
+
     setNotifications((prev) =>
       prev.map((n) =>
         n.id === id ? { ...n, is_read: true } : n
       )
     )
 
+    if (target && !target.is_read) {
+      setUnreadCount((prev) => Math.max(0, prev - 1))
+    }
+
     try {
-      await apiClient.markNotificationAsRead(id)
-    } catch {}
+      await apiClient.markAdminNotificationAsRead(id)
+    } catch {
+      if (target && !target.is_read) {
+        setUnreadCount((prev) => prev + 1)
+      }
+    }
   }
 
   const handleMarkAllAsRead = async () => {
     setNotifications((prev) =>
       prev.map((n) => ({ ...n, is_read: true }))
     )
+    setUnreadCount(0)
 
     try {
-      await apiClient.markAllNotificationsRead()
-    } catch {}
+      await apiClient.markAllAdminNotificationsRead()
+    } catch {
+      const fallbackUnread = notifications.filter((n) => !n.is_read).length
+      setUnreadCount(fallbackUnread)
+    }
   }
 
   // =========================
@@ -220,14 +249,16 @@ export default function NotificationsPage() {
     handleMarkAsRead(id)
 
     const { entity_id, entity_type, type } = n
+    const normalizedEntityType = String(entity_type || '').toLowerCase()
+    const normalizedType = String(type || '').toLowerCase()
 
-    switch (entity_type) {
+    switch (normalizedEntityType) {
       case 'user':
         router.push(`/profile/${entity_id}`)
         break
 
       case 'post':
-        if (type === 'question') {
+        if (normalizedType === 'question') {
           router.push(`/question/${entity_id}`)
         } else {
           router.push(`/post/${entity_id}`)
@@ -235,7 +266,7 @@ export default function NotificationsPage() {
         break
 
       case 'blog':
-        if (type === 'story') {
+        if (normalizedType === 'story') {
           router.push(`/story/${entity_id}`)
         } else {
           router.push(`/blog/${entity_id}`)
@@ -268,8 +299,6 @@ export default function NotificationsPage() {
 
     return notifications
   }, [notifications, filter])
-
-  const unreadCount = notifications.filter((n) => !n.is_read).length
 
   // =========================
   // UI
@@ -348,6 +377,30 @@ export default function NotificationsPage() {
           loading={loading}
           onNotificationClick={handleNotificationClick}
         />
+
+        {totalPages > 1 && (
+          <div className="mt-6 flex items-center justify-between gap-3">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              className="px-4 py-2 rounded-lg bg-white border border-neutral-300 text-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+
+            <p className="text-sm text-neutral-600">
+              Page {page} of {totalPages}
+            </p>
+
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+              className="px-4 py-2 rounded-lg bg-white border border-neutral-300 text-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

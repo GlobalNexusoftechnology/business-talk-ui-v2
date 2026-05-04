@@ -447,6 +447,28 @@ class ApiClient {
   }
 
   // =========================
+  // 🔔 ADMIN NOTIFICATIONS
+  // =========================
+
+  getAdminNotifications(page = 1, limit = 20) {
+    return this.client.get('/admin/notifications', {
+      params: { page, limit },
+    })
+  }
+
+  getAdminUnreadNotificationCount() {
+    return this.client.get('/admin/notifications/unread-count')
+  }
+
+  markAdminNotificationAsRead(id: string) {
+    return this.client.patch(`/admin/notifications/${id}/read`)
+  }
+
+  markAllAdminNotificationsRead() {
+    return this.client.patch('/admin/notifications/mark-all-read')
+  }
+
+  // =========================
   // 🔍 SEARCH
   // =========================
 
