@@ -95,7 +95,7 @@ export const MergedMobileSidebarContent = ({
                     <TrendingItem
                       key={q.id}
                       item={q}
-                      type="question"
+                      type="questions"
                       onClick={onTrendingClick}
                     />
                   ))}
@@ -110,7 +110,7 @@ export const MergedMobileSidebarContent = ({
                     <TrendingItem
                       key={s.id}
                       item={s}
-                      type="story"
+                      type="stories"
                       onClick={onStoryClick}
                     />
                   ))}
