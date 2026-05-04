@@ -39,6 +39,7 @@ interface StoryPostProps {
   coverImage?: string
   timestamp: string
   likes: number
+  liked?: boolean
   comments: number
   views: number
   readTime: string
@@ -54,6 +55,7 @@ export function StoryPost({
   coverImage,
   timestamp,
   likes,
+  liked = false,
   views,
   // readTime,
   // category,
@@ -72,10 +74,12 @@ export function StoryPost({
   const [animatingId, setAnimatingId] = useState<string | null>(null)
   const [currentUserId, setCurrentUserId] = useState('')
   const [isDeleted, setIsDeleted] = useState(false)
+  const [isLiked, setIsLiked] = useState(liked)
+  const [likeCount, setLikeCount] = useState(likes || 0)
 
   // ✅ HOOKS (STANDARDIZED)
   const { comments, addComment, likeComment, deleteComment } = useStoryComments(id)
-  const { likeStory } = useStoryLike(id)
+  const { likeStory, isLiking } = useStoryLike(id)
   const { state: followState, follow, unfollow } = useFollow(authorId)
   const { isSaved, toggle: toggleSave, showToast: showSavedToast } = useSavedStatus(id || undefined, 'blog')
 
@@ -95,6 +99,14 @@ export function StoryPost({
       setCurrentUserId(u.id || '')
     } catch {}
   }, [])
+
+  useEffect(() => {
+    setLikeCount(likes || 0)
+  }, [likes])
+
+  useEffect(() => {
+    setIsLiked(Boolean(liked))
+  }, [liked])
 
   // =========================
   // 🧠 NEST COMMENTS
@@ -145,10 +157,34 @@ export function StoryPost({
   // =========================
   // ❤️ LIKE STORY
   // =========================
-  const handleLike = () => {
-    likeStory()
+  const handleLike = async () => {
+    if (!id || isLiking) return
+
+    const wasLiked = isLiked
+    setIsLiked(!wasLiked)
+    setLikeCount((prev) => Math.max(0, prev + (wasLiked ? -1 : 1)))
+
     setAnimatingId('story')
     setTimeout(() => setAnimatingId(null), 300)
+
+    try {
+      const response = await likeStory()
+      const payload = (response as any)?.data ?? response
+
+      if (typeof payload?.liked === 'boolean') {
+        setIsLiked(payload.liked)
+      }
+
+      if (typeof payload?.likes === 'number') {
+        setLikeCount(payload.likes)
+      } else if (typeof payload?.likes_count === 'number') {
+        setLikeCount(payload.likes_count)
+      }
+    } catch {
+      // Revert optimistic update when request fails.
+      setIsLiked(wasLiked)
+      setLikeCount((prev) => Math.max(0, prev + (wasLiked ? 1 : -1)))
+    }
   }
 
   // =========================
@@ -440,14 +476,16 @@ export function StoryPost({
 
           <button
             onClick={handleLike}
-            className="flex gap-1"
+            disabled={isLiking}
+            className="flex items-center gap-1"
+            style={{ color: isLiked ? '#1d9bf0' : undefined }}
           >
             <ThumbsUp
-                        className={`w-5 h-5 transition-all duration-200 ${
-                          animatingId === 'story' ? 'scale-150 rotate-12' : ''
-                        }`}
-                      />
-            {likes}
+              className={`w-5 h-5 transition-all duration-200 ${
+                animatingId === 'story' ? 'scale-150 rotate-12' : ''
+              } ${isLiked ? 'fill-[#1d9bf0]' : ''}`}
+            />
+            {likeCount}
           </button>
 
           <div>

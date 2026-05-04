@@ -53,7 +53,10 @@ export const AdminLayoutWrapper = ({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="min-h-screen bg-secondary-50">
-      <AdminSidebar />
+      <AdminSidebar
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+      />
       <AdminNavbar onMenuClick={() => setMobileMenuOpen(!mobileMenuOpen)} />
 
       <main className="lg:ml-64">

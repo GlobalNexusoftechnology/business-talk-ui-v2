@@ -10,12 +10,16 @@ export const useStoryLike = (storyId: string) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
+        queryKey: ['stories-feed'],
+      })
+      queryClient.invalidateQueries({
         queryKey: ['feed'],
       })
     },
   })
 
   return {
-    likeStory: likeMutation.mutate,
+    likeStory: likeMutation.mutateAsync,
+    isLiking: likeMutation.isPending,
   }
 }
