@@ -1,11 +1,12 @@
 'use client'
 
 import { useRouter, useParams } from 'next/navigation'
-import { Lock, Globe, MessageCircle, Share2, ThumbsUp, ClipboardList, MapPin, X, Check } from 'lucide-react'
+import { Lock, Globe, MessageCircle, Share2, ClipboardList, MapPin, X, Check } from 'lucide-react'
 import { useState } from 'react'
 import { ShareModal } from '@/components/shared/ShareModal'
 import { useEffect } from 'react'
 import apiClient from '@/lib/api-client'
+import { FeedPost } from '@/components/user/FeedPost'
 
 interface GroupMember {
   id: string
@@ -20,9 +21,11 @@ interface GroupPost {
   content: string
   image?: string
   video?: string
-  timestamp: string
+  timestamp: string | number
   likes: number
+  dislikes: number
   comments: number
+  sends: number
 }
 
 interface Group {
@@ -56,23 +59,6 @@ interface GroupJoinRequest {
   created_on?: string | number
 }
 
-const getTimeAgo = (value?: string | number) => {
-  if (!value) return 'just now'
-
-  const timestamp = Number(value)
-  if (Number.isNaN(timestamp)) return 'just now'
-
-  const diff = Date.now() - timestamp
-  const minutes = Math.floor(diff / 60000)
-  const hours = Math.floor(diff / 3600000)
-  const days = Math.floor(diff / 86400000)
-
-  if (minutes < 1) return 'just now'
-  if (minutes < 60) return `${minutes}m`
-  if (hours < 24) return `${hours}h`
-  return `${days}d`
-}
-
 const mapGroupFeedPost = (post: any): GroupPost => {
   const firstImage = post.media?.find((item: any) => item.type === 'image')
   const firstVideo = post.media?.find((item: any) => item.type === 'video')
@@ -91,9 +77,11 @@ const mapGroupFeedPost = (post: any): GroupPost => {
     content: post.content || '',
     image: firstImage?.url || post.image || undefined,
     video: firstVideo?.url || post.video || undefined,
-    timestamp: getTimeAgo(post.created_on || post.createdAt),
+    timestamp: post.created_on || post.createdAt || Date.now(),
     likes: Number(post.upvotes ?? post.likes ?? post.likes_count ?? 0),
+    dislikes: Number(post.downvotes ?? post.dislikes ?? 0),
     comments: Number(post.commentsCount ?? post.comment_count ?? post.comments ?? 0),
+    sends: Number(post.sends ?? post.shares ?? 0),
   }
 }
 
@@ -568,44 +556,20 @@ export default function GroupDetailsPage() {
       ) : (
         <div className="space-y-4">
           {groupFeed.map((post) => (
-            <div key={post.id} className="rounded-xl border p-4" style={{ borderColor: '#E8E8E8', backgroundColor: '#FFFFFF' }}>
-              <div className="flex items-center gap-3 mb-3">
-                <img
-                  src={post.author.avatar}
-                  alt={post.author.name}
-                  className="w-10 h-10 rounded-full object-cover"
-                />
-                <div className="min-w-0">
-                  <p className="font-semibold truncate" style={{ color: '#212529' }}>
-                    {post.author.name}
-                  </p>
-                  <p className="text-xs" style={{ color: '#5F6368' }}>
-                    {post.author.title} • {post.timestamp}
-                  </p>
-                </div>
-              </div>
-
-              <p className="mb-4 whitespace-pre-wrap break-words" style={{ color: '#5F6368' }}>
-                {post.content}
-              </p>
-
-              {post.image && (
-                <img src={post.image} alt="Group post" className="w-full rounded-xl object-cover max-h-[420px] mb-4" />
-              )}
-
-              {post.video && (
-                <video src={post.video} controls className="w-full rounded-xl max-h-[420px] mb-4" />
-              )}
-
-              <div className="flex items-center gap-5 text-sm" style={{ color: '#5F6368' }}>
-                <span className="inline-flex items-center gap-1">
-                  <ThumbsUp className="w-4 h-4" /> {post.likes}
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <MessageCircle className="w-4 h-4" /> {post.comments}
-                </span>
-              </div>
-            </div>
+            <FeedPost
+              key={post.id}
+              id={post.id}
+              authorId={post.author.id}
+              author={post.author}
+              content={post.content}
+              image={post.image}
+              video={post.video}
+              timestamp={String(post.timestamp)}
+              likes={post.likes}
+              dislikes={post.dislikes}
+              comments={post.comments}
+              sends={post.sends}
+            />
           ))}
         </div>
       )}
@@ -636,14 +600,19 @@ export default function GroupDetailsPage() {
           </h2>
           <div className="grid grid-cols-1 gap-4">
             {group.membersList.map((member) => (
-              <div key={member.id} className="flex items-center gap-3 p-4 rounded-lg" style={{ backgroundColor: '#F8F9FA' }}>
+              <div
+                key={member.id}
+                className="flex items-center gap-3 p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
+                style={{ backgroundColor: '#F8F9FA' }}
+                onClick={() => member.id && router.push(`/profile/${member.id}`)}
+              >
                 <img
-                  src={member.avatar}
+                  src={member.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=E8E8E8&color=212529&size=48`}
                   alt={member.name}
                   className="w-12 h-12 rounded-full object-cover"
                 />
                 <div className="min-w-0">
-                  <p className="font-medium truncate" style={{ color: '#212529' }}>
+                  <p className="font-medium truncate hover:underline" style={{ color: '#212529' }}>
                     {member.name}
                   </p>
                   <p className="text-sm" style={{ color: '#5F6368' }}>
@@ -913,8 +882,11 @@ export default function GroupDetailsPage() {
                   <div
                     key={req.id}
                     onClick={() => {
-                      setShowRequestsModal(false)
-                      router.push(`/groups/${group.id}/requests/${req.id}`)
+                      const userId = req.user?.id || req.userId
+                      if (userId) {
+                        setShowRequestsModal(false)
+                        router.push(`/profile/${userId}`)
+                      }
                     }}
                     className="w-full text-left rounded-xl border p-4 transition hover:shadow-sm cursor-pointer"
                     style={{ borderColor: '#E8E8E8', backgroundColor: '#FFFFFF' }}
