@@ -13,9 +13,10 @@ interface SuggestedGroup {
   image: string
   members: number
   visibility: 'PUBLIC' | 'PRIVATE'
+  requiresApproval: boolean
   category: string
   joined: boolean
-  requested: boolean
+  hasPendingRequest: boolean
 }
 
 const getTimeAgo = (timestamp: string | number) => {
@@ -247,7 +248,7 @@ export function GroupCard({
             }
           }}
         >
-          {joinState === 'join' && (group.visibility === 'PRIVATE' ? 'Request to Join' : 'Join Group')}
+          {joinState === 'join' && ((group.requiresApproval || group.visibility === 'PRIVATE') ? 'Request to Join' : 'Join Group')}
           {joinState === 'requested' && 'Requested'}
           {joinState === 'joined' && 'Leave Group'}
         </button>
@@ -278,22 +279,13 @@ export function RightSidebar() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [peopleRes, groupsRes, myGroupsRes, requestedGroupsRes, storiesRes, hotRes] = await Promise.all([
+        const [peopleRes, groupsRes, storiesRes, hotRes] = await Promise.all([
           apiClient.getFollowSuggestions(),
-          apiClient.getGroups(),
-          apiClient.getMyGroups(),
-          apiClient.getMyRequestedGroups(),
+          apiClient.getGroupSuggestions(5),
           apiClient.getTrendingStories(),
           apiClient.getTrendingPosts(),
         ]);
         setPeople((peopleRes.data || []).slice(0, 5));
-
-        const myGroupIds = new Set(
-          (myGroupsRes.data || []).map((item: any) => (item.group ?? item).id)
-        );
-        const requestedGroupIds = new Set(
-          (requestedGroupsRes.data || []).map((item: any) => (item.group ?? item).id)
-        );
 
         const formattedGroups: SuggestedGroup[] = (groupsRes.data || []).map((g: any) => ({
           id: g.id,
@@ -301,10 +293,11 @@ export function RightSidebar() {
           description: g.description,
           image: g.cover_image || '/placeholder.jpg',
           members: g.memberCount || 0,
-          visibility: g.visibility === 'PRIVATE' ? 'PRIVATE' : 'PUBLIC',
+          visibility: 'PUBLIC',
+          requiresApproval: Boolean(g.requiresApproval),
           category: 'General',
-          joined: myGroupIds.has(g.id) || g.isJoined || false,
-          requested: requestedGroupIds.has(g.id) || g.isRequested || false,
+          joined: false,
+          hasPendingRequest: Boolean(g.hasPendingRequest),
         }));
 
         setGroups(formattedGroups.slice(0, 5));
@@ -326,7 +319,7 @@ export function RightSidebar() {
         );
         setJoinStates(
           formattedGroups.reduce((acc: any, g: SuggestedGroup) => {
-            acc[g.id] = g.joined ? 'joined' : g.requested ? 'requested' : 'join';
+            acc[g.id] = g.hasPendingRequest ? 'requested' : 'join';
             return acc;
           }, {})
         );
@@ -376,27 +369,23 @@ export function RightSidebar() {
   const handleJoinClick = async (group: any) => {
     const current = joinStates[group.id] || 'join';
     try {
-      if (current === 'joined') {
-        await apiClient.leaveGroup(group.id);
-        setJoinStates(prev => ({ ...prev, [group.id]: 'join' }));
-        setGroups(prev => prev.map(item =>
-          item.id === group.id ? { ...item, joined: false, requested: false } : item
-        ));
-      } else if (current === 'requested') {
+      if (current === 'requested') {
         // no cancel endpoint
         return;
-      } else if (group.visibility === 'PRIVATE') {
+      } else if (group.requiresApproval) {
         await apiClient.requestToJoinGroup(group.id);
         setJoinStates(prev => ({ ...prev, [group.id]: 'requested' }));
         setGroups(prev => prev.map(item =>
-          item.id === group.id ? { ...item, joined: false, requested: true } : item
+          item.id === group.id ? { ...item, joined: false, hasPendingRequest: true } : item
         ));
       } else {
         await apiClient.joinGroup(group.id);
-        setJoinStates(prev => ({ ...prev, [group.id]: 'joined' }));
-        setGroups(prev => prev.map(item =>
-          item.id === group.id ? { ...item, joined: true, requested: false } : item
-        ));
+        setGroups(prev => prev.filter(item => item.id !== group.id));
+        setJoinStates(prev => {
+          const next = { ...prev };
+          delete next[group.id];
+          return next;
+        });
       }
     } catch (err) {
       console.error('Group join/leave error', err);

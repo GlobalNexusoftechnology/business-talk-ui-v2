@@ -148,6 +148,8 @@ export default function GroupDetailsPage() {
   const [feedTab, setFeedTab] = useState<'feed' | 'about'>('feed')
   const [groupFeed, setGroupFeed] = useState<GroupPost[]>([])
   const [feedLoading, setFeedLoading] = useState(false)
+  const [inviteLoading, setInviteLoading] = useState(false)
+  const [inviteMessage, setInviteMessage] = useState<string | null>(null)
 
   useEffect(() => {
     try {
@@ -385,6 +387,40 @@ export default function GroupDetailsPage() {
     }
   }
 
+  const handleGenerateInvite = async () => {
+    if (!group) return
+
+    try {
+      setInviteLoading(true)
+      setInviteMessage(null)
+
+      const res = await apiClient.generateGroupInvite(group.id)
+      const inviteCode =
+        res?.data?.inviteCode ||
+        res?.data?.code ||
+        res?.data?.invite_code
+
+      if (!inviteCode) {
+        setInviteMessage('Invite created, but no code was returned.')
+        return
+      }
+
+      const inviteUrl = `${window.location.origin}/invite/${inviteCode}`
+
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(inviteUrl)
+        setInviteMessage('Invite link copied to clipboard.')
+      } else {
+        setInviteMessage(`Invite code: ${inviteCode}`)
+      }
+    } catch (err) {
+      console.error('Failed to generate invite link', err)
+      setInviteMessage('Failed to generate invite link. Please try again.')
+    } finally {
+      setInviteLoading(false)
+    }
+  }
+
   if (!group) {
     return (
       <div className="p-6 text-center" style={{ backgroundColor: '#F8F9FA', minHeight: '100vh' }}>
@@ -592,6 +628,21 @@ export default function GroupDetailsPage() {
             <ClipboardList className="w-5 h-5" />
             Manage Requests
           </button>
+        )}
+        {isGroupOwner && (
+          <button
+            onClick={handleGenerateInvite}
+            disabled={inviteLoading}
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg w-full disabled:opacity-60"
+            style={{ backgroundColor: '#F8F9FA', color: '#212529' }}
+          >
+            {inviteLoading ? 'Generating Invite...' : 'Generate Invite Link'}
+          </button>
+        )}
+        {inviteMessage && (
+          <p className="text-xs text-center" style={{ color: inviteMessage.startsWith('Failed') ? '#DC2626' : '#5F6368' }}>
+            {inviteMessage}
+          </p>
         )}
       </div>
     </div>

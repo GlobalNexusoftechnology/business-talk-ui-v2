@@ -14,6 +14,7 @@ interface Group {
   members: number
   posts: number
   type: 'public' | 'private'
+  requiresApproval: boolean
   joined: boolean
   requested: boolean
   category: string
@@ -48,13 +49,14 @@ export default function GroupsPage() {
   useEffect(() => {
     const fetchGroups = async () => {
       try {
-        const [allRes, myRes, requestedRes] = await Promise.all([
+        const [allRes, suggestedRes, myRes, requestedRes] = await Promise.all([
           apiClient.getGroups(),
+          apiClient.getGroupSuggestions(20),
           apiClient.getMyGroups(),
           apiClient.getMyRequestedGroups(),
         ])
 
-        const formatGroup = (g: any, joined = false): Group => ({
+        const formatGroup = (g: any, joined = false, requested = false): Group => ({
           id: g.id,
           name: g.name,
           description: g.description,
@@ -62,8 +64,9 @@ export default function GroupsPage() {
           members: g.memberCount || 0,
           posts: 0,
           type: g.visibility === 'PRIVATE' ? 'private' : 'public',
+          requiresApproval: Boolean(g.requiresApproval) || g.visibility === 'PRIVATE',
           joined: joined || g.isJoined || false,
-          requested: g.isRequested || false,
+          requested: requested || g.isRequested || g.hasPendingRequest || false,
           category: 'General',
         })
 
@@ -78,27 +81,41 @@ export default function GroupsPage() {
         // Requested groups — API returns { group, requestId, requestStatus, requestedAt } or flat
         const reqData: Group[] = (requestedRes.data || []).map((item: any) => {
           const g = item.group ?? item
-          return {
-            id: g.id,
-            name: g.name,
-            description: g.description,
-            image: g.cover_image || '/placeholder.jpg',
-            members: g.memberCount || 0,
-            posts: 0,
-            type: g.visibility === 'PRIVATE' ? 'private' : 'public',
-            joined: false,
-            requested: true,
-            category: 'General',
-          } as Group
+          return formatGroup(g, false, true)
         })
 
         setRequestedGroups(reqData)
+        const requestedIds = new Set(reqData.map(g => g.id))
 
-        const allData: Group[] = (allRes.data || []).map((g: any) =>
-          formatGroup(g, myIds.has(g.id))
+        const suggestedData: Group[] = (suggestedRes.data || []).map((g: any) =>
+          formatGroup(g, false, Boolean(g.hasPendingRequest) || requestedIds.has(g.id))
         )
 
-        setGroups(allData)
+        const discoverMap = new Map<string, Group>()
+        suggestedData.forEach((group) => {
+          discoverMap.set(group.id, group)
+        })
+
+        const allData: Group[] = (allRes.data || []).map((g: any) =>
+          formatGroup(g, myIds.has(g.id), requestedIds.has(g.id))
+        )
+
+        allData
+          .filter((group) => !group.joined)
+          .forEach((group) => {
+            const suggestedGroup = discoverMap.get(group.id)
+            if (suggestedGroup) {
+              discoverMap.set(group.id, {
+                ...group,
+                requested: suggestedGroup.requested || group.requested,
+                requiresApproval: suggestedGroup.requiresApproval || group.requiresApproval,
+              })
+            } else {
+              discoverMap.set(group.id, group)
+            }
+          })
+
+        setGroups(Array.from(discoverMap.values()))
         setMyGroups(myData)
       } catch (err) {
         console.error('Groups fetch error', err)
@@ -138,6 +155,7 @@ export default function GroupsPage() {
         members: 1,
         posts: 0,
         type: g.visibility === 'PRIVATE' ? 'private' : 'public',
+        requiresApproval: Boolean(g.requiresApproval) || g.visibility === 'PRIVATE',
         joined: true,
         requested: false,
         category: 'General',
@@ -167,7 +185,7 @@ export default function GroupsPage() {
       } else if (group.requested) {
         // request already pending — no cancel endpoint; do nothing
         return
-      } else if (group.type === 'private') {
+      } else if (group.requiresApproval) {
         await apiClient.requestToJoinGroup(groupId)
         const updated = { ...group, requested: true }
         setGroups(prev => prev.map(g => g.id === groupId ? updated : g))
@@ -386,7 +404,7 @@ export default function GroupsPage() {
                     }
                   }}
                 >
-                  {group.joined ? 'Leave Group' : group.requested ? 'Requested' : group.type === 'private' ? 'Request to Join' : 'Join Group'}
+                  {group.joined ? 'Leave Group' : group.requested ? 'Requested' : group.requiresApproval ? 'Request to Join' : 'Join Group'}
                 </button>
               </div>
             </div>

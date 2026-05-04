@@ -32,7 +32,7 @@ export const UserLayoutWrapper = ({ children }: UserLayoutWrapperProps) => {
       try {
         const [peopleRes, groupsRes, storiesRes, hotRes] = await Promise.all([
           apiClient.getFollowSuggestions(),
-          apiClient.getGroups(),
+          apiClient.getGroupSuggestions(10),
           apiClient.getStories(),
           apiClient.getTrendingPosts(),
         ])

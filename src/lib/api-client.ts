@@ -594,6 +594,11 @@ class ApiClient {
     return this.client.get('/groups')
   }
 
+  // 2a. GET SUGGESTED GROUPS
+  getGroupSuggestions(limit = 10) {
+    return this.client.get('/groups/suggestions', { params: { limit } })
+  }
+
   // 2b. GET MY JOINED GROUPS
   getMyGroups() {
     return this.client.get('/groups/me')
