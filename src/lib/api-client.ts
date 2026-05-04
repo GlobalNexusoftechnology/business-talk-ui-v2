@@ -18,6 +18,27 @@ class ApiClient {
       (error) => {
         if (!error.response) return Promise.reject(error)
 
+        const status = Number(error.response.status)
+        const responseMessage = String(
+          error.response?.data?.message ||
+          error.response?.data?.error ||
+          ''
+        ).toLowerCase()
+
+        const isRestrictedResponse =
+          status === 423 ||
+          ((status === 401 || status === 403) &&
+            (responseMessage.includes('banned') ||
+              responseMessage.includes('restricted') ||
+              responseMessage.includes('shadow')))
+
+        if (isRestrictedResponse && typeof window !== 'undefined') {
+          localStorage.removeItem('user')
+          if (window.location.pathname !== '/account-restricted') {
+            window.location.href = '/account-restricted'
+          }
+        }
+
         if (error.response.status === 401) {
           // ❗ Just log — DO NOT refresh, DO NOT redirect
           console.warn('Unauthorized request')

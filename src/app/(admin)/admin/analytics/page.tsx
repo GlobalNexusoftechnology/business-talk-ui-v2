@@ -23,41 +23,69 @@ export default function AdminAnalyticsPage() {
   const [growth, setGrowth] = useState<any>(null)
   const [topPosts, setTopPosts] = useState<any[]>([])
   const [topUsers, setTopUsers] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [activityDays, setActivityDays] = useState(7)
+  const [engagementDays, setEngagementDays] = useState(7)
+  const [baseLoading, setBaseLoading] = useState(true)
+  const [activityLoading, setActivityLoading] = useState(true)
+  const [engagementLoading, setEngagementLoading] = useState(true)
+
+  const dayOptions = [7, 14, 30, 60, 90]
 
   useEffect(() => {
-    const fetchAnalytics = async () => {
+    const fetchBaseAnalytics = async () => {
       try {
-        const [
-          activityRes,
-          engagementRes,
-          growthRes,
-          postsRes,
-          usersRes,
-        ] = await Promise.all([
-          apiClient.getActivityAnalytics(7),
-          apiClient.getEngagementAnalytics(7),
+        const [growthRes, postsRes, usersRes] = await Promise.all([
           apiClient.getGrowthAnalytics(7),
           apiClient.getTopPosts(),
           apiClient.getTopUsers(),
         ])
 
-        setActivity(activityRes.data || [])
-        setEngagement(engagementRes.data || [])
         setGrowth(growthRes.data || {})
         setTopPosts(postsRes.data || [])
         setTopUsers(usersRes.data || [])
       } catch (err) {
         console.error('Analytics fetch failed:', err)
       } finally {
-        setLoading(false)
+        setBaseLoading(false)
       }
     }
 
-    fetchAnalytics()
+    fetchBaseAnalytics()
   }, [])
 
-  if (loading) return <div>Loading analytics...</div>
+  useEffect(() => {
+    const fetchActivity = async () => {
+      try {
+        setActivityLoading(true)
+        const activityRes = await apiClient.getActivityAnalytics(activityDays)
+        setActivity(activityRes.data || [])
+      } catch (err) {
+        console.error('Activity analytics fetch failed:', err)
+      } finally {
+        setActivityLoading(false)
+      }
+    }
+
+    fetchActivity()
+  }, [activityDays])
+
+  useEffect(() => {
+    const fetchEngagement = async () => {
+      try {
+        setEngagementLoading(true)
+        const engagementRes = await apiClient.getEngagementAnalytics(engagementDays)
+        setEngagement(engagementRes.data || [])
+      } catch (err) {
+        console.error('Engagement analytics fetch failed:', err)
+      } finally {
+        setEngagementLoading(false)
+      }
+    }
+
+    fetchEngagement()
+  }, [engagementDays])
+
+  if (baseLoading) return <div>Loading analytics...</div>
 
   return (
     <div>
@@ -86,8 +114,30 @@ export default function AdminAnalyticsPage() {
       {/* ================= ACTIVITY CHART ================= */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <Card>
-          <h3 className="font-bold mb-4">Posts & Comments Activity</h3>
+          <div className="flex items-center justify-between mb-4 gap-3">
+            <h3 className="font-bold">Posts & Comments Activity</h3>
+            <div className="flex items-center gap-2">
+              <label htmlFor="activity-days" className="text-xs text-secondary-600">
+                Days
+              </label>
+              <select
+                id="activity-days"
+                value={activityDays}
+                onChange={(e) => setActivityDays(Number(e.target.value))}
+                className="border rounded px-2 py-1 text-sm"
+              >
+                {dayOptions.map((days) => (
+                  <option key={days} value={days}>
+                    Last {days}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
 
+          {activityLoading ? (
+            <p className="text-sm text-secondary-500">Loading activity...</p>
+          ) : (
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={activity}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -99,12 +149,35 @@ export default function AdminAnalyticsPage() {
               <Line type="monotone" dataKey="comments" stroke="#06b6d4" />
             </LineChart>
           </ResponsiveContainer>
+          )}
         </Card>
 
         {/* ================= ENGAGEMENT CHART ================= */}
         <Card>
-          <h3 className="font-bold mb-4">Engagement</h3>
+          <div className="flex items-center justify-between mb-4 gap-3">
+            <h3 className="font-bold">Engagement</h3>
+            <div className="flex items-center gap-2">
+              <label htmlFor="engagement-days" className="text-xs text-secondary-600">
+                Days
+              </label>
+              <select
+                id="engagement-days"
+                value={engagementDays}
+                onChange={(e) => setEngagementDays(Number(e.target.value))}
+                className="border rounded px-2 py-1 text-sm"
+              >
+                {dayOptions.map((days) => (
+                  <option key={days} value={days}>
+                    Last {days}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
 
+          {engagementLoading ? (
+            <p className="text-sm text-secondary-500">Loading engagement...</p>
+          ) : (
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={engagement}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -115,6 +188,7 @@ export default function AdminAnalyticsPage() {
               <Bar dataKey="engagement" fill="#0ea5e9" />
             </BarChart>
           </ResponsiveContainer>
+          )}
         </Card>
       </div>
 

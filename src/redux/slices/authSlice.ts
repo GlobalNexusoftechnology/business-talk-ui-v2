@@ -9,6 +9,9 @@ import {
 } from '@/types'
 import apiClient from '@/lib/api-client'
 
+const isRestrictedUser = (user: any) =>
+  Boolean(user?.is_banned || user?.isBanned || user?.is_shadow_banned || user?.isShadowBanned)
+
 const initialState: AuthState = {
   user: null,
   isLoading: false,
@@ -42,6 +45,13 @@ export const login = createAsyncThunk(
 
       if (!userRes?.data) {
         throw new Error('Failed to fetch user')
+      }
+
+      if (isRestrictedUser(userRes.data)) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('user')
+        }
+        throw new Error('Your account is restricted')
       }
 
       // 3. Store user (optional but useful)
@@ -131,6 +141,12 @@ export const fetchCurrentUser = createAsyncThunk(
   async (_, { rejectWithValue }: any) => {
     try {
       const res = await apiClient.getMyProfile()
+
+      if (isRestrictedUser(res.data)) {
+        localStorage.removeItem('user')
+        return rejectWithValue('Account restricted')
+      }
+
       localStorage.setItem('user', JSON.stringify(res.data))
       return res.data
     } catch (err) {

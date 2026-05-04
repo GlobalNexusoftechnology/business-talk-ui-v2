@@ -42,6 +42,23 @@ export interface Notification {
   entity_type: string
 }
 
+const isReportedContentNotification = (n: Notification) => {
+  const type = String(n.type || '').toLowerCase()
+  const message = String(n.message || '').toLowerCase()
+  const entityType = String(n.entity_type || '').toLowerCase()
+
+  const hasReportKeyword = type.includes('report') || message.includes('report')
+  const isContentEntity = ['post', 'blog', 'comment', 'question', 'story'].includes(entityType)
+
+  return hasReportKeyword && isContentEntity
+}
+
+const isWarningNotification = (n: Notification) => {
+  const type = String(n.type || '').toLowerCase()
+  const message = String(n.message || '').toLowerCase()
+  return type.includes('warn') || message.includes('warn')
+}
+
 // ✅ TIME FORMATTER
 const getTimeAgo = (ts: string) => {
   const diff = Date.now() - Number(ts)
@@ -252,9 +269,23 @@ export default function NotificationsPage() {
     const normalizedEntityType = String(entity_type || '').toLowerCase()
     const normalizedType = String(type || '').toLowerCase()
 
+    if (isReportedContentNotification(n)) {
+      router.push('/admin/reports')
+      return
+    }
+
+    if (isWarningNotification(n)) {
+      if (normalizedEntityType === 'user' && entity_id) {
+        router.push(`/admin/users/${entity_id}`)
+      } else {
+        router.push('/admin/users')
+      }
+      return
+    }
+
     switch (normalizedEntityType) {
       case 'user':
-        router.push(`/profile/${entity_id}`)
+        router.push(`/admin/users/${entity_id}`)
         break
 
       case 'post':

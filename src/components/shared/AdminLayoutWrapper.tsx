@@ -6,6 +6,9 @@ import { AdminSidebar } from '@/components/shared/AdminSidebar'
 import { AdminNavbar } from '@/components/shared/AdminNavbar'
 import { isAdmin } from '@/lib/roles'
 
+const isRestrictedUser = (user: any) =>
+  Boolean(user?.is_banned || user?.isBanned || user?.is_shadow_banned || user?.isShadowBanned)
+
 export const AdminLayoutWrapper = ({ children }: { children: React.ReactNode }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -32,6 +35,12 @@ export const AdminLayoutWrapper = ({ children }: { children: React.ReactNode }) 
       // ❌ Not admin
       if (!isAdmin(user.role_id)) {
         router.replace('/dashboard') // safer than "/"
+        return
+      }
+
+      if (isRestrictedUser(user)) {
+        localStorage.removeItem('user')
+        router.replace('/account-restricted')
         return
       }
 

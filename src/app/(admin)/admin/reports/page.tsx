@@ -70,11 +70,11 @@ function ReportedContentPreview({ report }: { report: any }) {
 
   return (
     <div
-      className="rounded-xl p-4 mt-3"
+      className="rounded-xl p-3 sm:p-4 mt-3"
       style={{ backgroundColor: '#F8F9FA', border: '1px solid #E8E8E8' }}
     >
       {/* Author */}
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-start sm:items-center gap-2 mb-3">
         <img
           src={
             authorAvatar ||
@@ -164,7 +164,7 @@ function ReportedContentPreview({ report }: { report: any }) {
       ))}
 
       {/* Stats */}
-      <div className="flex items-center gap-4 text-xs" style={{ color: '#5F6368' }}>
+      <div className="flex items-center gap-4 text-xs flex-wrap" style={{ color: '#5F6368' }}>
         <span className="flex items-center gap-1">
           <ThumbsUp className="w-3.5 h-3.5" /> {likes}
         </span>
@@ -208,10 +208,10 @@ export default function AdminReportsPage() {
   )
 
   return (
-    <div className="p-6 min-h-screen" style={{ backgroundColor: '#F8F9FA' }}>
+    <div className="p-3 sm:p-6 min-h-screen" style={{ backgroundColor: '#F8F9FA' }}>
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
           <div>
             <h1 className="text-2xl font-bold" style={{ color: '#212529' }}>Reports</h1>
             <p className="text-sm mt-1" style={{ color: '#5F6368' }}>
@@ -227,7 +227,7 @@ export default function AdminReportsPage() {
                 setReports(Array.isArray(data) ? data : [])
               }).finally(() => setLoading(false))
             }}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors"
+            className="w-full sm:w-auto justify-center sm:justify-start flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors"
             style={{ border: '1px solid #E8E8E8', backgroundColor: '#fff', color: '#5F6368' }}
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -236,12 +236,12 @@ export default function AdminReportsPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6">
+        <div className="grid grid-cols-2 gap-2 mb-6 sm:flex">
           {(['pending', 'resolved'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className="px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors"
+              className="w-full px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors"
               style={{
                 backgroundColor: activeTab === tab ? '#212529' : '#fff',
                 color: activeTab === tab ? '#fff' : '#5F6368',
@@ -278,12 +278,12 @@ export default function AdminReportsPage() {
               return (
                 <div
                   key={r.id}
-                  className="bg-white rounded-2xl p-5"
+                  className="bg-white rounded-2xl p-4 sm:p-5"
                   style={{ border: '1px solid #E8E8E8' }}
                 >
                   {/* Report meta row */}
-                  <div className="flex items-start justify-between gap-4 flex-wrap">
-                    <div className="flex items-start gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                    <div className="flex items-start gap-3 min-w-0">
                       <div
                         className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
                         style={{ backgroundColor: '#FEF2F2' }}
@@ -309,7 +309,7 @@ export default function AdminReportsPage() {
                         </div>
 
                         {/* Reason */}
-                        <p className="text-sm font-medium" style={{ color: '#212529' }}>
+                        <p className="text-sm font-medium break-words" style={{ color: '#212529' }}>
                           &ldquo;{r.reason}&rdquo;
                         </p>
 
@@ -341,10 +341,10 @@ export default function AdminReportsPage() {
 
                     {/* Actions */}
                     {r.status !== 'resolved' && (
-                      <div className="flex gap-2 flex-wrap shrink-0">
+                      <div className="grid grid-cols-1 sm:flex gap-2 w-full sm:w-auto shrink-0">
                         <button
                           onClick={() => resolve(r.id, 'REMOVE_POST')}
-                          className="px-3 py-1.5 text-xs rounded-lg font-medium transition-colors"
+                          className="w-full sm:w-auto px-3 py-1.5 text-xs rounded-lg font-medium transition-colors"
                           style={{
                             border: '1px solid #FCA5A5',
                             color: '#991B1B',
@@ -357,7 +357,7 @@ export default function AdminReportsPage() {
                         </button>
                         <button
                           onClick={() => resolve(r.id, 'WARN_USER')}
-                          className="px-3 py-1.5 text-xs rounded-lg font-medium transition-colors"
+                          className="w-full sm:w-auto px-3 py-1.5 text-xs rounded-lg font-medium transition-colors"
                           style={{
                             border: '1px solid #FCD34D',
                             color: '#92400E',
@@ -370,7 +370,7 @@ export default function AdminReportsPage() {
                         </button>
                         <button
                           onClick={() => resolve(r.id, 'BAN_USER')}
-                          className="px-3 py-1.5 text-xs rounded-lg font-medium transition-colors"
+                          className="w-full sm:w-auto px-3 py-1.5 text-xs rounded-lg font-medium transition-colors"
                           style={{
                             border: '1px solid #FDBA74',
                             color: '#9A3412',

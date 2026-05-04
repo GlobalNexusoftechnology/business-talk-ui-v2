@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Search,
   Download,
@@ -16,6 +17,7 @@ import apiClient from '@/lib/api-client'
 import adminApi from '@/lib/admin-api'
 
 export default function AdminUsersPage() {
+  const router = useRouter()
   const [users, setUsers] = useState<any[]>([])
   const [filteredUsers, setFilteredUsers] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -309,7 +311,7 @@ export default function AdminUsersPage() {
                 {/* ACTIONS */}
                 <td className="flex gap-2 justify-end p-3">
 
-                  <button onClick={() => openUserModal(u)}>
+                  <button onClick={() => router.push(`/admin/users/${u.id}`)}>
                     <Eye size={16} />
                   </button>
 

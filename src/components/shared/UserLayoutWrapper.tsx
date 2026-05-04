@@ -27,8 +27,23 @@ export const UserLayoutWrapper = ({ children }: UserLayoutWrapperProps) => {
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
+  const isRestrictedUser = (user: any) =>
+    Boolean(user?.is_banned || user?.isBanned || user?.is_shadow_banned || user?.isShadowBanned)
+
   useEffect(() => {
     const fetchData = async () => {
+      try {
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
+        if (isRestrictedUser(storedUser)) {
+          localStorage.removeItem('user')
+          router.replace('/account-restricted')
+          setLoading(false)
+          return
+        }
+      } catch {
+        // ignore localStorage parse errors and continue
+      }
+
       try {
         const [peopleRes, groupsRes, storiesRes, hotRes] = await Promise.all([
           apiClient.getFollowSuggestions(),
@@ -54,7 +69,7 @@ export const UserLayoutWrapper = ({ children }: UserLayoutWrapperProps) => {
       }
     }
     fetchData()
-  }, [])
+  }, [router])
 
   return (
     <div className="min-h-screen bg-[#f5f6f7]">
