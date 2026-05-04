@@ -311,7 +311,7 @@ export default function AdminUsersPage() {
                 {/* ACTIONS */}
                 <td className="flex gap-2 justify-end p-3">
 
-                  <button onClick={() => router.push(`/admin/users/${u.id}`)}>
+                  <button onClick={() => openUserModal(u)}>
                     <Eye size={16} />
                   </button>
 
@@ -496,6 +496,16 @@ export default function AdminUsersPage() {
                 className="flex gap-2 pt-4 flex-wrap"
                 style={{ borderTop: '1px solid #F0F0F0' }}
               >
+                <button
+                  onClick={() => {
+                    router.push(`/admin/users/${selectedUser.id}`)
+                    closeUserModal()
+                  }}
+                  className="px-4 py-2 text-sm rounded-lg font-medium text-white bg-blue-600"
+                >
+                  View Full Profile
+                </button>
+
                 <button
                   onClick={() => handleWarn(selectedUser.id)}
                   className="px-4 py-2 text-sm rounded-lg font-medium"

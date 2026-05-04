@@ -122,7 +122,7 @@ export function ProfileGallery() {
                   ) : (
                     <img
                       src={item.url}
-                      alt="Media"
+                      alt={item.name || `Media item ${item.id || ''}`.trim()}
                       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                   )}
@@ -195,7 +195,7 @@ export function ProfileGallery() {
                     {(data?.media || data?.cover_image) && (
                       <img
                         src={data?.media || data?.cover_image}
-                        alt=""
+                        alt={data?.title ? `${data.title} thumbnail` : `${item.type} thumbnail`}
                         className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
                       />
                     )}
