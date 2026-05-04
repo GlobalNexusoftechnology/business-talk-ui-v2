@@ -76,8 +76,6 @@ export const UserLayoutWrapper = ({ children }: UserLayoutWrapperProps) => {
             }}
             onSeeAllPeople={() => router.push('/people')}
             onSeeAllGroups={() => router.push('/groups')}
-            onTrendingClick={() => {}}
-            onStoryClick={() => {}}
           />
         </UserNavbar>
       </div>

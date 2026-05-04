@@ -47,7 +47,7 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
       onClick={() => {
         onClick(id);
       }}
-      className={`bg-white dark:bg-black rounded-2xl shadow-sm border p-5 hover:shadow-md transition-all cursor-pointer notification-fade-in ${
+      className={`bg-white rounded-2xl shadow-sm border p-5 hover:shadow-md transition-all cursor-pointer notification-fade-in ${
         !is_read ? 'border-blue-600 border-2' : 'border-neutral-800 border'
       } flex items-start gap-4`}
       style={{ borderLeft: !is_read ? '4px solid #1976D2' : undefined }}
@@ -63,7 +63,7 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
               'https://ui-avatars.com/api/name=' + encodeURIComponent(user.name);
           }}
         />
-        <div className="absolute -bottom-1 -right-1 bg-white dark:bg-black rounded-full p-1 shadow-sm">
+        <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1 shadow-sm">
           {getIcon(type)}
         </div>
       </div>
@@ -74,7 +74,7 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
           <p
             className={`text-base ${
               !is_read ? 'font-bold' : ''
-            } text-black dark:text-white`}
+            } text-black`}
           >
             <span className="font-semibold">{user.name}</span>{' '}
             <span className="text-neutral-500">{message}</span>

@@ -18,6 +18,8 @@ interface GroupPost {
   id: string
   author: GroupMember
   content: string
+  image?: string
+  video?: string
   timestamp: string
   likes: number
   comments: number
@@ -54,6 +56,47 @@ interface GroupJoinRequest {
   created_on?: string | number
 }
 
+const getTimeAgo = (value?: string | number) => {
+  if (!value) return 'just now'
+
+  const timestamp = Number(value)
+  if (Number.isNaN(timestamp)) return 'just now'
+
+  const diff = Date.now() - timestamp
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+
+  if (minutes < 1) return 'just now'
+  if (minutes < 60) return `${minutes}m`
+  if (hours < 24) return `${hours}h`
+  return `${days}d`
+}
+
+const mapGroupFeedPost = (post: any): GroupPost => {
+  const firstImage = post.media?.find((item: any) => item.type === 'image')
+  const firstVideo = post.media?.find((item: any) => item.type === 'video')
+  const user = post.user || {}
+
+  return {
+    id: post.id,
+    author: {
+      id: user.id || '',
+      name: user.full_name || user.username || user.name || 'Unknown',
+      avatar:
+        user.profile_photo ||
+        `https://ui-avatars.com/api/name=${encodeURIComponent(user.full_name || user.username || 'User')}`,
+      title: user.profession || 'Member',
+    },
+    content: post.content || '',
+    image: firstImage?.url || post.image || undefined,
+    video: firstVideo?.url || post.video || undefined,
+    timestamp: getTimeAgo(post.created_on || post.createdAt),
+    likes: Number(post.upvotes ?? post.likes ?? post.likes_count ?? 0),
+    comments: Number(post.commentsCount ?? post.comment_count ?? post.comments ?? 0),
+  }
+}
+
 const formatGroup = (
   g: any,
   joined = false,
@@ -71,9 +114,11 @@ const formatGroup = (
   ownerId: g.created_by || g.createdBy || g.owner?.id || '',
   category: 'General',
   membersList: (g.members || []).map((m: any) => ({
-    id: m.userId,
-    name: m.full_name || m.name || 'User',
-    avatar: m.profile_photo || `https://ui-avatars.com/api/name=${encodeURIComponent(m.full_name || m.name || 'User')}`,
+    id: m.userId || m.user?.id || '',
+    name: m.user?.full_name || m.user?.username || m.user?.name || 'User',
+    avatar:
+      m.user?.profile_photo ||
+      `https://ui-avatars.com/api/name=${encodeURIComponent(m.user?.full_name || m.user?.username || 'User')}`,
     title: m.role,
   })),
   recentPosts: [],
@@ -100,6 +145,9 @@ export default function GroupDetailsPage() {
   const [requestsError, setRequestsError] = useState<string | null>(null)
   const [requests, setRequests] = useState<GroupJoinRequest[]>([])
   const [requestAction, setRequestAction] = useState<{ id: string; type: 'approve' | 'reject' } | null>(null)
+  const [feedTab, setFeedTab] = useState<'feed' | 'about'>('feed')
+  const [groupFeed, setGroupFeed] = useState<GroupPost[]>([])
+  const [feedLoading, setFeedLoading] = useState(false)
 
   useEffect(() => {
     try {
@@ -146,6 +194,41 @@ export default function GroupDetailsPage() {
     }
 
     fetchGroup()
+  }, [groupId])
+
+  useEffect(() => {
+    if (!groupId) return
+
+    const fetchGroupFeed = async () => {
+      try {
+        setFeedLoading(true)
+        const res = await apiClient.getGroupFeed(groupId, 1, 20)
+        const items = Array.isArray(res.data?.data)
+          ? res.data.data
+          : Array.isArray(res.data)
+          ? res.data
+          : []
+
+        const mapped = items.map(mapGroupFeedPost)
+        setGroupFeed(mapped)
+        setGroup((prev) =>
+          prev
+            ? {
+                ...prev,
+                posts: res.data?.pagination?.total ?? mapped.length,
+                recentPosts: mapped,
+              }
+            : prev
+        )
+      } catch (err) {
+        console.error('Group feed fetch error', err)
+        setGroupFeed([])
+      } finally {
+        setFeedLoading(false)
+      }
+    }
+
+    fetchGroupFeed()
   }, [groupId])
 
   if (loading) {
@@ -196,11 +279,21 @@ export default function GroupDetailsPage() {
 
       setPostContent('')
       setPostNotice('Post created successfully.')
+
+      const feedRes = await apiClient.getGroupFeed(group.id, 1, 20)
+      const items = Array.isArray(feedRes.data?.data)
+        ? feedRes.data.data
+        : Array.isArray(feedRes.data)
+        ? feedRes.data
+        : []
+      const mapped = items.map(mapGroupFeedPost)
+      setGroupFeed(mapped)
       setGroup((prev) =>
         prev
           ? {
               ...prev,
-              posts: (prev.posts || 0) + 1,
+              posts: feedRes.data?.pagination?.total ?? mapped.length,
+              recentPosts: mapped,
             }
           : prev
       )
@@ -300,9 +393,213 @@ export default function GroupDetailsPage() {
     )
   }
 
+  const renderCreatePostSection = () => (
+    <div
+      className="bg-white rounded-2xl shadow-sm border p-4 sm:p-6"
+      style={{ border: '1px solid #E8E8E8' }}
+    >
+      <h2 className="text-xl font-bold mb-3" style={{ color: '#212529' }}>
+        Create Post
+      </h2>
+      <p className="text-sm mb-4" style={{ color: '#5F6368' }}>
+        You can only publish NORMAL posts inside groups.
+      </p>
+
+      <textarea
+        value={postContent}
+        onChange={(e) => setPostContent(e.target.value)}
+        placeholder={isJoined ? 'Share something with this group...' : 'Join the group to create a post'}
+        disabled={!isJoined || posting}
+        className="w-full min-h-[120px] p-4 rounded-xl resize-none bg-gray-50 border"
+      />
+
+      <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <span className="text-xs" style={{ color: '#5F6368' }}>
+          Post type: NORMAL
+        </span>
+        <button
+          onClick={handleCreateGroupPost}
+          disabled={!isJoined || posting || !postContent.trim()}
+          className="w-full sm:w-auto px-5 py-2 rounded-lg font-medium border transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{
+            borderColor: '#212529',
+            color: '#212529',
+            backgroundColor: 'transparent',
+          }}
+          onMouseEnter={(e) => {
+            if (!e.currentTarget.disabled) {
+              e.currentTarget.style.backgroundColor = '#212529'
+              e.currentTarget.style.color = '#FFFFFF'
+            }
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent'
+            e.currentTarget.style.color = '#212529'
+          }}
+        >
+          {posting ? 'Posting...' : 'Create Post'}
+        </button>
+      </div>
+
+      {postNotice && (
+        <p className="text-sm mt-3" style={{ color: postNotice.startsWith('Failed') ? '#DC2626' : '#16A34A' }}>
+          {postNotice}
+        </p>
+      )}
+    </div>
+  )
+
+  const renderFeedSection = () => (
+    <div
+      className="bg-white rounded-2xl shadow-sm border p-4 sm:p-6"
+      style={{ border: '1px solid #E8E8E8' }}
+    >
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <h2 className="text-xl font-bold" style={{ color: '#212529' }}>
+          Group Feed
+        </h2>
+        <span className="text-sm" style={{ color: '#5F6368' }}>
+          {group.posts} posts
+        </span>
+      </div>
+
+      {feedLoading ? (
+        <p className="text-sm" style={{ color: '#5F6368' }}>Loading feed...</p>
+      ) : groupFeed.length === 0 ? (
+        <div className="rounded-xl border p-6 text-center" style={{ borderColor: '#E8E8E8', backgroundColor: '#F8F9FA', color: '#5F6368' }}>
+          No posts in this group yet.
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {groupFeed.map((post) => (
+            <div key={post.id} className="rounded-xl border p-4" style={{ borderColor: '#E8E8E8', backgroundColor: '#FFFFFF' }}>
+              <div className="flex items-center gap-3 mb-3">
+                <img
+                  src={post.author.avatar}
+                  alt={post.author.name}
+                  className="w-10 h-10 rounded-full object-cover"
+                />
+                <div className="min-w-0">
+                  <p className="font-semibold truncate" style={{ color: '#212529' }}>
+                    {post.author.name}
+                  </p>
+                  <p className="text-xs" style={{ color: '#5F6368' }}>
+                    {post.author.title} • {post.timestamp}
+                  </p>
+                </div>
+              </div>
+
+              <p className="mb-4 whitespace-pre-wrap break-words" style={{ color: '#5F6368' }}>
+                {post.content}
+              </p>
+
+              {post.image && (
+                <img src={post.image} alt="Group post" className="w-full rounded-xl object-cover max-h-[420px] mb-4" />
+              )}
+
+              {post.video && (
+                <video src={post.video} controls className="w-full rounded-xl max-h-[420px] mb-4" />
+              )}
+
+              <div className="flex items-center gap-5 text-sm" style={{ color: '#5F6368' }}>
+                <span className="inline-flex items-center gap-1">
+                  <ThumbsUp className="w-4 h-4" /> {post.likes}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <MessageCircle className="w-4 h-4" /> {post.comments}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+
+  const renderAboutColumn = () => (
+    <div className="space-y-6">
+      <div
+        className="bg-white rounded-2xl shadow-sm border p-6 sm:p-8"
+        style={{ border: '1px solid #E8E8E8' }}
+      >
+        <h2 className="text-2xl font-bold mb-4" style={{ color: '#212529' }}>
+          About
+        </h2>
+        <p style={{ color: '#5F6368', lineHeight: '1.8' }}>
+          {group.about}
+        </p>
+      </div>
+
+      {group.membersList.length > 0 && (
+        <div
+          className="bg-white rounded-2xl shadow-sm border p-6 sm:p-8"
+          style={{ border: '1px solid #E8E8E8' }}
+        >
+          <h2 className="text-2xl font-bold mb-4" style={{ color: '#212529' }}>
+            Members
+          </h2>
+          <div className="grid grid-cols-1 gap-4">
+            {group.membersList.map((member) => (
+              <div key={member.id} className="flex items-center gap-3 p-4 rounded-lg" style={{ backgroundColor: '#F8F9FA' }}>
+                <img
+                  src={member.avatar}
+                  alt={member.name}
+                  className="w-12 h-12 rounded-full object-cover"
+                />
+                <div className="min-w-0">
+                  <p className="font-medium truncate" style={{ color: '#212529' }}>
+                    {member.name}
+                  </p>
+                  <p className="text-sm" style={{ color: '#5F6368' }}>
+                    {member.title}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div
+        className="bg-white rounded-2xl shadow-sm border p-4 sm:p-6 flex flex-col gap-3"
+        style={{ border: '1px solid #E8E8E8' }}
+      >
+        <button
+          onClick={handleOpenGroupMessage}
+          disabled={openingChat}
+          className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg w-full disabled:opacity-60"
+          style={{ backgroundColor: '#F8F9FA', color: '#212529' }}
+        >
+          <MessageCircle className="w-5 h-5" />
+          {openingChat ? 'Opening...' : 'Message'}
+        </button>
+        <button
+          onClick={() => setShowShareModal(true)}
+          className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg w-full"
+          style={{ backgroundColor: '#F8F9FA', color: '#212529' }}
+        >
+          <Share2 className="w-5 h-5" />
+          Share
+        </button>
+        {group.type === 'private' && isGroupOwner && (
+          <button
+            onClick={handleOpenRequestsModal}
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg w-full transition-colors"
+            style={{ backgroundColor: '#212529', color: '#FFFFFF' }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#3D3D3D')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#212529')}
+          >
+            <ClipboardList className="w-5 h-5" />
+            Manage Requests
+          </button>
+        )}
+      </div>
+    </div>
+  )
+
   return (
-    <div className="p-6 overflow-y-auto" style={{ backgroundColor: '#F8F9FA', minHeight: '100vh' }}>
-      <div className="max-w-4xl mx-auto">
+    <div className="p-3 sm:p-6 overflow-y-auto" style={{ backgroundColor: '#F8F9FA', minHeight: '100vh' }}>
+      <div className="max-w-6xl mx-auto">
         {/* Back Button */}
         {/* <button
           onClick={() => router.back()}
@@ -321,14 +618,14 @@ export default function GroupDetailsPage() {
           style={{ border: '1px solid #E8E8E8' }}
         >
           {/* Hero Image */}
-          <img src={group.image} alt={group.name} className="w-full h-72 object-cover" />
+          <img src={group.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(group.name || 'Group')}`} alt={group.name} className="w-full h-72 object-cover" />
 
           {/* Group Info */}
-          <div className="p-8">
+          <div className="p-4 sm:p-8">
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <h1 className="text-3xl font-bold" style={{ color: '#212529' }}>
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: '#212529' }}>
                     {group.name}
                   </h1>
                   <span className="px-3 py-1 text-sm font-medium rounded-full" style={{ backgroundColor: '#F8F9FA', color: '#5F6368' }}>
@@ -406,186 +703,42 @@ export default function GroupDetailsPage() {
                 </p>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Create Group Post */}
-        <div
-          className="bg-white rounded-2xl shadow-sm border p-6 mb-8"
-          style={{ border: '1px solid #E8E8E8' }}
-        >
-          <h2 className="text-xl font-bold mb-3" style={{ color: '#212529' }}>
-            Create Post
-          </h2>
-          <p className="text-sm mb-4" style={{ color: '#5F6368' }}>
-            You can only publish NORMAL posts inside groups.
-          </p>
-
-          <textarea
-            value={postContent}
-            onChange={(e) => setPostContent(e.target.value)}
-            placeholder={isJoined ? 'Share something with this group...' : 'Join the group to create a post'}
-            disabled={!isJoined || posting}
-            className="w-full min-h-[120px] p-4 rounded-xl resize-none bg-gray-50 border"
-          />
-
-          <div className="mt-4 flex items-center justify-between gap-3">
-            <span className="text-xs" style={{ color: '#5F6368' }}>
-              Post type: NORMAL
-            </span>
-            <button
-              onClick={handleCreateGroupPost}
-              disabled={!isJoined || posting || !postContent.trim()}
-              className="px-5 py-2 rounded-lg font-medium border transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{
-                borderColor: '#212529',
-                color: '#212529',
-                backgroundColor: 'transparent',
-              }}
-              onMouseEnter={(e) => {
-                if (!e.currentTarget.disabled) {
-                  e.currentTarget.style.backgroundColor = '#212529'
-                  e.currentTarget.style.color = '#FFFFFF'
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent'
-                e.currentTarget.style.color = '#212529'
-              }}
-            >
-              {posting ? 'Posting...' : 'Create Post'}
-            </button>
-          </div>
-
-          {postNotice && (
-            <p className="text-sm mt-3" style={{ color: postNotice.startsWith('Failed') ? '#DC2626' : '#16A34A' }}>
-              {postNotice}
-            </p>
-          )}
-        </div>
-
-        {/* About Section */}
-        <div
-          className="bg-white rounded-2xl shadow-sm border p-8 mb-8"
-          style={{ border: '1px solid #E8E8E8' }}
-        >
-          <h2 className="text-2xl font-bold mb-4" style={{ color: '#212529' }}>
-            About
-          </h2>
-          <p style={{ color: '#5F6368', lineHeight: '1.8' }}>
-            {group.about}
-          </p>
-        </div>
-
-        {/* Members Section */}
-        {group.membersList.length > 0 && (
-          <div
-            className="bg-white rounded-2xl shadow-sm border p-8 mb-8"
-            style={{ border: '1px solid #E8E8E8' }}
-          >
-            <h2 className="text-2xl font-bold mb-4" style={{ color: '#212529' }}>
-              Members
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {group.membersList.map((member) => (
-                <div key={member.id} className="flex items-center gap-3 p-4 rounded-lg" style={{ backgroundColor: '#F8F9FA' }}>
-                  <img
-                    src={member.avatar}
-                    alt={member.name}
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
-                  <div>
-                    <p className="font-medium" style={{ color: '#212529' }}>
-                      {member.name}
-                    </p>
-                    <p className="text-sm" style={{ color: '#5F6368' }}>
-                      {member.title}
-                    </p>
-                  </div>
-                </div>
-              ))}
+            <div className="mt-6 lg:hidden">
+              <div className="bg-[#F8F9FA] rounded-2xl p-2 flex gap-2 border" style={{ borderColor: '#E8E8E8' }}>
+                <button
+                  onClick={() => setFeedTab('feed')}
+                  className={`flex-1 rounded-xl px-4 py-3 font-medium text-sm transition ${feedTab === 'feed' ? 'bg-black text-white' : 'text-gray-500'}`}
+                >
+                  Feed
+                </button>
+                <button
+                  onClick={() => setFeedTab('about')}
+                  className={`flex-1 rounded-xl px-4 py-3 font-medium text-sm transition ${feedTab === 'about' ? 'bg-black text-white' : 'text-gray-500'}`}
+                >
+                  About
+                </button>
+              </div>
             </div>
           </div>
-        )}
+        </div>
 
-        {/* Recent Posts Section */}
-        {group.recentPosts.length > 0 && (
-          <div
-            className="bg-white rounded-2xl shadow-sm border p-8 mb-8"
-            style={{ border: '1px solid #E8E8E8' }}
-          >
-            <h2 className="text-2xl font-bold mb-6" style={{ color: '#212529' }}>
-              Recent Posts
-            </h2>
-            <div className="space-y-6">
-              {group.recentPosts.map((post) => (
-                <div key={post.id} className="pb-6 border-b" style={{ borderColor: '#E8E8E8' }}>
-                  <div className="flex items-center gap-3 mb-3">
-                    <img
-                      src={post.author.avatar}
-                      alt={post.author.name}
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                    <div>
-                      <p className="font-medium" style={{ color: '#212529' }}>
-                        {post.author.name}
-                      </p>
-                      <p className="text-xs" style={{ color: '#5F6368' }}>
-                        {post.timestamp}
-                      </p>
-                    </div>
-                  </div>
-                  <p className="mb-4" style={{ color: '#5F6368' }}>
-                    {post.content}
-                  </p>
-                  <div className="flex items-center gap-6" style={{ color: '#5F6368' }}>
-                    <button className="flex items-center gap-1 text-sm hover:text-blue-600 transition-colors">
-                      <ThumbsUp className="inline w-4 h-4" /> {post.likes}
-                    </button>
-                    <button className="flex items-center gap-1 text-sm hover:text-blue-600 transition-colors">
-                      <MessageCircle className="w-4 h-4" />
-                      {post.comments}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+        <div className="hidden lg:grid lg:grid-cols-[minmax(0,1.6fr)_minmax(320px,1fr)] gap-8 items-start">
+          <div className="space-y-6">
+            {renderCreatePostSection()}
+            {renderFeedSection()}
           </div>
-        )}
+          {renderAboutColumn()}
+        </div>
 
-        {/* Action Buttons */}
-        <div
-          className="bg-white rounded-2xl shadow-sm border p-6 flex gap-3"
-          style={{ border: '1px solid #E8E8E8' }}
-        >
-          <button
-            onClick={handleOpenGroupMessage}
-            disabled={openingChat}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg flex-1 disabled:opacity-60"
-            style={{ backgroundColor: '#F8F9FA', color: '#212529' }}
-          >
-            <MessageCircle className="w-5 h-5" />
-            {openingChat ? 'Opening...' : 'Message'}
-          </button>
-          <button
-            onClick={() => setShowShareModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg flex-1"
-            style={{ backgroundColor: '#F8F9FA', color: '#212529' }}
-          >
-            <Share2 className="w-5 h-5" />
-            Share
-          </button>
-          {group.type === 'private' && isGroupOwner && (
-            <button
-              onClick={handleOpenRequestsModal}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg flex-1 transition-colors"
-              style={{ backgroundColor: '#212529', color: '#FFFFFF' }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#3D3D3D')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#212529')}
-            >
-              <ClipboardList className="w-5 h-5" />
-              Manage Requests
-            </button>
+        <div className="space-y-6 lg:hidden">
+          {feedTab === 'feed' ? (
+            <>
+              {renderCreatePostSection()}
+              {renderFeedSection()}
+            </>
+          ) : (
+            renderAboutColumn()
           )}
         </div>
       </div>

@@ -321,6 +321,17 @@ class ApiClient {
     })
   }
 
+  // Update blog (ADMIN_BLOG only on backend)
+  updateBlog(id: string, data: FormData | Record<string, unknown>) {
+    if (data instanceof FormData) {
+      return this.client.patch(`/blogs/${id}`, data, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+    }
+
+    return this.client.patch(`/blogs/${id}`, data)
+  }
+
   // Delete blog
   deleteBlog(id: string) {
     return this.client.delete(`/blogs/${id}`)

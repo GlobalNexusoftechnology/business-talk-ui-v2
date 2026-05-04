@@ -58,7 +58,7 @@ export default function GroupsPage() {
           id: g.id,
           name: g.name,
           description: g.description,
-          image: g.cover_image || '/placeholder.jpg',
+          image: g.cover_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(g.name || 'Group')}`,
           members: g.memberCount || 0,
           posts: 0,
           type: g.visibility === 'PRIVATE' ? 'private' : 'public',
@@ -199,7 +199,7 @@ export default function GroupsPage() {
   })()
 
   return (
-    <div className="p-6 overflow-y-auto" style={{ backgroundColor: '#F8F9FA' }}>
+    <div className="p-3 sm:p-6 overflow-y-auto overflow-x-hidden" style={{ backgroundColor: '#F8F9FA' }}>
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="mb-6">
@@ -210,12 +210,12 @@ export default function GroupsPage() {
         </div>
 
         {/* Tabs & Search */}
-        <div className="bg-white rounded-2xl shadow-sm border p-6 mb-6" style={{ border: '1px solid #E8E8E8' }}>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex gap-2">
+        <div className="bg-white rounded-2xl shadow-sm border p-4 sm:p-6 mb-6" style={{ border: '1px solid #E8E8E8' }}>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <div className="flex gap-2 min-w-0">
               <button
                 onClick={() => setActiveTab('all')}
-                className="px-4 py-2 rounded-lg font-medium transition-all"
+                className="flex-1 min-w-0 px-2 sm:px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-all"
                 style={{
                   backgroundColor: activeTab === 'all' ? '#212529' : '#F8F9FA',
                   color: activeTab === 'all' ? '#FFFFFF' : '#5F6368',
@@ -231,11 +231,11 @@ export default function GroupsPage() {
                   }
                 }}
               >
-                Discover Groups
+                <span className="block truncate">Discover Groups</span>
               </button>
               <button
                 onClick={() => setActiveTab('my-groups')}
-                className="px-4 py-2 rounded-lg font-medium transition-all"
+                className="flex-1 min-w-0 px-2 sm:px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-all"
                 style={{
                   backgroundColor: activeTab === 'my-groups' ? '#212529' : '#F8F9FA',
                   color: activeTab === 'my-groups' ? '#FFFFFF' : '#5F6368',
@@ -251,11 +251,11 @@ export default function GroupsPage() {
                   }
                 }}
               >
-                My Groups
+                <span className="block truncate">My Groups</span>
               </button>
               <button
                 onClick={() => setActiveTab('requested')}
-                className="px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-1.5"
+                className="flex-1 min-w-0 px-2 sm:px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base transition-all flex items-center justify-center gap-1"
                 style={{
                   backgroundColor: activeTab === 'requested' ? '#212529' : '#F8F9FA',
                   color: activeTab === 'requested' ? '#FFFFFF' : '#5F6368',
@@ -271,10 +271,10 @@ export default function GroupsPage() {
                   }
                 }}
               >
-                Requested
+                <span className="truncate">Requested</span>
                 {requestedGroups.length > 0 && (
                   <span
-                    className="text-xs font-semibold rounded-full px-1.5 py-0.5 leading-none"
+                    className="text-[10px] font-semibold rounded-full px-1.5 py-0.5 leading-none shrink-0"
                     style={{
                       backgroundColor: activeTab === 'requested' ? 'rgba(255,255,255,0.25)' : '#E8E8E8',
                       color: activeTab === 'requested' ? '#FFFFFF' : '#5F6368',
@@ -287,7 +287,7 @@ export default function GroupsPage() {
             </div>
             <button
               onClick={() => setShowCreateModal(true)} 
-              className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-all"
               style={{ backgroundColor: '#212529', color: '#FFFFFF' }}
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#3D3D3D')}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#212529')}
@@ -316,7 +316,7 @@ export default function GroupsPage() {
         </div>
 
         {/* Groups Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {filteredGroups.map((group) => (
             <div
               key={group.id}
@@ -394,8 +394,8 @@ export default function GroupsPage() {
         </div>
 
         {showCreateModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white w-full max-w-lg rounded-2xl p-6 shadow-xl">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-3">
+          <div className="bg-white w-full max-w-lg rounded-2xl p-4 sm:p-6 shadow-xl max-h-[90vh] overflow-y-auto">
 
             {/* HEADER */}
             <div className="flex justify-between items-center mb-4">

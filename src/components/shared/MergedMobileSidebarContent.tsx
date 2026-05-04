@@ -19,8 +19,6 @@ interface Props {
   onFollow: (id: string) => void
   onSeeAllPeople: () => void
   onSeeAllGroups: () => void
-  onTrendingClick: (q: any) => void
-  onStoryClick: (s: any) => void
 }
 
 export const MergedMobileSidebarContent = ({
@@ -33,12 +31,74 @@ export const MergedMobileSidebarContent = ({
   onFollow,
   // onSeeAllPeople,
   // onSeeAllGroups,
-  onTrendingClick,
-  onStoryClick,
 }: Props) => {
   const pathname = usePathname()
   const { dispatch } = useAuth()
   const router = useRouter()
+
+  const resolveEntityId = (item: any) => {
+    return (
+      item?.id ||
+      item?._id ||
+      item?.question_id ||
+      item?.post_id ||
+      item?.postId ||
+      item?.story_id ||
+      item?.storyId ||
+      item?.group_id ||
+      item?.groupId ||
+      item?.blog_id ||
+      item?.entity_id ||
+      item?.blog?.id ||
+      item?.post?.id ||
+      item?.question?.id ||
+      item?.story?.id ||
+      item?.group?.id ||
+      ''
+    )
+  }
+
+  const normalizeTrendingItem = (item: any) => {
+    const source = item?.post || item?.blog || item
+    return {
+      ...source,
+      ...item,
+      id: resolveEntityId(item) || resolveEntityId(source),
+    }
+  }
+
+  const normalizeGroupItem = (item: any) => {
+    const source = item?.group || item
+    const id = resolveEntityId(item) || resolveEntityId(source)
+    return {
+      ...source,
+      id,
+      image: source?.image || source?.cover_image || '/placeholder.jpg',
+      memberAvatars: source?.memberAvatars || [],
+      members:
+        source?.members ||
+        String(source?.memberCount || source?.members_count || 0),
+      category: source?.category || 'General',
+    }
+  }
+
+  const handleTrendingQuestionClick = (question: any) => {
+    const id = resolveEntityId(question)
+    if (!id) return
+    router.push(`/questions/${id}`)
+  }
+
+  const handleTrendingStoryClick = (story: any) => {
+    const id = resolveEntityId(story)
+    if (!id) return
+    router.push(`/stories/${id}`)
+  }
+
+  const handleGroupCardClick = (group: any) => {
+    const id = resolveEntityId(group)
+    if (!id) return
+    router.push(`/groups/${id}`)
+  }
 
   const handleLogout = async () => {
     await dispatch(logout())   // wait for logout to complete
@@ -91,14 +151,17 @@ export const MergedMobileSidebarContent = ({
               <div>
                 <h3 className="font-semibold mb-2 text-sm">Trending Questions</h3>
                 <div className="space-y-2">
-                  {questions.map((q) => (
+                  {questions.map((q, idx) => {
+                    const normalizedQuestion = normalizeTrendingItem(q)
+                    return (
                     <TrendingItem
-                      key={q.id}
-                      item={q}
+                      key={normalizedQuestion.id || `question-${idx}`}
+                      item={normalizedQuestion}
                       type="questions"
-                      onClick={onTrendingClick}
+                      onClick={handleTrendingQuestionClick}
                     />
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
 
@@ -106,14 +169,17 @@ export const MergedMobileSidebarContent = ({
               <div>
                 <h3 className="font-semibold mb-2 text-sm">Stories</h3>
                 <div className="space-y-2">
-                  {stories.map((s) => (
+                  {stories.map((s, idx) => {
+                    const normalizedStory = normalizeTrendingItem(s)
+                    return (
                     <TrendingItem
-                      key={s.id}
-                      item={s}
+                      key={normalizedStory.id || `story-${idx}`}
+                      item={normalizedStory}
                       type="stories"
-                      onClick={onStoryClick}
+                      onClick={handleTrendingStoryClick}
                     />
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
 
@@ -137,15 +203,18 @@ export const MergedMobileSidebarContent = ({
             <div>
               <h3 className="font-semibold mb-2 text-sm">Groups</h3>
               <div className="space-y-3">
-                {groups.slice(0, 5).map((group) => (
+                {groups.slice(0, 5).map((group, idx) => {
+                  const normalizedGroup = normalizeGroupItem(group)
+                  return (
                   <GroupCard
-                    key={group.id}
-                    group={group}
-                    onClick={() => router.push(`/groups/${group.id}`)}
+                    key={normalizedGroup.id || `group-${idx}`}
+                    group={normalizedGroup}
+                    onClick={handleGroupCardClick}
                     joinState="join"
-                    onJoinClick={() => {}}
+                    onJoinClick={handleGroupCardClick}
                   />
-                ))}
+                  )
+                })}
               </div>
             </div>
             </>

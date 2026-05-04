@@ -5,10 +5,10 @@ import { RightSidebar } from '@/components/user/RightSidebar'
 
 export default function DashboardPage() {
   return (
-    <div className="flex min-h-screen gap-0 lg:gap-6 overflow-x-hidden" style={{ backgroundColor: '#F8F9FA' }}>
+    <div className="flex min-h-screen w-full gap-0 lg:gap-6 overflow-x-hidden" style={{ backgroundColor: '#F8F9FA' }}>
       
       {/* MAIN FEED */}
-      <div className="flex-1 p-0 sm:p-6">
+      <div className="flex-1 min-w-0 p-0 sm:p-6">
         <MainFeed />
       </div>
 

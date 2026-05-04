@@ -137,7 +137,7 @@ export default function MainFeed() {
 
   // ── Render ─────────────────────────────────────────────────────────
   return (
-    <main className="flex-1 p-3 sm:p-6 overflow-y-auto overflow-x-hidden bg-[#F8F9FA]">
+    <main className="flex-1 min-w-0 p-3 sm:p-6 overflow-y-auto overflow-x-hidden bg-[#F8F9FA]">
       <div className="max-w-3xl mx-auto">
 
         {/* 🔍 Search Bar */}
@@ -483,32 +483,32 @@ export default function MainFeed() {
             <div className="bg-white rounded-2xl shadow-sm p-2 mb-6 flex gap-2 border border-gray-200">
               <button
                 onClick={() => setActiveTab('home')}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium ${
+                className={`flex-1 min-w-0 flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2.5 sm:py-3 rounded-xl font-medium text-sm sm:text-base whitespace-nowrap ${
                   activeTab === 'home' ? 'bg-black text-white' : 'text-gray-500'
                 }`}
               >
-                <Home className="w-5 h-5" />
-                Home Feed
+                <Home className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                <span className="truncate">Home Feed</span>
               </button>
 
               <button
                 onClick={() => setActiveTab('qa')}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium ${
+                className={`flex-1 min-w-0 flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2.5 sm:py-3 rounded-xl font-medium text-sm sm:text-base whitespace-nowrap ${
                   activeTab === 'qa' ? 'bg-black text-white' : 'text-gray-500'
                 }`}
               >
-                <HelpCircle className="w-5 h-5" />
-                Q&A
+                <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                <span className="truncate">Q&A</span>
               </button>
 
               <button
                 onClick={() => setActiveTab('stories')}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium ${
+                className={`flex-1 min-w-0 flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2.5 sm:py-3 rounded-xl font-medium text-sm sm:text-base whitespace-nowrap ${
                   activeTab === 'stories' ? 'bg-black text-white' : 'text-gray-500'
                 }`}
               >
-                <ImageIcon className="w-5 h-5" />
-                Stories
+                <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                <span className="truncate">Stories</span>
               </button>
             </div>
 

@@ -12,6 +12,7 @@ import {
   Ban,
   Trash2,
   Tag,
+  Pencil,
 } from 'lucide-react'
 import apiClient from '@/lib/api-client'
 
@@ -31,6 +32,7 @@ export interface AdminContentCardProps {
   onWarn: (userId: string) => void
   onBan: (userId: string) => void
   onDelete: (id: string) => void
+  onEdit?: (id: string) => void
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -114,6 +116,7 @@ export function AdminContentCard({
   onWarn,
   onBan,
   onDelete,
+  onEdit,
 }: AdminContentCardProps) {
   const [showComments, setShowComments] = useState(false)
   const [comments, setComments] = useState<any[]>([])
@@ -320,6 +323,25 @@ export function AdminContentCard({
 
         {/* ── Right: admin action buttons ── */}
         <div className="flex sm:flex-col gap-2 shrink-0 pt-1">
+          {onEdit && (
+            <button
+              onClick={() => onEdit(id)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg transition-colors"
+              style={{
+                border: '1px solid #BFDBFE',
+                color: '#1E40AF',
+                backgroundColor: '#EFF6FF',
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = '#DBEAFE')
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = '#EFF6FF')
+              }
+            >
+              <Pencil className="w-3.5 h-3.5" /> Edit
+            </button>
+          )}
           <button
             onClick={() => author.id && onWarn(author.id)}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg transition-colors"

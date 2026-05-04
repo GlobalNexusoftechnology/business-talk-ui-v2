@@ -145,6 +145,29 @@ export function GroupCard({
   joinState: 'join' | 'requested' | 'joined'
   onJoinClick: (group: any) => void
 }) {
+  const getMembersLabel = (members: unknown) => {
+    if (typeof members === 'number') {
+      if (members >= 1000) {
+        const value = Math.floor(members / 100) / 10
+        return `${value}k`
+      }
+      return `${members}`
+    }
+
+    if (typeof members === 'string') {
+      const trimmed = members.trim()
+      if (!trimmed) return '0'
+      if (trimmed.toLowerCase().includes('k')) {
+        return `${trimmed.split(/k/i)[0]}k`
+      }
+      return trimmed
+    }
+
+    return '0'
+  }
+
+  const membersLabel = getMembersLabel(group?.members)
+
   return (
     <div
       className="rounded-xl overflow-hidden transition-all hover:shadow-md fade-in-card cursor-pointer"
@@ -165,7 +188,7 @@ export function GroupCard({
         </div>
       </div>
       {/* Group Content */}
-      <div className="p-4" onClick={e => e.stopPropagation()}>
+      <div className="p-4">
         <h3 className="font-semibold text-sm mb-2" style={{ color: '#212529' }}>
           {group.name}
         </h3>
@@ -187,7 +210,7 @@ export function GroupCard({
                 ))}
               </div>
               <span className="ml-2 text-xs font-medium" style={{ color: '#5F6368' }}>
-                +{group.members?.split('k')[0]}k
+                +{membersLabel}
               </span>
             </div>
           </div>

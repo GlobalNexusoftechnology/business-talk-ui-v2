@@ -21,8 +21,8 @@ export const NotificationList: React.FC<NotificationListProps> = ({ notification
 
   if (!notifications.length) {
     return (
-      <div className="bg-white dark:bg-black rounded-2xl shadow-sm border p-12 text-center border-neutral-800">
-        <p className="text-neutral-500 dark:text-neutral-400">
+      <div className="bg-white rounded-2xl shadow-sm border p-12 text-center border-neutral-800">
+        <p className="text-neutral-500">
           No notifications
         </p>
       </div>

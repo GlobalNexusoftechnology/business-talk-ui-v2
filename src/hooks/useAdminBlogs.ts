@@ -35,3 +35,17 @@ export function useDeleteBlog() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-blogs'] }),
   })
 }
+
+export function useUpdateBlog() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: string
+      payload: FormData | Record<string, unknown>
+    }) => apiClient.updateBlog(id, payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-blogs'] }),
+  })
+}
