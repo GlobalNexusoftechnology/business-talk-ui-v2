@@ -9,8 +9,14 @@
       sans-serif;
   }
 
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   body {
     @apply bg-white text-secondary-900 antialiased;
+    overflow-x: hidden;
   }
 
   input,

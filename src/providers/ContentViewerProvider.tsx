@@ -24,7 +24,7 @@
 import { ReactNode, createContext, useContext, useState, useCallback } from 'react'
 import { UniversalContentViewer } from '@/components/shared/UniversalContentViewer'
 
-export type ContentType = 'post' | 'blog' | 'question' | 'story'
+export type ContentType = 'posts' | 'blogs' | 'questions' | 'stories'
 
 export interface ContentData {
   id: string

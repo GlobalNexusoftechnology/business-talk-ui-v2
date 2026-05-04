@@ -65,8 +65,8 @@ export function FeedPostWithViewer({
       comments,
       sends
     }
-    openViewer('post', postData)
-    onViewerOpen?.('post')
+    openViewer('posts', postData)
+    onViewerOpen?.('posts')
   }
 
   // Close menus when clicking outside

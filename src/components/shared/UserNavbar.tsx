@@ -17,6 +17,7 @@ export const UserNavbar = ({ onMenuClick, children }: UserNavbarProps) => {
   const { unreadCount } = useNotifications()
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [avatarLoadFailed, setAvatarLoadFailed] = useState(false)
 
   // ✅ Fix hydration mismatch
   const [mounted, setMounted] = useState(false)
@@ -24,6 +25,25 @@ export const UserNavbar = ({ onMenuClick, children }: UserNavbarProps) => {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    setAvatarLoadFailed(false)
+  }, [user?.id])
+
+  const getInitials = (value?: string) => {
+    const normalized = (value || '').trim()
+    if (!normalized) return 'U'
+
+    const parts = normalized.split(/\s+/).filter(Boolean)
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+    }
+
+    return normalized.slice(0, 2).toUpperCase()
+  }
+
+  const profilePhoto = (user as any)?.profile_photo || user?.avatar
+  const initials = getInitials((user as any)?.full_name || user?.username || user?.name)
 
   const handleMenuClick = () => {
     setIsSidebarOpen((open) => !open)
@@ -83,11 +103,18 @@ export const UserNavbar = ({ onMenuClick, children }: UserNavbarProps) => {
             {/* ✅ Avatar (hydration safe) */}
             {mounted && isAuthenticated && user && (
               <Link href="/profile">
-                <div className="h-9 w-9 rounded-full bg-[#212529] text-white flex items-center justify-center text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity">
-                  {user.name?.charAt(0) ||
-                    user.username?.charAt(0) ||
-                    'U'}
-                </div>
+                {profilePhoto && !avatarLoadFailed ? (
+                  <img
+                    src={profilePhoto}
+                    alt={(user as any)?.full_name || user?.username || user?.name || 'User'}
+                    className="h-9 w-9 rounded-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                    onError={() => setAvatarLoadFailed(true)}
+                  />
+                ) : (
+                  <div className="h-9 w-9 rounded-full bg-[#212529] text-white flex items-center justify-center text-sm font-medium cursor-pointer hover:opacity-90 transition-opacity">
+                    {initials}
+                  </div>
+                )}
               </Link>
             )}
           </div>

@@ -72,13 +72,13 @@ export function UniversalContentViewer({
     if (!type || !data) return null
 
     switch (type) {
-      case 'post':
+      case 'posts':
         return <PostViewCard data={data} />
-      case 'blog':
+      case 'blogs':
         return <BlogViewCard data={data} />
-      case 'question':
+      case 'questions':
         return <QuestionViewCard data={data} />
-      case 'story':
+      case 'stories':
         // Cast data to the expected type for StoryViewCard
         return <StoryViewCard data={data as Parameters<typeof StoryViewCard>[0]['data']} />
       default:

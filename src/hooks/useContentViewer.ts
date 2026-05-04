@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 
-export type ContentType = 'post' | 'blog' | 'question' | 'story'
+export type ContentType = 'posts' | 'blogs' | 'questions' | 'stories'
 
 export interface ContentData {
   id: string

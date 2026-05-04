@@ -137,7 +137,7 @@ export default function MainFeed() {
 
   // ── Render ─────────────────────────────────────────────────────────
   return (
-    <main className="flex-1 p-3 sm:p-6 overflow-y-auto bg-[#F8F9FA]">
+    <main className="flex-1 p-3 sm:p-6 overflow-y-auto overflow-x-hidden bg-[#F8F9FA]">
       <div className="max-w-3xl mx-auto">
 
         {/* 🔍 Search Bar */}

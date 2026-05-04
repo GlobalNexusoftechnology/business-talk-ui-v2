@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import '@/app/globals.css'
 import { Providers } from '@/app/providers'
 
@@ -27,6 +27,12 @@ export const metadata: Metadata = {
       },
     ],
   },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 }
 
 // function syncAccessTokenCookieToLocalStorage() {

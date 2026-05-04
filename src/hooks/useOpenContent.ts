@@ -14,19 +14,19 @@ export function useOpenContent(): UseOpenContentReturn {
   const { open } = useContentViewerContext()
 
   const openPost = useCallback((data: any) => {
-    open('post', data)
+    open('posts', data)
   }, [open])
 
   const openBlog = useCallback((data: any) => {
-    open('blog', data)
+    open('blogs', data)
   }, [open])
 
   const openQuestion = useCallback((data: any) => {
-    open('question', data)
+    open('questions', data)
   }, [open])
 
   const openStory = useCallback((data: any) => {
-    open('story', data)
+    open('stories', data)
   }, [open])
 
   return {

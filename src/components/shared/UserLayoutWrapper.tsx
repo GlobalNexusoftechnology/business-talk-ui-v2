@@ -84,7 +84,7 @@ export const UserLayoutWrapper = ({ children }: UserLayoutWrapperProps) => {
       {/* Sidebar for desktop */}
       <UserSidebar />
       {/* Main Content */}
-      <main className="lg:ml-64 p-1">
+      <main className="lg:ml-64 p-1 pt-16 lg:pt-1">
         <div className="w-full max-w-[1400px] mx-auto">
           {children}
         </div>
