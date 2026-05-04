@@ -105,7 +105,7 @@ const formatGroup = (
   id: g.id,
   name: g.name,
   description: g.description,
-  image: g.cover_image || '/placeholder.jpg',
+  image: g.cover_image || `https://ui-avatars.com/api/name=${encodeURIComponent(g.name || 'Group')}`,
   members: g.memberCount || 0,
   posts: 0,
   type: (g.visibility === 'PRIVATE' ? 'private' : 'public') as 'public' | 'private',
@@ -669,7 +669,7 @@ export default function GroupDetailsPage() {
           style={{ border: '1px solid #E8E8E8' }}
         >
           {/* Hero Image */}
-          <img src={group.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(group.name || 'Group')}`} alt={group.name} className="w-full h-72 object-cover" />
+          <img src={group.image || `https://ui-avatars.com/api/name=${encodeURIComponent(group.name || 'Group')}`} alt={group.name} className="w-full h-72 object-cover" />
 
           {/* Group Info */}
           <div className="p-4 sm:p-8">

@@ -132,8 +132,8 @@ export default function AdminAnalyticsPage() {
                   key={post.id}
                   className="border-b pb-2 flex justify-between"
                 >
-                  <div>
-                    <p className="font-medium">
+                  <div className="w-70">
+                    <p className="font-medium w-100">
                       {post.content?.slice(0, 60) || 'Post'}
                     </p>
                     <p className="text-xs text-secondary-500">
