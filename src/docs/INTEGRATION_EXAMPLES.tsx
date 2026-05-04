@@ -26,7 +26,7 @@ export function CustomContentGallery() {
       comments: 0,
       sends: 0
     }
-    open('post', postData)
+    open('posts', postData)
   }
 
   const handleBlogClick = (blogId: string) => {
@@ -41,7 +41,7 @@ export function CustomContentGallery() {
       views: 100,
       comments: 5
     }
-    open('blog', blogData)
+    open('blogs', blogData)
   }
 
   return (
@@ -63,7 +63,7 @@ export function CustomContentGallery() {
 
       <UniversalContentViewer
         isOpen={isOpen}
-        type={currentData ? 'post' : null}
+        type={currentData ? 'posts' : null}
         data={currentData}
         onClose={close}
       />
