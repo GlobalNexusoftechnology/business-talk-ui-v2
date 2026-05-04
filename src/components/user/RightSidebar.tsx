@@ -47,13 +47,13 @@ export function TrendingItem({
   onClick,
 }: {
   item: any
-  type: 'question' | 'story'
+  type: 'questions' | 'stories'
   onClick: (item: any) => void
 }) {
   const timeAgo = getTimeAgo(item.created_on)
 
   const displayText =
-    type === 'story'
+    type === 'stories'
       ? item.title || item.storyTitle
       : item.content || item.title
 
@@ -65,10 +65,10 @@ export function TrendingItem({
     >
       <p className="text-sm font-semibold text-black line-clamp-2 mb-1">{displayText}</p>
       <p className="text-xs text-gray-500">
-        {type === 'question' && (
+        {type === 'questions' && (
           <>{item.commentsCount || item.comment_count || 0} Answers</>
         )}
-        {type === 'story' && (
+        {type === 'stories' && (
           <>{timeAgo} ago</>
         )}
       </p>
@@ -317,7 +317,7 @@ export function RightSidebar() {
   }, []);
 
   // --- HANDLERS ---
-  const handleTrendingClick = (type: 'question' | 'story') => (item: any) => {
+  const handleTrendingClick = (type: 'questions' | 'stories') => (item: any) => {
     if (isMobile) {
       router.push(`/${type}/${item.id}`);
     } else {
@@ -418,7 +418,7 @@ export function RightSidebar() {
             <h3 className="font-semibold mb-3" style={{ color: '#212529' }}>Questions</h3>
             <div className="space-y-3">
               {questions.map(item => (
-                <TrendingItem key={item.id} item={item} type="question" onClick={handleTrendingClick('question')} />
+                <TrendingItem key={item.id} item={item} type="questions" onClick={handleTrendingClick('questions')} />
               ))}
             </div>
           </div>
@@ -430,7 +430,7 @@ export function RightSidebar() {
           <h2 className="font-semibold mb-4" style={{ color: '#212529' }}>Stories</h2>
           <div className="space-y-3">
             {stories.map(item => (
-              <TrendingItem key={item.id} item={item} type="story" onClick={handleTrendingClick('story')} />
+              <TrendingItem key={item.id} item={item} type="stories" onClick={handleTrendingClick('stories')} />
             ))}
           </div>
         </div>
