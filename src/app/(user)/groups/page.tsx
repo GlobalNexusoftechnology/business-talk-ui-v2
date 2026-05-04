@@ -29,6 +29,7 @@ export default function GroupsPage() {
   const [requestedGroups, setRequestedGroups] = useState<Group[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [noSuggestions, setNoSuggestions] = useState(false)
 
   const [newGroup, setNewGroup] = useState<{
     name: string
@@ -49,12 +50,20 @@ export default function GroupsPage() {
   useEffect(() => {
     const fetchGroups = async () => {
       try {
-        const [allRes, suggestedRes, myRes, requestedRes] = await Promise.all([
+        const [allSettled, suggestedSettled, mySettled, requestedSettled] = await Promise.allSettled([
           apiClient.getGroups(),
           apiClient.getGroupSuggestions(20),
           apiClient.getMyGroups(),
           apiClient.getMyRequestedGroups(),
         ])
+
+        const safeVal = (r: PromiseSettledResult<any>) =>
+          r.status === 'fulfilled' ? r.value : { data: [] }
+
+        const allRes = safeVal(allSettled)
+        const suggestedRes = safeVal(suggestedSettled)
+        const myRes = safeVal(mySettled)
+        const requestedRes = safeVal(requestedSettled)
 
         const formatGroup = (g: any, joined = false, requested = false): Group => ({
           id: g.id,
@@ -91,6 +100,9 @@ export default function GroupsPage() {
           formatGroup(g, false, Boolean(g.hasPendingRequest) || requestedIds.has(g.id))
         )
 
+        const hasSuggestedGroups = suggestedData.length > 0
+        setNoSuggestions(!hasSuggestedGroups)
+
         const discoverMap = new Map<string, Group>()
         suggestedData.forEach((group) => {
           discoverMap.set(group.id, group)
@@ -100,20 +112,19 @@ export default function GroupsPage() {
           formatGroup(g, myIds.has(g.id), requestedIds.has(g.id))
         )
 
-        allData
-          .filter((group) => !group.joined)
-          .forEach((group) => {
-            const suggestedGroup = discoverMap.get(group.id)
-            if (suggestedGroup) {
-              discoverMap.set(group.id, {
-                ...group,
-                requested: suggestedGroup.requested || group.requested,
-                requiresApproval: suggestedGroup.requiresApproval || group.requiresApproval,
-              })
-            } else {
-              discoverMap.set(group.id, group)
-            }
-          })
+        // Always merge ALL groups (not just non-joined) so the discover tab is never blank
+        allData.forEach((group) => {
+          const existing = discoverMap.get(group.id)
+          if (existing) {
+            discoverMap.set(group.id, {
+              ...group,
+              requested: existing.requested || group.requested,
+              requiresApproval: existing.requiresApproval || group.requiresApproval,
+            })
+          } else {
+            discoverMap.set(group.id, group)
+          }
+        })
 
         setGroups(Array.from(discoverMap.values()))
         setMyGroups(myData)
@@ -332,6 +343,16 @@ export default function GroupsPage() {
             />
           </div>
         </div>
+
+        {/* No-suggestions notice for Discover tab */}
+        {activeTab === 'all' && noSuggestions && filteredGroups.length > 0 && (
+          <div
+            className="rounded-xl border px-5 py-4 mb-4 text-sm"
+            style={{ borderColor: '#E8E8E8', backgroundColor: '#FFFBEB', color: '#92400E' }}
+          >
+            Looks like we&apos;re out of suggestions for you right now. Continue exploring all available groups below.
+          </div>
+        )}
 
         {/* Groups Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
