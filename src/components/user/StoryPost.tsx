@@ -649,7 +649,7 @@ export function StoryPost({
         isOpen={showReportModal}
         onClose={() => setShowReportModal(false)}
         contentId={id}
-        contentType="story"
+        contentType="blog"
       />
     </>
   )

@@ -732,7 +732,7 @@ export function QuestionPost({
         isOpen={showReportModal}
         onClose={() => setShowReportModal(false)}
         contentId={id}
-        contentType="question"
+        contentType="post"
       />
     </>
   )

@@ -8,7 +8,7 @@ interface Props {
   isOpen: boolean
   onClose: () => void
   contentId: string
-  contentType: 'post' | 'blog' | 'question' | 'story'
+  contentType: 'post' | 'blog' | 'comment'
 }
 
 export function ReportModal({ isOpen, onClose, contentId, contentType }: Props) {
@@ -25,7 +25,7 @@ export function ReportModal({ isOpen, onClose, contentId, contentType }: Props) 
       setLoading(true)
 
       await apiClient.post('/reports', {
-        content_type: contentType,
+        content_type: contentType.toUpperCase(),
         content_id: contentId,
         reason,
       })
