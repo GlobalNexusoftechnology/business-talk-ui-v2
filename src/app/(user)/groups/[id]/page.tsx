@@ -76,12 +76,12 @@ const getTimeAgo = (value?: string | number) => {
 const mapGroupFeedPost = (post: any): GroupPost => {
   const firstImage = post.media?.find((item: any) => item.type === 'image')
   const firstVideo = post.media?.find((item: any) => item.type === 'video')
-  const user = post.user || {}
+  const user = post.user || post.createdBy || post.author || {}
 
   return {
     id: post.id,
     author: {
-      id: user.id || '',
+      id: user.id || post.userId || post.createdById || '',
       name: user.full_name || user.username || user.name || 'Unknown',
       avatar:
         user.profile_photo ||
@@ -95,6 +95,60 @@ const mapGroupFeedPost = (post: any): GroupPost => {
     likes: Number(post.upvotes ?? post.likes ?? post.likes_count ?? 0),
     comments: Number(post.commentsCount ?? post.comment_count ?? post.comments ?? 0),
   }
+}
+
+const extractFeedItems = (payload: any): any[] => {
+  if (Array.isArray(payload?.posts)) return payload.posts
+  if (Array.isArray(payload?.data?.posts)) return payload.data.posts
+  if (Array.isArray(payload?.data)) return payload.data
+  if (Array.isArray(payload)) return payload
+  return []
+}
+
+const extractFeedTotal = (payload: any, fallback: number): number => {
+  return Number(
+    payload?.total ??
+      payload?.pagination?.total ??
+      payload?.data?.total ??
+      payload?.data?.pagination?.total ??
+      fallback
+  )
+}
+
+const normalizeJoinRequests = async (rawRequests: any[]) => {
+  return Promise.all(
+    rawRequests.map(async (req: any) => {
+      const existingUser = req?.user || req?.requestedBy || req?.requester || null
+      const fallbackUserId = req?.userId || req?.requestedById || req?.requesterId || existingUser?.id
+
+      if (existingUser) {
+        return {
+          ...req,
+          user: existingUser,
+        }
+      }
+
+      if (!fallbackUserId) {
+        return req
+      }
+
+      try {
+        const userRes = await apiClient.getUserById(String(fallbackUserId))
+        return {
+          ...req,
+          user: userRes?.data || null,
+        }
+      } catch {
+        return {
+          ...req,
+          user: {
+            id: String(fallbackUserId),
+            username: `User ${String(fallbackUserId).slice(0, 8)}`,
+          },
+        }
+      }
+    })
+  )
 }
 
 const formatGroup = (
@@ -205,11 +259,7 @@ export default function GroupDetailsPage() {
       try {
         setFeedLoading(true)
         const res = await apiClient.getGroupFeed(groupId, 1, 20)
-        const items = Array.isArray(res.data?.data)
-          ? res.data.data
-          : Array.isArray(res.data)
-          ? res.data
-          : []
+        const items = extractFeedItems(res.data)
 
         const mapped = items.map(mapGroupFeedPost)
         setGroupFeed(mapped)
@@ -217,7 +267,7 @@ export default function GroupDetailsPage() {
           prev
             ? {
                 ...prev,
-                posts: res.data?.pagination?.total ?? mapped.length,
+                posts: extractFeedTotal(res.data, mapped.length),
                 recentPosts: mapped,
               }
             : prev
@@ -283,18 +333,14 @@ export default function GroupDetailsPage() {
       setPostNotice('Post created successfully.')
 
       const feedRes = await apiClient.getGroupFeed(group.id, 1, 20)
-      const items = Array.isArray(feedRes.data?.data)
-        ? feedRes.data.data
-        : Array.isArray(feedRes.data)
-        ? feedRes.data
-        : []
+      const items = extractFeedItems(feedRes.data)
       const mapped = items.map(mapGroupFeedPost)
       setGroupFeed(mapped)
       setGroup((prev) =>
         prev
           ? {
               ...prev,
-              posts: feedRes.data?.pagination?.total ?? mapped.length,
+              posts: extractFeedTotal(feedRes.data, mapped.length),
               recentPosts: mapped,
             }
           : prev
@@ -338,7 +384,13 @@ export default function GroupDetailsPage() {
       setRequestsLoading(true)
       setRequestsError(null)
       const res = await apiClient.getGroupJoinRequests(group.id)
-      setRequests(Array.isArray(res.data) ? res.data : [])
+      const rawRequests = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray(res.data?.data)
+        ? res.data.data
+        : []
+      const normalized = await normalizeJoinRequests(rawRequests)
+      setRequests(normalized)
     } catch (err) {
       console.error('Failed to fetch join requests', err)
       setRequestsError('Failed to load requests. Please try again.')
@@ -428,6 +480,14 @@ export default function GroupDetailsPage() {
       </div>
     )
   }
+
+  const adminCount = Math.max(
+    1,
+    group.membersList.filter((member) => {
+      const role = String(member.title || '').toUpperCase()
+      return role === 'ADMIN' || role === 'OWNER'
+    }).length
+  )
 
   const renderCreatePostSection = () => (
     <div
@@ -739,7 +799,7 @@ export default function GroupDetailsPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold" style={{ color: '#212529' }}>
-                  {group.membersList.length}+
+                  {adminCount}
                 </p>
                 <p className="text-sm" style={{ color: '#5F6368' }}>
                   Admins
