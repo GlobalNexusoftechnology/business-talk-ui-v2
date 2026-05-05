@@ -59,21 +59,22 @@ function PostCard({ post, onNavigate }: { post: any; onNavigate: (path: string) 
         {post.content || post.title || 'No content'}
       </p>
       {(() => {
-        const videoSrc = post.video_url || post.video
-        const imgSrc = post.media_url || post.media_urls?.[0] || post.media?.[0]?.url ||
-          post.media || post.image_url || post.image ||
-          (Array.isArray(post.images) ? (post.images[0]?.url || post.images[0]) : null)
-        if (videoSrc) return (
-          <video src={videoSrc} className="rounded-lg w-full max-h-40 object-cover mb-2" controls />
+        // API returns media as array: [{url, type: 'image'|'video'}]
+        const mediaArr: any[] = Array.isArray(post.media) ? post.media : []
+        const videoItem = mediaArr.find((m: any) => m.type === 'video') ||
+          (post.video_url || post.video ? { url: post.video_url || post.video } : null)
+        const imageItem = mediaArr.find((m: any) => m.type === 'image') ||
+          (post.media_url || post.image_url || post.image ? { url: post.media_url || post.image_url || post.image } : null)
+        if (videoItem?.url) return (
+          <video src={videoItem.url} className="rounded-lg w-full max-h-40 object-cover mb-2" controls />
         )
-        if (imgSrc && typeof imgSrc === 'string') return (
-          <img src={imgSrc} alt="" className="rounded-lg w-full max-h-40 object-cover mb-2"
+        if (imageItem?.url) return (
+          <img src={imageItem.url} alt="" className="rounded-lg w-full max-h-40 object-cover mb-2"
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
         )
         return null
       })()}
       <div className="flex items-center gap-4 mt-1">
-        {/* API returns upvotes/downvotes; fall back to likes_count for other sources */}
         <StatPill icon={<Heart className="w-3 h-3" />} count={post.upvotes ?? post.likes_count ?? post.likes} />
         <StatPill icon={<MessageSquare className="w-3 h-3" />} count={post.comments_count ?? post.comments} />
         <StatPill icon={<Share2 className="w-3 h-3" />} count={post.shares_count ?? post.shares} />
@@ -99,9 +100,9 @@ function QuestionCard({ item, onNavigate }: { item: any; onNavigate: (path: stri
         <p className="text-xs text-gray-500 ml-6 line-clamp-2 mb-2">{item.description}</p>
       )}
       <div className="flex items-center gap-4 ml-6">
-        <StatPill icon={<Heart className="w-3 h-3" />} count={item.likes_count ?? item.likes} />
+        <StatPill icon={<Heart className="w-3 h-3" />} count={item.upvotes ?? item.likes_count ?? item.likes} />
         <StatPill icon={<MessageSquare className="w-3 h-3" />} count={item.comments_count ?? item.comments} />
-        <span className="ml-auto text-xs text-gray-400">{timeAgo(item.created_at)}</span>
+        <span className="ml-auto text-xs text-gray-400">{timeAgo(item.created_on ?? item.created_at)}</span>
       </div>
     </div>
   )
@@ -141,9 +142,11 @@ function StoryCard({ item, onNavigate }: { item: any; onNavigate: (path: string)
 
 function CommentCard({ item, onNavigate }: { item: any; onNavigate: (path: string) => void }) {
   const handleClick = () => {
-    if (item.post_id) {
-      const t = (item.post_type || '').toUpperCase()
-      onNavigate(t === 'QUESTION' ? `/questions/${item.post_id}` : `/posts/${item.post_id}`)
+    // API returns item.post: { id, type, content }
+    const postId = item.post?.id || item.post_id
+    const postType = (item.post?.type || item.post_type || '').toUpperCase()
+    if (postId) {
+      onNavigate(postType === 'QUESTION' ? `/questions/${postId}` : `/posts/${postId}`)
       return
     }
     if (item.blog_id) {
@@ -154,6 +157,8 @@ function CommentCard({ item, onNavigate }: { item: any; onNavigate: (path: strin
     const parentId = item.parent_id || item.content_id
     if (parentId) onNavigate(`/posts/${parentId}`)
   }
+  // Show snippet of the parent post content as context
+  const parentSnippet = item.post?.content || item.post_title || item.blog_title
   return (
     <div
       className="p-4 border-b last:border-b-0 hover:bg-gray-50 transition-colors cursor-pointer"
@@ -162,9 +167,9 @@ function CommentCard({ item, onNavigate }: { item: any; onNavigate: (path: strin
       <div className="flex items-start gap-2">
         <MessageSquare className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
         <div className="flex-1 min-w-0">
-          {item.post_title || item.blog_title ? (
+          {parentSnippet ? (
             <p className="text-xs text-gray-400 mb-1 truncate">
-              On: <span className="font-medium text-gray-600">{item.post_title || item.blog_title}</span>
+              On: <span className="font-medium text-gray-600">{parentSnippet}</span>
             </p>
           ) : null}
           <p className="text-sm text-gray-800 line-clamp-3">{item.comment || item.content}</p>
@@ -247,7 +252,7 @@ export function ProfileRecentActivity({
         const raw = res.data
         data = Array.isArray(raw) ? raw : raw?.data ?? raw?.posts ?? []
         // Posts that are not QUESTION type
-        data = data.filter((p: any) => !p.type || p.type === 'POST' || p.type === 'TEXT' || p.type === 'MEDIA')
+        data = data.filter((p: any) => p.type !== 'QUESTION')
       } else if (tab === 'questions') {
         const res = await apiClient.getUserPosts(userId, pg)
         const raw = res.data
