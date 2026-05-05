@@ -89,7 +89,7 @@ export default function AdminDashboardPage() {
     },
     {
       name: 'Reports',
-      value: stats?.flaggedContent,
+      value: stats?.reportedcontent,
       icon: Flag,
     },
   ]
