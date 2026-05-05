@@ -465,14 +465,16 @@ export function QuestionPost({
             </div>
 
             {replyingTo === reply.id && (
-              <div className="ml-8 mt-2 flex gap-2">
+              <div className="ml-8 mt-2 flex gap-2 items-center">
                 <input
                   value={replyInput}
                   onChange={(e) => setReplyInput(e.target.value)}
                   disabled={isBanned}
-                  className="flex-1 border rounded-full px-3 py-1 text-xs disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  placeholder="Write a reply..."
+                  className="flex-1 min-w-0 border border-gray-200 rounded-full px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  autoFocus
                 />
-                <button onClick={() => handleAddReply(parentId, reply.id)} disabled={isBanned} className="disabled:opacity-50 disabled:cursor-not-allowed">
+                <button onClick={() => handleAddReply(parentId, reply.id)} disabled={isBanned} className="shrink-0 text-blue-600 hover:text-blue-700 px-2 py-1 rounded-full text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed">
                   Send
                 </button>
               </div>
@@ -766,14 +768,16 @@ export function QuestionPost({
                 </div>
 
                 {replyingTo === answer.id && (
-                  <div className="flex gap-2 mt-2">
+                  <div className="flex gap-2 mt-2 items-center">
                     <input
                       value={replyInput}
                       onChange={(e) => setReplyInput(e.target.value)}
                       disabled={isBanned}
-                      className="flex-1 border rounded-full px-3 py-1 text-xs disabled:bg-gray-50 disabled:cursor-not-allowed"
+                      placeholder="Write a reply..."
+                      className="flex-1 min-w-0 border border-gray-200 rounded-full px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
+                      autoFocus
                     />
-                    <button onClick={() => handleAddReply(answer.id)} disabled={isBanned} className="disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button onClick={() => handleAddReply(answer.id)} disabled={isBanned} className="shrink-0 text-blue-600 hover:text-blue-700 px-2 py-1 rounded-full text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed">
                       Send
                     </button>
                   </div>

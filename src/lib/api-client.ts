@@ -529,11 +529,6 @@ class ApiClient {
    */
   async getOrCreateConversation(targetUserId: string): Promise<{ id: string }> {
     // 1. Fetch existing conversations
-    const currentUser =
-      typeof window !== 'undefined'
-        ? (() => { try { return JSON.parse(localStorage.getItem('user') || '{}') } catch { return {} } })()
-        : {}
-
     const res = await this.getConversations()
     const convList: any[] = res.data ?? []
 

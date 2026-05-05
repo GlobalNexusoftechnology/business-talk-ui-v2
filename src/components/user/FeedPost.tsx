@@ -156,10 +156,10 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
 
               {/* Reply to Nested Reply Input */}
               {replyingTo === `reply-${nestedReply.id}` && (
-                <div className="flex gap-2 mt-2 ml-8">
+                <div className="flex gap-2 mt-2 ml-8 items-center">
                   <img
                     src={nestedReply.author?.profile_photo || `https://ui-avatars.com/api/name=${encodeURIComponent(nestedReply.author?.name)}`}
-                    className="w-6 h-6 rounded-full object-cover"
+                    className="w-6 h-6 rounded-full object-cover shrink-0"
                     alt={nestedReply.author?.name || 'User'}
                   />
                   <input
@@ -168,12 +168,12 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
                     value={replyInput}
                     onChange={(e) => setReplyInput(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleAddReply(parentId, nestedReply.id)}
-                    className="flex-1 text-xs border border-gray-200 rounded-full px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 min-w-0 text-xs border border-gray-200 rounded-full px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     autoFocus
                   />
                   <button
                     onClick={() => handleAddReply(parentId, nestedReply.id)}
-                    className="text-blue-600 hover:text-blue-700 px-2 py-1 rounded-full text-xs font-medium"
+                    className="shrink-0 text-blue-600 hover:text-blue-700 px-2 py-1 rounded-full text-xs font-medium"
                   >
                     Send
                   </button>
@@ -636,7 +636,7 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
                 className="w-8 h-8 rounded-full object-cover"
                 alt={currentUser.name}
               />
-              <div className="flex-1 flex gap-2">
+              <div className="flex-1 flex gap-2 min-w-0">
                 <input
                   type="text"
                   placeholder={isBanned ? 'Your account is restricted' : 'Add a comment...'}
@@ -644,12 +644,12 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
                   value={commentInput}
                   onChange={(e) => setCommentInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleAddComment()}
-                  className="flex-1 px-3 py-2 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  className="flex-1 min-w-0 px-3 py-2 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
                 />
                 <button
                   onClick={handleAddComment}
                   disabled={isBanned}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="shrink-0 px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Post
                 </button>
@@ -698,10 +698,10 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
 
                       {/* Reply Input */}
                       {replyingTo === `comment-${comment.id}` && (
-                        <div className="flex gap-2 mt-2 ml-6">
+                        <div className="flex gap-2 mt-2 ml-6 items-center">
                           <img
                             src={currentUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name)}&background=E8E8E8&color=212529&size=24`}
-                            className="w-6 h-6 rounded-full object-cover"
+                            className="w-6 h-6 rounded-full object-cover shrink-0"
                             alt={currentUser.name}
                           />
                           <input
@@ -710,12 +710,12 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
                             value={replyInput}
                             onChange={(e) => setReplyInput(e.target.value)}
                             onKeyPress={(e) => e.key === 'Enter' && handleAddReply(comment.id)}
-                            className="flex-1 text-xs border border-gray-200 rounded-full px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="flex-1 min-w-0 text-xs border border-gray-200 rounded-full px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             autoFocus
                           />
                           <button
                             onClick={() => handleAddReply(comment.id)}
-                            className="text-blue-600 hover:text-blue-700 px-2 py-1 rounded-full text-xs font-medium"
+                            className="shrink-0 text-blue-600 hover:text-blue-700 px-2 py-1 rounded-full text-xs font-medium"
                           >
                             Reply
                           </button>

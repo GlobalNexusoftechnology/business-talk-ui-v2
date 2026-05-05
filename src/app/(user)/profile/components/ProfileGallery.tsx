@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Bookmark, Image, Loader2, FileText, BookOpen } from 'lucide-react'
+import { Bookmark, Image as ImageIcon, Loader2, FileText, BookOpen } from 'lucide-react'
 import apiClient from '@/lib/api-client'
 
 type GalleryTab = 'media' | 'saved'
@@ -79,7 +79,7 @@ export function ProfileGallery() {
               color: activeTab === 'media' ? '#FFFFFF' : '#5F6368',
             }}
           >
-            <Image className="w-4 h-4" />
+            <ImageIcon className="w-4 h-4" />
             My Media
           </button>
           <button
@@ -105,7 +105,7 @@ export function ProfileGallery() {
             </div>
           ) : mediaItems.length === 0 ? (
             <div className="flex flex-col items-center py-16 gap-3">
-              <Image className="w-12 h-12 text-gray-200" />
+              <ImageIcon className="w-12 h-12 text-gray-200" />
               <p className="font-semibold text-gray-700">No media yet</p>
               <p className="text-sm text-gray-400">Images and videos you upload will appear here.</p>
             </div>

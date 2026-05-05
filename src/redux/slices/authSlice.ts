@@ -29,7 +29,7 @@ if (typeof window !== 'undefined') {
   if (storedUser) {
     const u = JSON.parse(storedUser)
     initialState.user = u
-    const banned = Boolean(u?.is_banned || u?.isBanned)
+    const banned = isRestrictedUser(u)
     initialState.isRestricted = banned
     // Restricted users are stored but NOT marked as authenticated
     initialState.isAuthenticated = !banned

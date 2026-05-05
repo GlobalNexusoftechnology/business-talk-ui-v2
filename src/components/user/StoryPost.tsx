@@ -363,21 +363,23 @@ export function StoryPost({
             </div>
 
             {replyingTo === reply.id && (
-              <div className="ml-8 mt-2 flex gap-2">
+              <div className="ml-8 mt-2 flex gap-2 items-center">
                 <input
                   value={replyInput}
                   onChange={(e) =>
                     setReplyInput(e.target.value)
                   }
                   disabled={isBanned}
-                  className="flex-1 border rounded-full px-3 py-1 text-xs disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  placeholder="Write a reply..."
+                  className="flex-1 min-w-0 border border-gray-200 rounded-full px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  autoFocus
                 />
                 <button
                   onClick={() =>
                     handleAddReply(reply.id)
                   }
                   disabled={isBanned}
-                  className="disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="shrink-0 text-blue-600 hover:text-blue-700 px-2 py-1 rounded-full text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Send
                 </button>
@@ -616,90 +618,106 @@ export function StoryPost({
         {showComments && (
           <div className="mt-4 space-y-3">
 
-            <div className="flex gap-2">
-              <input
-                value={commentInput}
-                onChange={(e) =>
-                  setCommentInput(e.target.value)
-                }
-                disabled={isBanned}
-                placeholder={isBanned ? 'Your account is restricted' : undefined}
-                className="flex-1 border rounded-full px-3 py-1 disabled:bg-gray-50 disabled:cursor-not-allowed"
+            <div className="flex gap-2 items-center">
+              <img
+                src={reduxUser?.profile_photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(reduxUser?.full_name || 'User')}&background=E8E8E8&color=212529&size=32`}
+                className="w-8 h-8 rounded-full object-cover shrink-0"
+                alt="You"
               />
-              <button onClick={handleAddComment} disabled={isBanned} className="disabled:opacity-50 disabled:cursor-not-allowed">
-                Post
-              </button>
+              <div className="flex-1 flex gap-2 min-w-0">
+                <input
+                  value={commentInput}
+                  onChange={(e) =>
+                    setCommentInput(e.target.value)
+                  }
+                  disabled={isBanned}
+                  placeholder={isBanned ? 'Your account is restricted' : 'Add a comment...'}
+                  className="flex-1 min-w-0 px-3 py-2 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
+                />
+                <button onClick={handleAddComment} disabled={isBanned} className="shrink-0 px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                  Post
+                </button>
+              </div>
             </div>
 
             {nestedComments.map((c) => (
-              <div key={c.id}>
-                <p className="font-semibold">
-                  {c.author.name}
-                </p>
-                <p>{c.content}</p>
+              <div key={c.id} className="flex gap-2">
+                <img
+                  src={c.author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.author.name || 'User')}&background=E8E8E8&color=212529`}
+                  alt={c.author.name || 'User'}
+                  className="w-6 h-6 rounded-full object-cover flex-shrink-0 mt-0.5"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="bg-gray-50 rounded-lg px-3 py-2">
+                    <p className="text-xs font-semibold text-gray-900">{c.author.name}</p>
+                    <p className="text-sm text-gray-700">{c.content}</p>
+                  </div>
 
-                <div className="flex gap-3 mt-1 text-xs text-gray-500">
-                  <button
-                    onClick={() =>
-                      handleLikeComment(c.id, c.likes)
-                    }
-                    disabled={isBanned}
-                    style={{ color: animatingId === c.id || commentLikeOverrides[c.id]?.liked ? '#1d9bf0' : undefined }}
-                    className="flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <ThumbsUp
-                          className={`w-5 h-5 transition-all duration-200 ${
-                            animatingId === c.id ? 'scale-150 rotate-12' : ''
-                          }`}
-                        /> {commentLikeOverrides[c.id]?.count ?? c.likes}
-                  </button>
-
-                  <button
-                    onClick={() =>
-                      setReplyingTo(c.id)
-                    }
-                    disabled={isBanned}
-                    className="disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Reply
-                  </button>
-
-                  {currentUserId && currentUserId === c.authorId && (
-                    <button
-                      onClick={() => handleDeleteComment(c.id)}
-                      className="flex items-center gap-1 text-red-500 hover:text-red-700 transition-colors"
-                      title="Delete comment"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
-
-                {replyingTo === c.id && (
-                  <div className="flex gap-2 mt-2">
-                    <input
-                      value={replyInput}
-                      onChange={(e) =>
-                        setReplyInput(
-                          e.target.value
-                        )
-                      }
-                      disabled={isBanned}
-                      className="flex-1 border rounded-full px-3 py-1 text-xs disabled:bg-gray-50 disabled:cursor-not-allowed"
-                    />
+                  <div className="flex gap-3 mt-1 px-1 text-xs text-gray-500">
                     <button
                       onClick={() =>
-                        handleAddReply(c.id)
+                        handleLikeComment(c.id, c.likes)
                       }
                       disabled={isBanned}
-                      className="disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ color: animatingId === c.id || commentLikeOverrides[c.id]?.liked ? '#1d9bf0' : undefined }}
+                      className="flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Send
+                      <ThumbsUp
+                            className={`w-4 h-4 transition-all duration-200 ${
+                              animatingId === c.id ? 'scale-150 rotate-12' : ''
+                            }`}
+                          /> {commentLikeOverrides[c.id]?.count ?? c.likes}
                     </button>
-                  </div>
-                )}
 
-                {renderReplies(c.replies)}
+                    <button
+                      onClick={() =>
+                        setReplyingTo(c.id)
+                      }
+                      disabled={isBanned}
+                      className="disabled:opacity-50 disabled:cursor-not-allowed hover:text-blue-600"
+                    >
+                      Reply
+                    </button>
+
+                    {currentUserId && currentUserId === c.authorId && (
+                      <button
+                        onClick={() => handleDeleteComment(c.id)}
+                        className="flex items-center gap-1 text-red-500 hover:text-red-700 transition-colors"
+                        title="Delete comment"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+
+                  {replyingTo === c.id && (
+                    <div className="flex gap-2 mt-2 items-center">
+                      <input
+                        value={replyInput}
+                        onChange={(e) =>
+                          setReplyInput(
+                            e.target.value
+                          )
+                        }
+                        disabled={isBanned}
+                        placeholder="Write a reply..."
+                        className="flex-1 min-w-0 text-xs border border-gray-200 rounded-full px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
+                        autoFocus
+                      />
+                      <button
+                        onClick={() =>
+                          handleAddReply(c.id)
+                        }
+                        disabled={isBanned}
+                        className="shrink-0 text-blue-600 hover:text-blue-700 px-2 py-1 rounded-full text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Send
+                      </button>
+                    </div>
+                  )}
+
+                  {renderReplies(c.replies)}
+                </div>
               </div>
             ))}
           </div>

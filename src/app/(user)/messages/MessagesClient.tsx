@@ -350,7 +350,7 @@ const MessagesClient = () => {
   };
 
 return (
-    <div className="h-[100dvh] w-full flex overflow-hidden bg-[#F8F9FA]">
+    <div className="h-[calc(100dvh-4.25rem)] lg:h-[100dvh] w-full flex overflow-hidden bg-[#F8F9FA]">
 
       {/* LEFT — Conversation list */}
       <div
