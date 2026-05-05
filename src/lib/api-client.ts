@@ -1,7 +1,28 @@
-import axios, { AxiosInstance } from 'axios'
+import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios'
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000'
+
+// ─── Token-refresh queue ───────────────────────────────────────────────────
+// Shared state so concurrent 401s only trigger one refresh call.
+let isRefreshing = false
+let failedRequestQueue: Array<{
+  resolve: (value: unknown) => void
+  reject: (reason: unknown) => void
+}> = []
+
+const processQueue = (error: unknown) => {
+  failedRequestQueue.forEach(({ resolve, reject }) => {
+    error ? reject(error) : resolve(null)
+  })
+  failedRequestQueue = []
+}
+// ──────────────────────────────────────────────────────────────────────────
+
+// Extend Axios config type to allow a custom _retry flag
+interface RetryableRequestConfig extends InternalAxiosRequestConfig {
+  _retry?: boolean
+}
 
 class ApiClient {
   private client: AxiosInstance
@@ -15,33 +36,77 @@ class ApiClient {
 
     this.client.interceptors.response.use(
       (res) => res,
-      (error) => {
+      async (error) => {
         if (!error.response) return Promise.reject(error)
 
+        const originalRequest = error.config as RetryableRequestConfig
         const status = Number(error.response.status)
+        const responseCode = String(error.response?.data?.code || '')
         const responseMessage = String(
           error.response?.data?.message ||
           error.response?.data?.error ||
           ''
         ).toLowerCase()
 
+        // ── 1. Handle banned / restricted accounts (no refresh attempt) ──
         const isRestrictedResponse =
           status === 423 ||
+          responseCode === 'ACCOUNT_RESTRICTED' ||
           ((status === 401 || status === 403) &&
             (responseMessage.includes('banned') ||
-              responseMessage.includes('restricted') ||
-              responseMessage.includes('shadow')))
+              responseMessage.includes('restricted')))
 
         if (isRestrictedResponse && typeof window !== 'undefined') {
-          localStorage.removeItem('user')
+          // Per spec: DO NOT logout the user immediately — keep session data
+          // so the restricted page can show their info.
+          window.dispatchEvent(new CustomEvent('account-restricted'))
           if (window.location.pathname !== '/account-restricted') {
             window.location.href = '/account-restricted'
           }
+          return Promise.reject(error)
         }
 
-        if (error.response.status === 401) {
-          // ❗ Just log — DO NOT refresh, DO NOT redirect
-          console.warn('Unauthorized request')
+        // ── 1b. 403 not related to account restriction → notify UI ──
+        if (status === 403 && typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('action-forbidden'))
+        }
+
+        // ── 2. Handle 401 with silent token refresh + request retry ──────
+        const isRefreshEndpoint =
+          originalRequest?.url?.includes('/auth/refresh-token')
+
+        if (status === 401 && !originalRequest?._retry && !isRefreshEndpoint) {
+          // If a refresh is already in-flight, queue this request and wait.
+          if (isRefreshing) {
+            return new Promise((resolve, reject) => {
+              failedRequestQueue.push({ resolve, reject })
+            })
+              .then(() => this.client(originalRequest))
+              .catch((err) => Promise.reject(err))
+          }
+
+          originalRequest._retry = true
+          isRefreshing = true
+
+          try {
+            // Ask the server to issue a new access_token using the refresh cookie.
+            await this.client.post('/auth/refresh-token')
+            processQueue(null)
+            // Retry the original request with the new access_token cookie.
+            return this.client(originalRequest)
+          } catch (refreshError) {
+            processQueue(refreshError)
+            // Refresh failed → session is truly expired → force logout.
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('user')
+              if (window.location.pathname !== '/login') {
+                window.location.href = '/login'
+              }
+            }
+            return Promise.reject(refreshError)
+          } finally {
+            isRefreshing = false
+          }
         }
 
         return Promise.reject(error)
@@ -458,6 +523,40 @@ class ApiClient {
     })
   }
 
+  /**
+   * Finds an existing 1-on-1 conversation with targetUserId, or creates a new one.
+   * Returns { id: string } — the conversation id to navigate to.
+   */
+  async getOrCreateConversation(targetUserId: string): Promise<{ id: string }> {
+    // 1. Fetch existing conversations
+    const currentUser =
+      typeof window !== 'undefined'
+        ? (() => { try { return JSON.parse(localStorage.getItem('user') || '{}') } catch { return {} } })()
+        : {}
+
+    const res = await this.getConversations()
+    const convList: any[] = res.data ?? []
+
+    // 2. Look for an existing 1-on-1 conversation with the target user
+    const existing = convList.find((c: any) => {
+      const conv = c.conversation ?? c
+      if (conv.is_group) return false
+      return (conv.participants ?? []).some(
+        (p: any) => String(p.user?.id ?? p.userId ?? '') === String(targetUserId)
+      )
+    })
+
+    if (existing) {
+      const conv = existing.conversation ?? existing
+      return { id: conv.id }
+    }
+
+    // 3. None found — create a new conversation
+    const createRes = await this.startConversation([targetUserId])
+    const created = createRes.data
+    return { id: created?.id ?? created?.conversationId }
+  }
+
   // =========================
   // 🔔 NOTIFICATIONS
   // =========================
@@ -653,6 +752,11 @@ class ApiClient {
   // 7. GET GROUP CHAT
   getGroupChat(groupId: string) {
     return this.client.get(`/groups/${groupId}/chat`)
+  }
+
+  // 7b. GET OR CREATE GROUP CHAT (backend ensures idempotency)
+  getGroupChatOrCreate(groupId: string) {
+    return this.client.post(`/groups/${groupId}/chat`)
   }
 
   // 8. GENERATE INVITE LINK (admin only)

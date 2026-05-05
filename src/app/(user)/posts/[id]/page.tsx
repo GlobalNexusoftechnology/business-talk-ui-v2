@@ -11,6 +11,7 @@ import {
 //   CornerDownRight,
 } from 'lucide-react'
 import apiClient from '@/lib/api-client'
+import { MediaGrid, MediaItem } from '@/components/shared/MediaGrid'
 
 /* ── Types ─────────────────────────────────────────── */
 interface Author {
@@ -26,6 +27,7 @@ interface Post {
   content: string
   image?: string
   video?: string
+  media?: MediaItem[]
   author: Author
   createdAt: string
   upvotes: number
@@ -181,6 +183,7 @@ export default function PostDetailPage() {
           type: d.type || 'POST',
           content: d.content,
           image: d.image && d.image.startsWith('http') ? d.image : undefined,
+          media: (d.media || []).map((m: any) => ({ url: m.url, type: m.type as 'image' | 'video' })),
           author: {
             id: d.user?.id || '',
             name: d.user?.username || 'Unknown',
@@ -304,24 +307,16 @@ export default function PostDetailPage() {
             {post.content}
           </p>
 
-          {/* Image */}
-          {post.image && (
-            <img src={post.image} alt="Post media" className="w-full rounded-xl object-cover max-h-[480px] mb-4" />
-          )}
-
-          {/* Video */}
-          {post.video && (
-            <div className="mb-4 rounded-xl overflow-hidden">
-              <video
-              src={post.video}
-              className="w-full h-48 sm:h-80 object-contain"
-              controls
-            >
-              <source src={post.video} type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
-          </div>
-        )}
+          {/* Media */}
+          {(() => {
+            const mediaItems: MediaItem[] = post.media && post.media.length > 0
+              ? post.media
+              : [
+                  ...(post.image ? [{ url: post.image, type: 'image' as const }] : []),
+                  ...(post.video ? [{ url: post.video, type: 'video' as const }] : []),
+                ]
+            return mediaItems.length > 0 ? <MediaGrid media={mediaItems} /> : null
+          })()}
 
           {/* Tags */}
           {post.tags.length > 0 && (

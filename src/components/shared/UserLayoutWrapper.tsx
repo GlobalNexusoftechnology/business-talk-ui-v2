@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { UserSidebar } from '@/components/shared/UserSidebar'
 import { UserNavbar } from '@/components/shared/UserNavbar'
@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import apiClient from '@/lib/api-client'
 import { MergedMobileSidebarContent } from '@/components/shared/MergedMobileSidebarContent'
+import { useAppSelector } from '@/hooks/useRedux'
 
 interface UserLayoutWrapperProps {
   children: React.ReactNode
@@ -13,11 +14,9 @@ interface UserLayoutWrapperProps {
 
 export const UserLayoutWrapper = ({ children }: UserLayoutWrapperProps) => {
 
-
   type Person = any
   type Story = any
   type Question = any
-  // Explicitly type Group as any to avoid 'never[]' error
   type Group = any
 
   const [people, setPeople] = useState<Person[]>([])
@@ -26,24 +25,18 @@ export const UserLayoutWrapper = ({ children }: UserLayoutWrapperProps) => {
   const [groups, setGroups] = useState<Group[]>([])
   const [loading, setLoading] = useState(true)
   const router = useRouter()
+  // Use Redux isRestricted state as the single source of truth for ban routing
+  const isRestricted = useAppSelector((state: any) => state.auth.isRestricted)
 
-  const isRestrictedUser = (user: any) =>
-    Boolean(user?.is_banned || user?.isBanned || user?.is_shadow_banned || user?.isShadowBanned)
+  // Route guard: redirect restricted users immediately
+  useEffect(() => {
+    if (isRestricted) {
+      router.replace('/account-restricted')
+    }
+  }, [isRestricted, router])
 
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
-        if (isRestrictedUser(storedUser)) {
-          localStorage.removeItem('user')
-          router.replace('/account-restricted')
-          setLoading(false)
-          return
-        }
-      } catch {
-        // ignore localStorage parse errors and continue
-      }
-
       try {
         const [peopleRes, groupsRes, storiesRes, hotRes] = await Promise.all([
           apiClient.getFollowSuggestions(),

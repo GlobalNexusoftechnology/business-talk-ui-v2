@@ -9,7 +9,9 @@ import apiClient from '@/lib/api-client'
 import { ReportModal } from '@/components/shared/ReportModal'
 import { useFollow } from '@/hooks/useFollow'
 import { useSavedStatus } from '@/hooks/useSavedStatus'
+import { useAccountStatus, useAppSelector } from '@/hooks/useRedux'
 import { getTimeAgo } from '@/lib/utils'
+import { MediaGrid, MediaItem } from '@/components/shared/MediaGrid'
 
 interface FeedPostProps {
   id?: string
@@ -22,6 +24,7 @@ interface FeedPostProps {
   content: string
   image?: string
   video?: string
+  media?: MediaItem[]
   timestamp: string
   likes: number
   liked?: boolean
@@ -30,8 +33,9 @@ interface FeedPostProps {
   sends: number
 }
 
-export function FeedPost({ id = Date.now().toString(), authorId = '', author, content, image, video, timestamp, likes, liked = false, comments, sends }: FeedPostProps) {
+export function FeedPost({ id = Date.now().toString(), authorId = '', author, content, image, video, media = [], timestamp, likes, liked = false, comments, sends }: FeedPostProps) {
   const router = useRouter()
+  const reduxUser = useAppSelector((state: any) => state.auth.user)
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string; avatar: string }>({ id: '', name: 'You', avatar: '' })
   const [isLiked, setIsLiked] = useState(liked)
   const [likeCount, setLikeCount] = useState(likes)
@@ -48,21 +52,31 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
   const { openPost } = useOpenContent()
   const { state: followState, follow, unfollow } = useFollow(authorId)
   const { isSaved, toggle: toggleSave, showToast: showSavedToast } = useSavedStatus(id, 'post')
+  const { isBanned } = useAccountStatus()
   const [commentCount, setCommentCount] = useState(comments || 0)
   const [showReportModal, setShowReportModal] = useState(false)
   const [animatingId, setAnimatingId] = useState<string | null>(null)
   const [isDeleted, setIsDeleted] = useState(false)
+  const [deleteToast, setDeleteToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
   //
   // FETCH COMMENT COUNT
   //
 
   useEffect(() => {
-    try {
-      const u = JSON.parse(localStorage.getItem('user') || '{}')
-      setCurrentUser({ id: u.id || '', name: u.username || u.full_name || 'You', avatar: u.profile_photo || '' })
-    } catch {}
-  }, [])
+    if (reduxUser?.id) {
+      setCurrentUser({
+        id: String(reduxUser.id),
+        name: reduxUser.username || reduxUser.full_name || 'You',
+        avatar: reduxUser.profile_photo || '',
+      })
+    } else {
+      try {
+        const u = JSON.parse(localStorage.getItem('user') || '{}')
+        setCurrentUser({ id: String(u.id || ''), name: u.username || u.full_name || 'You', avatar: u.profile_photo || '' })
+      } catch {}
+    }
+  }, [reduxUser])
 
   useEffect(() => {
     setIsLiked(Boolean(liked))
@@ -210,6 +224,7 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
 
   // Like/Unlike post using API
   const handleLike = async () => {
+    if (isBanned) return
     setAnimatingId('post')
     setTimeout(() => setAnimatingId(null), 300)
 
@@ -218,9 +233,9 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
       const postId = id?.toString() || ''
       const res = await apiClient.votePost(postId, 'up')
       // API returns updated vote counts and user's vote
-      const { upvotes, userVote } = res
+      const { upvotes, myVote } = res
       setLikeCount(upvotes)
-      setIsLiked(userVote === 'up')
+      setIsLiked(myVote === 'up' || Boolean(res.liked))
     } catch (err) {
       // fallback to optimistic UI
       if (isLiked) {
@@ -244,6 +259,7 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
       content,
       image,
       video,
+      media,
       timestamp,
       likes: likeCount,
       comments: commentCount,
@@ -254,7 +270,7 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
 
   // Add comment using API
   const handleAddComment = async () => {
-    if (!commentInput.trim()) return
+    if (!commentInput.trim() || isBanned) return
     try {
       const postId = id?.toString() || ''
       const res = await apiClient.addPostComment(postId, commentInput)
@@ -282,7 +298,7 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
 
   // Add reply using API
   const handleAddReply = async (commentId: number, parentReplyId?: number) => {
-    if (!replyInput.trim()) return
+    if (!replyInput.trim() || isBanned) return
     try {
       const postId = id?.toString() || ''
       await apiClient.addPostComment(postId, replyInput, parentReplyId ? parentReplyId.toString() : commentId.toString())
@@ -316,7 +332,7 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
   // Helper to map API comment to UI comment structure
   const mapApiCommentToUi = (apiComment: any) => ({
     id: apiComment.id,
-    authorId: apiComment.user?.id || '',
+    authorId: String(apiComment.user?.id || ''),
     author: {
       name: apiComment.user?.full_name || 'Unknown',
       avatar: apiComment.user?.profile_photo || `https://ui-avatars.com/api/name=${encodeURIComponent(apiComment.user?.full_name || 'User')}`,
@@ -361,14 +377,27 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showComments, id])
 
+  const showDeleteToast = (message: string, type: 'success' | 'error') => {
+    setDeleteToast({ message, type })
+    setTimeout(() => setDeleteToast(null), 3000)
+  }
+
   // Delete this post (only shown to author)
   const handleDeletePost = async () => {
     if (!window.confirm('Delete this post? This cannot be undone.')) return
     try {
       await apiClient.deletePost(id)
       setIsDeleted(true)
-    } catch (err) {
-      console.error('Failed to delete post')
+      showDeleteToast('Post deleted successfully', 'success')
+    } catch (err: any) {
+      const status = err?.response?.status
+      if (status === 403) {
+        showDeleteToast('You can only delete your own content', 'error')
+      } else if (status === 401) {
+        showDeleteToast('Session expired. Please log in again.', 'error')
+      } else {
+        showDeleteToast(err?.response?.data?.message || 'Failed to delete post', 'error')
+      }
     }
   }
 
@@ -382,18 +411,40 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
       }))
 
   const handleDeleteComment = async (commentId: string) => {
+    // Optimistic update
+    const prevList = commentsList
+    const prevCount = commentCount
+    setCommentsList(prev => removeCommentRecursive(prev, String(commentId)))
+    setCommentCount(prev => Math.max(0, prev - 1))
     try {
       await apiClient.deletePostComment(commentId)
-      const targetId = String(commentId)
-      setCommentsList(prev => removeCommentRecursive(prev, targetId))
-      setCommentCount(prev => Math.max(0, prev - 1))
-    } catch (err) {
-      console.error('Failed to delete comment')
+      showDeleteToast('Comment deleted', 'success')
+    } catch (err: any) {
+      // Rollback on failure
+      setCommentsList(prevList)
+      setCommentCount(prevCount)
+      const status = err?.response?.status
+      if (status === 403) {
+        showDeleteToast('You can only delete your own content', 'error')
+      } else if (status === 401) {
+        showDeleteToast('Session expired. Please log in again.', 'error')
+      } else {
+        showDeleteToast(err?.response?.data?.message || 'Failed to delete comment', 'error')
+      }
     }
   }
 
   return (
     <>
+      {/* Delete toast */}
+      {deleteToast && (
+        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 text-white text-sm font-medium px-5 py-3 rounded-full shadow-xl animate-fade-in-up ${
+          deleteToast.type === 'success' ? 'bg-gray-900' : 'bg-red-600'
+        }`}>
+          {deleteToast.type === 'success' ? <Trash2 className="w-4 h-4" /> : null}
+          {deleteToast.message}
+        </div>
+      )}
       {/* Instagram-style saved toast */}
       {showSavedToast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-gray-900 text-white text-sm font-medium px-5 py-3 rounded-full shadow-xl animate-fade-in-up">
@@ -453,7 +504,8 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
                 </button>
                 <button
                   onClick={followState === 'connected' ? unfollow : follow}
-                  className="group p-2 rounded transition flex items-center gap-1 text-xs hover:bg-gray-100"
+                  disabled={isBanned}
+                  className="group p-2 rounded transition flex items-center gap-1 text-xs hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ color: '#374151' }}
                   title={
                     followState === 'connected'
@@ -519,42 +571,30 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
           <p className="text-gray-800 leading-relaxed">{content}</p>
         </div>
 
-        {/* Post Image */}
-        {image && (
-          <div 
-            className="mb-4 rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
-            onClick={handleOpenViewer}
-          >
-            <img
-              src={image}
-              alt="Post content"
-              className="w-full h-48 sm:h-80 object-contain"
-            />
-          </div>
-        )}
-
-        {/* Post Video */}
-        {video && (
-          <div className="mb-4 rounded-xl overflow-hidden">
-            <video
-              src={video}
-              className="w-full h-48 sm:h-80 object-contain"
-              controls
-            >
-              <source src={video} type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
-          </div>
+        {/* Media Grid */}
+        {(media.length > 0 || image || video) && (
+          <MediaGrid
+            media={
+              media.length > 0
+                ? media
+                : [
+                    ...(image ? [{ url: image, type: 'image' as const }] : []),
+                    ...(video ? [{ url: video, type: 'video' as const }] : []),
+                  ]
+            }
+          />
         )}
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2 pt-4 border-t border-gray-100">
           <button
             onClick={handleLike}
+            disabled={isBanned}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg 
               transition-all duration-200 ease-in-out
               active:scale-90
               hover:scale-105 hover:shadow-sm
+              disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 disabled:shadow-none
               ${
                 isLiked
                   ? 'bg-blue-50 text-[#1d9bf0] scale-105'
@@ -599,15 +639,17 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
               <div className="flex-1 flex gap-2">
                 <input
                   type="text"
-                  placeholder="Add a comment..."
+                  placeholder={isBanned ? 'Your account is restricted' : 'Add a comment...'}
+                  disabled={isBanned}
                   value={commentInput}
                   onChange={(e) => setCommentInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleAddComment()}
-                  className="flex-1 px-3 py-2 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 px-3 py-2 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
                 />
                 <button
                   onClick={handleAddComment}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-medium hover:bg-blue-700 transition-colors"
+                  disabled={isBanned}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Post
                 </button>

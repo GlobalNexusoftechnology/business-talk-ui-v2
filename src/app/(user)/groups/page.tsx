@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import apiClient from '@/lib/api-client'
+import { validateImageFile } from '@/lib/utils'
 
 interface Group {
   id: string
@@ -470,12 +471,13 @@ export default function GroupsPage() {
               <input
                 type="file"
                 id="media-upload"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/gif,image/webp"
                 onChange={(e) => {
                   const file = e.target.files?.[0]
-                  if (file) {
-                    setNewGroup({ ...newGroup, cover_image: file })
-                  }
+                  if (!file) return
+                  const err = validateImageFile(file)
+                  if (err) { alert(err); return }
+                  setNewGroup({ ...newGroup, cover_image: file })
                 }}
                 className="w-full px-4 py-3 rounded-lg border"
               />

@@ -6,6 +6,7 @@ import { AdminCreateBlogBox } from '@/components/admin/AdminCreateBlogBox'
 import { useAdminBlogs, useDeleteBlog, useUpdateBlog } from '@/hooks/useAdminBlogs'
 // import { useBanUser, useWarnUser } from '@/hooks/useAdminPosts'
 import { AdminContentCard } from '@/components/admin/AdminContentCard'
+import { validateImageFile } from '@/lib/utils'
 
 const filters = ['All', 'Latest', 'Trending', 'Reported']
 
@@ -208,8 +209,15 @@ export default function AdminBlogsPage() {
                 </label>
                 <input
                   type="file"
-                  accept="image/*"
-                  onChange={(e) => setEditCoverFile(e.target.files?.[0] || null)}
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null
+                    if (file) {
+                      const err = validateImageFile(file)
+                      if (err) { alert(err); return }
+                    }
+                    setEditCoverFile(file)
+                  }}
                   className="mt-1 w-full p-2 border rounded-xl bg-white"
                 />
               </div>

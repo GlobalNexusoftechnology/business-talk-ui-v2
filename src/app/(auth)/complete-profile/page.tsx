@@ -12,6 +12,7 @@ import { Button } from '@/components/shared/Button'
 import { Card } from '@/components/shared/Card'
 import { useAppDispatch } from '@/hooks/useRedux'
 import { completeProfile } from '@/redux/slices/authSlice'
+import { validateImageFile } from '@/lib/utils'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type ExperienceEntry = {
@@ -368,6 +369,7 @@ export default function CompleteProfilePage() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      const err = validateImageFile(file); if (err) { alert(err); return }
       setProfilePhoto(file)
       const reader = new FileReader()
       reader.onload = (event) => setPreviewImage(event.target?.result as string)
@@ -378,6 +380,7 @@ export default function CompleteProfilePage() {
   const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      const err = validateImageFile(file); if (err) { alert(err); return }
       setCoverImage(file)
       const reader = new FileReader()
       reader.onload = (event) => setCoverPreview(event.target?.result as string)

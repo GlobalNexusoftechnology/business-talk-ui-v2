@@ -4,6 +4,7 @@ import { MessageCircle, ThumbsUp, Send} from 'lucide-react'
 import { useState } from 'react'
 import { ShareModal } from '@/components/shared/ShareModal'
 import { ContentData } from '@/hooks/useContentViewer'
+import { MediaGrid, MediaItem } from '@/components/shared/MediaGrid'
 
 interface PostViewCardProps {
   data: ContentData
@@ -252,30 +253,16 @@ export function PostViewCard({ data }: PostViewCardProps) {
         <p className="text-gray-800 leading-relaxed">{data.content}</p>
       </div>
 
-      {/* Image */}
-      {data.image && (
-        <div className="rounded-xl overflow-hidden">
-          <img
-            src={data.image}
-            alt="Post content"
-            className="w-full h-auto object-cover"
-          />
-        </div>
-      )}
-
-      {/* Video */}
-      {data.video && (
-        <div className="rounded-xl overflow-hidden">
-          <video
-            src={data.video}
-            className="w-full h-auto object-cover"
-            controls
-          >
-            <source src={data.video} type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
-        </div>
-      )}
+      {/* Media */}
+      {(() => {
+        const mediaItems: MediaItem[] = data.media && data.media.length > 0
+          ? data.media
+          : [
+              ...(data.image ? [{ url: data.image, type: 'image' as const }] : []),
+              ...(data.video ? [{ url: data.video, type: 'video' as const }] : []),
+            ]
+        return mediaItems.length > 0 ? <MediaGrid media={mediaItems} /> : null
+      })()}
 
       {/* Actions */}
       <div className="flex items-center gap-2 pt-4 border-t border-gray-100">

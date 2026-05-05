@@ -342,16 +342,25 @@ export default function GroupDetailsPage() {
   }
 
   const handleOpenGroupMessage = async () => {
-    if (!group) return
+    if (!group || openingChat) return
 
     try {
       setOpeningChat(true)
-      const res = await apiClient.getGroupChat(group.id)
+      let res = await apiClient.getGroupChat(group.id)
 
-      const conversationId =
+      let conversationId =
         res?.data?.id ||
         res?.data?.conversationId ||
         res?.data?.conversation?.id
+
+      // Fallback: GET endpoint returned no conversation — create it
+      if (!conversationId) {
+        res = await apiClient.getGroupChatOrCreate(group.id)
+        conversationId =
+          res?.data?.id ||
+          res?.data?.conversationId ||
+          res?.data?.conversation?.id
+      }
 
       if (conversationId) {
         router.push(`/messages?conversationId=${conversationId}`)

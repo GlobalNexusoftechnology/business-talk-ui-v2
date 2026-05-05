@@ -24,6 +24,7 @@ import { MoreVertical, Flag } from 'lucide-react'
 import { ReportModal } from '@/components/shared/ReportModal'
 import { useFollow } from '@/hooks/useFollow'
 import { useSavedStatus } from '@/hooks/useSavedStatus'
+import { useAccountStatus, useAppSelector } from '@/hooks/useRedux'
 import { getTimeAgo } from '@/lib/utils'
 
 interface Answer {
@@ -82,6 +83,7 @@ export function QuestionPost({
   const router = useRouter()
   const { state: followState, follow, unfollow } = useFollow(authorId)
   const { isSaved, toggle: toggleSave, showToast: showSavedToast } = useSavedStatus(id || undefined, 'post')
+  const { isBanned } = useAccountStatus()
 
   const [answersList, setAnswersList] = useState<Answer[]>([])
   const [answerText, setAnswerText] = useState('')
@@ -104,13 +106,19 @@ export function QuestionPost({
   const [dislikeAnimatingId, setDislikeAnimatingId] = useState<string | null>(null)
   const [currentUserId, setCurrentUserId] = useState('')
   const [isDeleted, setIsDeleted] = useState(false)
+  const [deleteToast, setDeleteToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const reduxUser = useAppSelector((state: any) => state.auth.user)
 
   useEffect(() => {
-    try {
-      const u = JSON.parse(localStorage.getItem('user') || '{}')
-      setCurrentUserId(u.id || '')
-    } catch {}
-  }, [])
+    if (reduxUser?.id) {
+      setCurrentUserId(String(reduxUser.id))
+    } else {
+      try {
+        const u = JSON.parse(localStorage.getItem('user') || '{}')
+        setCurrentUserId(String(u.id || ''))
+      } catch {}
+    }
+  }, [reduxUser])
 
   useEffect(() => {
     setIsLiked(Boolean(liked))
@@ -142,6 +150,7 @@ export function QuestionPost({
   // =========================
 
   const handleLikeQuestion = async () => {
+    if (isBanned) return
     setAnimatingId('question')
     setTimeout(() => setAnimatingId(null), 300)
 
@@ -151,7 +160,7 @@ export function QuestionPost({
       setLikeCount(res.upvotes)
       // setDislikeCount(res.downvotes)
 
-      setIsLiked(res.userVote === 'up')
+      setIsLiked(res.myVote === 'up' || Boolean(res.liked))
       setDisliked(false)
     } catch {
       // fallback
@@ -195,7 +204,7 @@ export function QuestionPost({
 
   const mapApiAnswerToUi = (apiComment: any): Answer => ({
     id: apiComment.id,
-    authorId: apiComment.user?.id || '',
+    authorId: String(apiComment.user?.id || ''),
     author: {
       name: apiComment.user?.full_name || apiComment.user?.username || 'Unknown',
       avatar: apiComment.user?.profile_photo || `https://ui-avatars.com/api/name=${encodeURIComponent(apiComment.user?.full_name || 'User')}`,
@@ -233,7 +242,7 @@ export function QuestionPost({
   // =========================
 
   const handlePostAnswer = async () => {
-    if (!answerText.trim()) return
+    if (!answerText.trim() || isBanned) return
 
     try {
       await apiClient.addPostComment(id, answerText)
@@ -253,7 +262,7 @@ export function QuestionPost({
   // =========================
 
   const handleAddReply = async (answerId: string, parentReplyId?: string) => {
-    if (!replyInput.trim()) return
+    if (!replyInput.trim() || isBanned) return
 
     try {
       await apiClient.addPostComment(
@@ -272,14 +281,27 @@ export function QuestionPost({
     }
   }
 
+  const showDeleteToast = (message: string, type: 'success' | 'error') => {
+    setDeleteToast({ message, type })
+    setTimeout(() => setDeleteToast(null), 3000)
+  }
+
   // Delete this question (only shown to author)
   const handleDeleteQuestion = async () => {
     if (!window.confirm('Delete this question? This cannot be undone.')) return
     try {
       await apiClient.deletePost(id)
       setIsDeleted(true)
-    } catch (err) {
-      console.error('Failed to delete question')
+      showDeleteToast('Question deleted successfully', 'success')
+    } catch (err: any) {
+      const status = err?.response?.status
+      if (status === 403) {
+        showDeleteToast('You can only delete your own content', 'error')
+      } else if (status === 401) {
+        showDeleteToast('Session expired. Please log in again.', 'error')
+      } else {
+        showDeleteToast(err?.response?.data?.message || 'Failed to delete question', 'error')
+      }
     }
   }
 
@@ -293,12 +315,23 @@ export function QuestionPost({
       }))
 
   const handleDeleteAnswer = async (answerId: string) => {
+    // Optimistic update
+    const prevList = answersList
+    setAnswersList(prev => removeAnswerRecursive(prev, String(answerId)))
     try {
       await apiClient.deletePostComment(answerId)
-      const targetId = String(answerId)
-      setAnswersList(prev => removeAnswerRecursive(prev, targetId))
-    } catch (err) {
-      console.error('Failed to delete answer')
+      showDeleteToast('Answer deleted', 'success')
+    } catch (err: any) {
+      // Rollback on failure
+      setAnswersList(prevList)
+      const status = err?.response?.status
+      if (status === 403) {
+        showDeleteToast('You can only delete your own content', 'error')
+      } else if (status === 401) {
+        showDeleteToast('Session expired. Please log in again.', 'error')
+      } else {
+        showDeleteToast(err?.response?.data?.message || 'Failed to delete answer', 'error')
+      }
     }
   }
 
@@ -436,9 +469,10 @@ export function QuestionPost({
                 <input
                   value={replyInput}
                   onChange={(e) => setReplyInput(e.target.value)}
-                  className="flex-1 border rounded-full px-3 py-1 text-xs"
+                  disabled={isBanned}
+                  className="flex-1 border rounded-full px-3 py-1 text-xs disabled:bg-gray-50 disabled:cursor-not-allowed"
                 />
-                <button onClick={() => handleAddReply(parentId, reply.id)}>
+                <button onClick={() => handleAddReply(parentId, reply.id)} disabled={isBanned} className="disabled:opacity-50 disabled:cursor-not-allowed">
                   Send
                 </button>
               </div>
@@ -457,6 +491,14 @@ export function QuestionPost({
 
   return (
     <>
+      {/* Delete toast */}
+      {deleteToast && (
+        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 text-white text-sm font-medium px-5 py-3 rounded-full shadow-xl ${
+          deleteToast.type === 'success' ? 'bg-gray-900' : 'bg-red-600'
+        }`}>
+          {deleteToast.message}
+        </div>
+      )}
       {/* Instagram-style saved toast */}
       {showSavedToast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-gray-900 text-white text-sm font-medium px-5 py-3 rounded-full shadow-xl">
@@ -508,7 +550,8 @@ export function QuestionPost({
                 </button>
                 <button
                   onClick={followState === 'connected' ? unfollow : follow}
-                  className="group p-2 rounded transition flex items-center gap-1 text-xs hover:bg-gray-100"
+                  disabled={isBanned}
+                  className="group p-2 rounded transition flex items-center gap-1 text-xs hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ color: '#374151' }}
                   title={
                     followState === 'connected'
@@ -569,7 +612,19 @@ export function QuestionPost({
         {/* QUESTION */}
         <h2
           onClick={() =>
-            openQuestion({ id, question: displayQuestion })
+            openQuestion({
+              id,
+              question: displayQuestion,
+              content: displayQuestion,
+              description,
+              tags,
+              author,
+              authorId,
+              timestamp,
+              likes: likeCount,
+              liked: isLiked,
+              views,
+            })
           }
           className="text-lg font-semibold cursor-pointer"
         >
@@ -607,9 +662,11 @@ export function QuestionPost({
           {/* 👍 LIKE */}
           <button
             onClick={handleLikeQuestion}
+            disabled={isBanned}
             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg 
               transition-all duration-200
               active:scale-90 hover:scale-105
+              disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100
               ${
                 isLiked
                   ? 'bg-blue-50 text-blue-600 scale-105'
@@ -640,7 +697,8 @@ export function QuestionPost({
         {!showAnswerBox ? (
           <button
             onClick={() => setShowAnswerBox(true)}
-            className="mt-4 w-full border rounded-full py-3 flex items-center gap-1 justify-center text-gray-500 transition-all hover:bg-gray-100"
+            disabled={isBanned}
+            className="mt-4 w-full border rounded-full py-3 flex items-center gap-1 justify-center text-gray-500 transition-all hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <PenLine className="inline w-4 h-4" /> Write your answer
           </button>
@@ -649,9 +707,11 @@ export function QuestionPost({
             <textarea
               value={answerText}
               onChange={(e) => setAnswerText(e.target.value)}
-              className="w-full border rounded-xl p-3"
+              disabled={isBanned}
+              placeholder={isBanned ? 'Your account is restricted' : undefined}
+              className="w-full border rounded-xl p-3 disabled:bg-gray-50 disabled:cursor-not-allowed"
             />
-            <button onClick={handlePostAnswer} className="mt-2 px-4 py-2 bg-black text-white rounded-full">
+            <button onClick={handlePostAnswer} disabled={isBanned} className="mt-2 px-4 py-2 bg-black text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed">
               Post Answer
             </button>
           </div>
@@ -710,9 +770,10 @@ export function QuestionPost({
                     <input
                       value={replyInput}
                       onChange={(e) => setReplyInput(e.target.value)}
-                      className="flex-1 border rounded-full px-3 py-1 text-xs"
+                      disabled={isBanned}
+                      className="flex-1 border rounded-full px-3 py-1 text-xs disabled:bg-gray-50 disabled:cursor-not-allowed"
                     />
-                    <button onClick={() => handleAddReply(answer.id)}>
+                    <button onClick={() => handleAddReply(answer.id)} disabled={isBanned} className="disabled:opacity-50 disabled:cursor-not-allowed">
                       Send
                     </button>
                   </div>

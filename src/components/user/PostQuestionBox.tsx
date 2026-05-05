@@ -4,8 +4,10 @@ import { HelpCircle, Tag, X } from 'lucide-react'
 import { useState } from 'react'
 import { TagsPopup } from '@/components/shared/TagsPopup'
 import apiClient from '@/lib/api-client'
+import { useAccountStatus } from '@/hooks/useRedux'
 
 export function PostQuestionBox() {
+  const { isBanned } = useAccountStatus()
   const [questionText, setQuestionText] = useState('')
   const [tags, setTags] = useState<string[]>([])
   const [showTagsPopup, setShowTagsPopup] = useState(false)
@@ -71,11 +73,17 @@ export function PostQuestionBox() {
         <h3 className="font-semibold text-gray-900">Ask a Question</h3>
       </div>
 
+      {isBanned && (
+        <p className="text-xs text-red-500 mb-3 text-center bg-red-50 p-2 rounded-lg">
+          Your account is restricted. You cannot post questions.
+        </p>
+      )}
       <textarea
         value={questionText}
-        placeholder='What would you like to know from the community?'
+        placeholder={isBanned ? 'Your account is restricted' : 'What would you like to know from the community?'}
         onChange={(e) => setQuestionText(e.target.value)}
-        className="w-full p-3 bg-gray-50 border rounded-xl"
+        disabled={isBanned}
+        className="w-full p-3 bg-gray-50 border rounded-xl disabled:cursor-not-allowed disabled:opacity-60"
       />
 
       <div className="flex flex-wrap justify-between gap-2 mt-3">
@@ -87,14 +95,14 @@ export function PostQuestionBox() {
         <div className="flex items-center gap-2">
           <button
             onClick={handleSaveDraft}
-            disabled={savingDraft || loading || !questionText.trim()}
+            disabled={savingDraft || loading || !questionText.trim() || isBanned}
             className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {savingDraft ? 'Saving...' : 'Save Draft'}
           </button>
           <button
             onClick={handlePostQuestion}
-            disabled={loading || !questionText.trim()}
+            disabled={loading || !questionText.trim() || isBanned}
             className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-400 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             {loading ? 'Posting...' : 'Post Question'}

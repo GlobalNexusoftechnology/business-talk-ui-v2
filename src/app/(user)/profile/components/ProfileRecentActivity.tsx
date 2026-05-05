@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import apiClient from '@/lib/api-client'
 import {
   MessageSquare,
@@ -48,9 +49,12 @@ function StatPill({ icon, count }: { icon: React.ReactNode; count?: number }) {
   )
 }
 
-function PostCard({ post }: { post: any }) {
+function PostCard({ post, onNavigate }: { post: any; onNavigate: (path: string) => void }) {
   return (
-    <div className="p-4 border-b last:border-b-0 hover:bg-gray-50 transition-colors">
+    <div
+      className="p-4 border-b last:border-b-0 hover:bg-gray-50 transition-colors cursor-pointer"
+      onClick={() => post.id && onNavigate(`/posts/${post.id}`)}
+    >
       <p className="text-sm text-gray-800 line-clamp-3 mb-2">
         {post.content || post.title || 'No content'}
       </p>
@@ -59,6 +63,7 @@ function PostCard({ post }: { post: any }) {
           src={post.media_url}
           alt=""
           className="rounded-lg w-full max-h-40 object-cover mb-2"
+          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
         />
       )}
       <div className="flex items-center gap-4 mt-1">
@@ -74,9 +79,12 @@ function PostCard({ post }: { post: any }) {
   )
 }
 
-function QuestionCard({ item }: { item: any }) {
+function QuestionCard({ item, onNavigate }: { item: any; onNavigate: (path: string) => void }) {
   return (
-    <div className="p-4 border-b last:border-b-0 hover:bg-gray-50 transition-colors">
+    <div
+      className="p-4 border-b last:border-b-0 hover:bg-gray-50 transition-colors cursor-pointer"
+      onClick={() => item.id && onNavigate(`/questions/${item.id}`)}
+    >
       <div className="flex items-start gap-2 mb-1">
         <FileQuestion className="w-4 h-4 text-purple-500 mt-0.5 shrink-0" />
         <p className="text-sm font-medium text-gray-800 line-clamp-2">{item.content || item.title}</p>
@@ -93,15 +101,20 @@ function QuestionCard({ item }: { item: any }) {
   )
 }
 
-function StoryCard({ item }: { item: any }) {
+function StoryCard({ item, onNavigate }: { item: any; onNavigate: (path: string) => void }) {
+  const storyPath = item.type?.toUpperCase() === 'BLOG' ? `/blogs/${item.id}` : `/stories/${item.id}`
   return (
-    <div className="p-4 border-b last:border-b-0 hover:bg-gray-50 transition-colors">
+    <div
+      className="p-4 border-b last:border-b-0 hover:bg-gray-50 transition-colors cursor-pointer"
+      onClick={() => item.id && onNavigate(storyPath)}
+    >
       <div className="flex gap-3">
         {item.cover_image && (
           <img
             src={item.cover_image}
             alt=""
             className="w-16 h-16 rounded-lg object-cover shrink-0"
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
           />
         )}
         <div className="flex-1 min-w-0">
@@ -120,9 +133,26 @@ function StoryCard({ item }: { item: any }) {
   )
 }
 
-function CommentCard({ item }: { item: any }) {
+function CommentCard({ item, onNavigate }: { item: any; onNavigate: (path: string) => void }) {
+  const handleClick = () => {
+    if (item.post_id) {
+      const t = (item.post_type || '').toUpperCase()
+      onNavigate(t === 'QUESTION' ? `/questions/${item.post_id}` : `/posts/${item.post_id}`)
+      return
+    }
+    if (item.blog_id) {
+      const t = (item.blog_type || '').toUpperCase()
+      onNavigate(t === 'STORY' ? `/stories/${item.blog_id}` : `/blogs/${item.blog_id}`)
+      return
+    }
+    const parentId = item.parent_id || item.content_id
+    if (parentId) onNavigate(`/posts/${parentId}`)
+  }
   return (
-    <div className="p-4 border-b last:border-b-0 hover:bg-gray-50 transition-colors">
+    <div
+      className="p-4 border-b last:border-b-0 hover:bg-gray-50 transition-colors cursor-pointer"
+      onClick={handleClick}
+    >
       <div className="flex items-start gap-2">
         <MessageSquare className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
         <div className="flex-1 min-w-0">
@@ -158,6 +188,8 @@ export function ProfileRecentActivity({
     recentFollows?: any[]
   } | null
 }) {
+  const router = useRouter()
+  const navigate = (path: string) => router.push(path)
   const [activeTab, setActiveTab] = useState<ActivityTab>('posts')
   const [items, setItems] = useState<Record<ActivityTab, any[]>>({
     posts: [], questions: [], stories: [], comments: [],
@@ -279,10 +311,10 @@ export function ProfileRecentActivity({
           </div>
         ) : (
           <>
-            {activeTab === 'posts' && current.map((p, i) => <PostCard key={p.id ?? i} post={p} />)}
-            {activeTab === 'questions' && current.map((p, i) => <QuestionCard key={p.id ?? i} item={p} />)}
-            {activeTab === 'stories' && current.map((p, i) => <StoryCard key={p.id ?? i} item={p} />)}
-            {activeTab === 'comments' && current.map((p, i) => <CommentCard key={p.id ?? i} item={p} />)}
+            {activeTab === 'posts' && current.map((p, i) => <PostCard key={p.id ?? i} post={p} onNavigate={navigate} />)}
+            {activeTab === 'questions' && current.map((p, i) => <QuestionCard key={p.id ?? i} item={p} onNavigate={navigate} />)}
+            {activeTab === 'stories' && current.map((p, i) => <StoryCard key={p.id ?? i} item={p} onNavigate={navigate} />)}
+            {activeTab === 'comments' && current.map((p, i) => <CommentCard key={p.id ?? i} item={p} onNavigate={navigate} />)}
 
             {hasMore[activeTab] && (
               <button

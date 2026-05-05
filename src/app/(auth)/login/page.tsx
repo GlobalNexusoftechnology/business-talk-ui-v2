@@ -32,6 +32,12 @@ export default function LoginPage() {
     try {
       const result = await dispatch(login(data))
       if (login.fulfilled.match(result)) {
+        // 🚫 Restricted user — redirect to restriction page (do not logout)
+        if (result.payload.isRestricted) {
+          router.push('/account-restricted')
+          return
+        }
+
         // Redirect based on role
         const roleId = result.payload.user.role_id
 

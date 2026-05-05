@@ -1,21 +1,26 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { ShieldAlert, LogOut } from 'lucide-react'
+import { ShieldAlert, LogOut, Mail } from 'lucide-react'
+import { useAppSelector } from '@/hooks/useRedux'
 import apiClient from '@/lib/api-client'
+
+const SUPPORT_EMAIL = 'support@yourapp.com'
 
 export default function AccountRestrictedPage() {
   const router = useRouter()
+  const user = useAppSelector((state) => state.auth.user)
 
-  const handleGoToLogin = async () => {
+  const handleLogout = async () => {
     try {
       await apiClient.logout()
     } catch {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('user')
-      }
-      router.replace('/login')
+      // ignore API errors — still clear local state
     }
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('user')
+    }
+    router.replace('/login')
   }
 
   return (
@@ -24,20 +29,48 @@ export default function AccountRestrictedPage() {
         <div className="mx-auto w-14 h-14 rounded-full bg-red-50 text-red-600 flex items-center justify-center mb-4">
           <ShieldAlert className="w-7 h-7" />
         </div>
+
         <h1 className="text-2xl font-semibold mb-2" style={{ color: '#212529' }}>
           Account Restricted
         </h1>
-        <p className="text-sm mb-6" style={{ color: '#5F6368' }}>
-          Your account access is restricted. Please contact support if you believe this is a mistake.
+
+        <p className="text-sm mb-2" style={{ color: '#5F6368' }}>
+          Your account has been restricted.
         </p>
-        <button
-          onClick={handleGoToLogin}
-          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg"
-          style={{ backgroundColor: '#212529', color: '#FFFFFF' }}
-        >
-          <LogOut className="w-4 h-4" />
-          Go to Login
-        </button>
+        <p className="text-sm mb-6" style={{ color: '#5F6368' }}>
+          Please contact support at{' '}
+          <a
+            href={`mailto:${SUPPORT_EMAIL}`}
+            className="text-blue-600 hover:underline font-medium"
+          >
+            {SUPPORT_EMAIL}
+          </a>
+        </p>
+
+        {user && (
+          <p className="text-xs mb-6 text-gray-400">
+            Logged in as {user.email}
+          </p>
+        )}
+
+        <div className="flex flex-col gap-3">
+          <a
+            href={`mailto:${SUPPORT_EMAIL}?subject=Account Restriction Appeal&body=Hello, my account (${user?.email ?? ''}) has been restricted. I would like to appeal this decision.`}
+            className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
+          >
+            <Mail className="w-4 h-4" />
+            Contact Support
+          </a>
+
+          <button
+            onClick={handleLogout}
+            className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium hover:bg-gray-50 transition-colors"
+            style={{ borderColor: '#E8E8E8', color: '#5F6368' }}
+          >
+            <LogOut className="w-4 h-4" />
+            Sign Out
+          </button>
+        </div>
       </div>
     </div>
   )

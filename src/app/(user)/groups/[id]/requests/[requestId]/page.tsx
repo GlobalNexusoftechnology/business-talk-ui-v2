@@ -96,13 +96,11 @@ export default function GroupRequestProfilePage() {
     if (!targetUserId) return
     try {
       setOpeningChat(true)
-      const res = await apiClient.startConversation([targetUserId])
-      const conversation = res.data
-      const conversationId = conversation?.id || conversation?.conversationId
-      if (conversationId) router.push(`/messages?conversationId=${conversationId}`)
+      const conv = await apiClient.getOrCreateConversation(targetUserId)
+      if (conv.id) router.push(`/messages?conversationId=${conv.id}`)
       else router.push('/messages')
     } catch (err) {
-      console.error('Start chat error', err)
+      console.error('Open chat error', err)
       router.push('/messages')
     } finally {
       setOpeningChat(false)

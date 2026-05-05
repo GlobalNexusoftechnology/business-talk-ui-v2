@@ -15,6 +15,7 @@ import {
   Pencil,
 } from 'lucide-react'
 import apiClient from '@/lib/api-client'
+import { MediaGrid, MediaItem } from '@/components/shared/MediaGrid'
 
 export interface AdminContentCardProps {
   id: string
@@ -121,7 +122,6 @@ export function AdminContentCard({
   const [showComments, setShowComments] = useState(false)
   const [comments, setComments] = useState<any[]>([])
   const [loadingComments, setLoadingComments] = useState(false)
-  const [playingVideo, setPlayingVideo] = useState<string | null>(null)
 
   const loadComments = async () => {
     if (showComments) {
@@ -145,12 +145,6 @@ export function AdminContentCard({
       setLoadingComments(false)
     }
   }
-
-  const images = media.filter((m) => m.type !== 'video' && m.url)
-  const videos = media.filter((m) => m.type === 'video' && m.url)
-  const allImages = coverImage
-    ? [{ url: coverImage }, ...images]
-    : images
 
   return (
     <div
@@ -222,60 +216,14 @@ export function AdminContentCard({
             </div>
           )}
 
-          {/* Images grid */}
-          {allImages.length > 0 && (
-            <div
-              className={`grid gap-2 mb-3 ${
-                allImages.length === 1 ? 'grid-cols-1' : 'grid-cols-2'
-              }`}
-            >
-              {allImages.slice(0, 4).map((img, i) => (
-                <div
-                  key={i}
-                  className="relative rounded-lg overflow-hidden bg-gray-100"
-                  style={{ aspectRatio: '16/9' }}
-                >
-                  <img
-                    src={img.url}
-                    alt=""
-                    className="w-full h-full object-cover"
-                  />
-                  {i === 3 && allImages.length > 4 && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-semibold text-xl">
-                      +{allImages.length - 4}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Videos */}
-          {videos.map((v, i) => (
-            <div
-              key={i}
-              className="relative rounded-lg overflow-hidden bg-black mb-3"
-            >
-              {playingVideo === v.url ? (
-                <video
-                  src={v.url}
-                  controls
-                  autoPlay
-                  className="w-full max-h-72"
-                />
-              ) : (
-                <div
-                  className="relative flex items-center justify-center bg-gray-900 cursor-pointer"
-                  style={{ aspectRatio: '16/9' }}
-                  onClick={() => setPlayingVideo(v.url)}
-                >
-                  <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors">
-                    <Play className="w-7 h-7 text-white fill-white" />
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
+          {/* Media Grid */}
+          {(() => {
+            const mediaItems: MediaItem[] = [
+              ...(coverImage ? [{ url: coverImage, type: 'image' as const }] : []),
+              ...media.map((m) => ({ url: m.url, type: (m.type === 'video' ? 'video' : 'image') as 'image' | 'video' })),
+            ].filter((m) => m.url)
+            return mediaItems.length > 0 ? <MediaGrid media={mediaItems} /> : null
+          })()}
 
           {/* Stats bar */}
           <div

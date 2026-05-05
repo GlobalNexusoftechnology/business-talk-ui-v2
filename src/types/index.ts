@@ -14,6 +14,8 @@ export interface User {
   experience?: string
   location?: string
   role_id: 'USER' | 'ADMIN'
+  is_banned?: boolean
+  is_shadow_banned?: boolean
   created_at: string
   updated_at: string
 }
@@ -24,6 +26,8 @@ export interface AuthState {
   isLoading: boolean
   error: string | null
   isAuthenticated: boolean
+  /** True when the user is banned. They can login but cannot perform actions. */
+  isRestricted: boolean
 }
 
 export interface LoginRequest {

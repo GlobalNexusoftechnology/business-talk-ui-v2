@@ -22,6 +22,7 @@ import { useStoryComments } from '@/hooks/useStoryComments'
 import { useStoryLike } from '@/hooks/useStoryLike'
 import { useFollow } from '@/hooks/useFollow'
 import { useSavedStatus } from '@/hooks/useSavedStatus'
+import { useAccountStatus, useAppSelector } from '@/hooks/useRedux'
 import { getTimeAgo } from '@/lib/utils'
 import { ReportModal } from '../shared/ReportModal'
 import apiClient from '@/lib/api-client'
@@ -77,11 +78,14 @@ export function StoryPost({
   const [isLiked, setIsLiked] = useState(liked)
   const [likeCount, setLikeCount] = useState(likes || 0)
   const [commentLikeOverrides, setCommentLikeOverrides] = useState<Record<string, { count: number; liked?: boolean }>>({})
+  const [deleteToast, setDeleteToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const reduxUser = useAppSelector((state: any) => state.auth.user)
 
   // ✅ HOOKS (STANDARDIZED)
   const { comments, addComment, likeComment, isLikingComment, deleteComment } = useStoryComments(id)
   const { likeStory, isLiking } = useStoryLike(id)
   const { state: followState, follow, unfollow } = useFollow(authorId)
+  const { isBanned } = useAccountStatus()
   const { isSaved, toggle: toggleSave, showToast: showSavedToast } = useSavedStatus(id || undefined, 'blog')
 
   useEffect(() => {
@@ -95,11 +99,15 @@ export function StoryPost({
   }, [])
 
   useEffect(() => {
-    try {
-      const u = JSON.parse(localStorage.getItem('user') || '{}')
-      setCurrentUserId(u.id || '')
-    } catch {}
-  }, [])
+    if (reduxUser?.id) {
+      setCurrentUserId(String(reduxUser.id))
+    } else {
+      try {
+        const u = JSON.parse(localStorage.getItem('user') || '{}')
+        setCurrentUserId(String(u.id || ''))
+      } catch {}
+    }
+  }, [reduxUser])
 
   useEffect(() => {
     setLikeCount(likes || 0)
@@ -124,7 +132,7 @@ export function StoryPost({
     comments.forEach((c) => {
       map[c.id] = {
         id: c.id,
-        authorId: c.user?.id || '',
+        authorId: String(c.user?.id || ''),
         content: c.content,
         likes: Number(c.likes ?? c.likes_count ?? c.upvotes ?? 0),
         timestamp: new Date(Number(c.created_on)).toLocaleString(),
@@ -197,7 +205,7 @@ export function StoryPost({
   // 💬 ADD COMMENT
   // =========================
   const handleAddComment = () => {
-    if (!commentInput.trim()) return
+    if (!commentInput.trim() || isBanned) return
 
     addComment({ content: commentInput })
     setCommentInput('')
@@ -207,7 +215,7 @@ export function StoryPost({
   // 🔁 ADD REPLY
   // =========================
   const handleAddReply = (parentId: string) => {
-    if (!replyInput.trim()) return
+    if (!replyInput.trim() || isBanned) return
 
     addComment({
       content: replyInput,
@@ -263,20 +271,34 @@ export function StoryPost({
     }
   }
 
+  const showDeleteToast = (message: string, type: 'success' | 'error') => {
+    setDeleteToast({ message, type })
+    setTimeout(() => setDeleteToast(null), 3000)
+  }
+
   // Delete this story (only shown to author)
   const handleDeleteStory = async () => {
     if (!window.confirm('Delete this story? This cannot be undone.')) return
     try {
       await apiClient.deleteBlog(id)
       setIsDeleted(true)
-    } catch (err) {
-      console.error('Failed to delete story')
+      showDeleteToast('Story deleted successfully', 'success')
+    } catch (err: any) {
+      const status = err?.response?.status
+      if (status === 403) {
+        showDeleteToast('You can only delete your own content', 'error')
+      } else if (status === 401) {
+        showDeleteToast('Session expired. Please log in again.', 'error')
+      } else {
+        showDeleteToast(err?.response?.data?.message || 'Failed to delete story', 'error')
+      }
     }
   }
 
   // Delete a blog comment (only shown to comment author)
   const handleDeleteComment = (commentId: string) => {
     deleteComment(commentId)
+    showDeleteToast('Comment deleted', 'success')
   }
 
   // =========================
@@ -306,7 +328,8 @@ export function StoryPost({
                 <div className="flex gap-3 text-xs mt-1">
                   <button
                     onClick={() => handleLikeComment(reply.id, reply.likes)}
-                    className="flex items-center gap-1"
+                    disabled={isBanned}
+                    className="flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{ color: animatingId === reply.id || commentLikeOverrides[reply.id]?.liked ? '#1d9bf0' : undefined }}
                   >
                     <ThumbsUp
@@ -321,6 +344,8 @@ export function StoryPost({
                     onClick={() =>
                       setReplyingTo(reply.id)
                     }
+                    disabled={isBanned}
+                    className="disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Reply
                   </button>
@@ -344,12 +369,15 @@ export function StoryPost({
                   onChange={(e) =>
                     setReplyInput(e.target.value)
                   }
-                  className="flex-1 border rounded-full px-3 py-1 text-xs"
+                  disabled={isBanned}
+                  className="flex-1 border rounded-full px-3 py-1 text-xs disabled:bg-gray-50 disabled:cursor-not-allowed"
                 />
                 <button
                   onClick={() =>
                     handleAddReply(reply.id)
                   }
+                  disabled={isBanned}
+                  className="disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Send
                 </button>
@@ -368,6 +396,14 @@ export function StoryPost({
   // =========================
   return (
     <>
+      {/* Delete toast */}
+      {deleteToast && (
+        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 text-white text-sm font-medium px-5 py-3 rounded-full shadow-xl ${
+          deleteToast.type === 'success' ? 'bg-gray-900' : 'bg-red-600'
+        }`}>
+          {deleteToast.message}
+        </div>
+      )}
       {/* Instagram-style saved toast */}
       {showSavedToast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-gray-900 text-white text-sm font-medium px-5 py-3 rounded-full shadow-xl">
@@ -428,7 +464,8 @@ export function StoryPost({
                 </button>
                 <button
                   onClick={followState === 'connected' ? unfollow : follow}
-                  className="group p-2 rounded transition flex items-center gap-1 text-xs hover:bg-gray-100"
+                  disabled={isBanned}
+                  className="group p-2 rounded transition flex items-center gap-1 text-xs hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ color: '#374151' }}
                   title={
                     followState === 'connected'
@@ -494,7 +531,19 @@ export function StoryPost({
             alt={storyTitle}
             className="rounded-xl mb-4 cursor-pointer"
             onClick={() =>
-              openStory({ id, storyTitle })
+              openStory({
+                id,
+                storyTitle,
+                content: excerpt,
+                excerpt,
+                coverImage,
+                author,
+                authorId,
+                timestamp,
+                likes: likeCount,
+                liked: isLiked,
+                views,
+              })
             }
           />
         )}
@@ -503,7 +552,19 @@ export function StoryPost({
         <h2
           className="font-semibold text-lg cursor-pointer"
           onClick={() =>
-            openStory({ id, storyTitle })
+            openStory({
+              id,
+              storyTitle,
+              content: excerpt,
+              excerpt,
+              coverImage,
+              author,
+              authorId,
+              timestamp,
+              likes: likeCount,
+              liked: isLiked,
+              views,
+            })
           }
         >
           {storyTitle}
@@ -518,8 +579,8 @@ export function StoryPost({
 
           <button
             onClick={handleLike}
-            disabled={isLiking}
-            className="flex items-center gap-1"
+            disabled={isLiking || isBanned}
+            className="flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ color: isLiked ? '#1d9bf0' : undefined }}
           >
             <ThumbsUp
@@ -561,9 +622,11 @@ export function StoryPost({
                 onChange={(e) =>
                   setCommentInput(e.target.value)
                 }
-                className="flex-1 border rounded-full px-3 py-1"
+                disabled={isBanned}
+                placeholder={isBanned ? 'Your account is restricted' : undefined}
+                className="flex-1 border rounded-full px-3 py-1 disabled:bg-gray-50 disabled:cursor-not-allowed"
               />
-              <button onClick={handleAddComment}>
+              <button onClick={handleAddComment} disabled={isBanned} className="disabled:opacity-50 disabled:cursor-not-allowed">
                 Post
               </button>
             </div>
@@ -580,8 +643,9 @@ export function StoryPost({
                     onClick={() =>
                       handleLikeComment(c.id, c.likes)
                     }
+                    disabled={isBanned}
                     style={{ color: animatingId === c.id || commentLikeOverrides[c.id]?.liked ? '#1d9bf0' : undefined }}
-                    className="flex items-center gap-1"
+                    className="flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <ThumbsUp
                           className={`w-5 h-5 transition-all duration-200 ${
@@ -594,6 +658,8 @@ export function StoryPost({
                     onClick={() =>
                       setReplyingTo(c.id)
                     }
+                    disabled={isBanned}
+                    className="disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Reply
                   </button>
@@ -618,11 +684,15 @@ export function StoryPost({
                           e.target.value
                         )
                       }
+                      disabled={isBanned}
+                      className="flex-1 border rounded-full px-3 py-1 text-xs disabled:bg-gray-50 disabled:cursor-not-allowed"
                     />
                     <button
                       onClick={() =>
                         handleAddReply(c.id)
                       }
+                      disabled={isBanned}
+                      className="disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Send
                     </button>

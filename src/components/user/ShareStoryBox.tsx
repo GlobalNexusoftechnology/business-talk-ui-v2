@@ -4,6 +4,7 @@ import { X, ImageIcon, BookOpen, Tag } from 'lucide-react'
 import { useState } from 'react'
 import { TagsPopup } from '@/components/shared/TagsPopup'
 import apiClient from '@/lib/api-client'
+import { validateImageFile } from '@/lib/utils'
 
 export function ShareStoryBox() {
   const [storyTitle, setStoryTitle] = useState('')
@@ -44,7 +45,11 @@ export function ShareStoryBox() {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setCoverImage(Array.from(e.target.files))
+      const file = e.target.files[0]
+      if (!file) return
+      const err = validateImageFile(file)
+      if (err) { alert(err); return }
+      setCoverImage([file])
     }
   }
 
@@ -143,7 +148,20 @@ export function ShareStoryBox() {
       </div>
 
       {coverImage.length > 0 && (
-        <p className="text-sm mt-2">{coverImage.length} file selected</p>
+        <div className="relative inline-block mt-3">
+          <img
+            src={URL.createObjectURL(coverImage[0])}
+            alt="Cover preview"
+            className="h-36 max-w-full rounded-xl border border-gray-200 object-cover"
+          />
+          <button
+            type="button"
+            onClick={() => setCoverImage([])}
+            className="absolute -top-1.5 -right-1.5 bg-gray-900 text-white rounded-full w-5 h-5 flex items-center justify-center hover:bg-red-500 transition-colors"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        </div>
       )}
 
       <div className="flex flex-nowrap overflow-x-auto gap-2 mt-2 pb-1">

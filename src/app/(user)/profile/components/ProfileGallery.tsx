@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Bookmark, Image, Loader2, FileText, BookOpen } from 'lucide-react'
 import apiClient from '@/lib/api-client'
 
 type GalleryTab = 'media' | 'saved'
 
 export function ProfileGallery() {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<GalleryTab>('media')
   const [mediaItems, setMediaItems] = useState<any[]>([])
   const [savedItems, setSavedItems] = useState<any[]>([])
@@ -116,14 +118,15 @@ export function ProfileGallery() {
                       src={item.url}
                       className="w-full h-full object-cover"
                       muted
-                      onMouseEnter={e => (e.currentTarget as HTMLVideoElement).play()}
-                      onMouseLeave={e => (e.currentTarget as HTMLVideoElement).pause()}
+                      onMouseEnter={e => { (e.currentTarget as HTMLVideoElement).play().catch(() => {}) }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLVideoElement).pause() }}
                     />
                   ) : (
                     <img
                       src={item.url}
                       alt={item.name || `Media item ${item.id || ''}`.trim()}
                       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
                     />
                   )}
 
@@ -184,24 +187,40 @@ export function ProfileGallery() {
                 const data = item.data
                 const isPost = item.type === 'post'
                 const isBlog = item.type === 'blog' || item.type === 'story'
+                const rawSrc = data?.cover_image || data?.media
+                const imgSrc = rawSrc && typeof rawSrc === 'string' && rawSrc !== 'null' && rawSrc !== 'undefined' && rawSrc.length > 0 ? rawSrc : null
+
+                const handleCardClick = () => {
+                  const id = data?.id
+                  if (!id) return
+                  const type = (item.type ?? '').toLowerCase()
+                  if (type === 'post') {
+                    const postType = (data?.type || data?.post_type || '').toUpperCase()
+                    router.push(postType === 'QUESTION' ? `/questions/${id}` : `/posts/${id}`)
+                  } else if (type === 'story') {
+                    router.push(`/stories/${id}`)
+                  } else if (type === 'blog') {
+                    const blogType = (data?.type || '').toUpperCase()
+                    router.push(blogType === 'STORY' ? `/stories/${id}` : `/blogs/${id}`)
+                  }
+                }
 
                 return (
                   <div
                     key={item.savedId}
-                    className="flex gap-4 p-4 rounded-xl border hover:border-gray-300 transition group"
+                    className="flex gap-4 p-4 rounded-xl border hover:border-gray-300 transition group cursor-pointer"
                     style={{ borderColor: '#E8E8E8' }}
+                    onClick={handleCardClick}
                   >
                     {/* Thumbnail */}
-                    {(data?.media || data?.cover_image) && (
+                    {imgSrc ? (
                       <img
-                        src={data?.media || data?.cover_image}
+                        src={imgSrc}
                         alt={data?.title ? `${data.title} thumbnail` : `${item.type} thumbnail`}
                         className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
                       />
-                    )}
-
-                    {/* No thumbnail — icon placeholder */}
-                    {!(data?.media || data?.cover_image) && (
+                    ) : (
                       <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
                         {isBlog ? (
                           <BookOpen className="w-6 h-6 text-gray-300" />
@@ -229,7 +248,7 @@ export function ProfileGallery() {
                         </div>
 
                         <button
-                          onClick={() => handleUnsave(item)}
+                          onClick={(e) => { e.stopPropagation(); handleUnsave(item) }}
                           className="flex-shrink-0 p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition"
                           title="Remove from saved"
                         >

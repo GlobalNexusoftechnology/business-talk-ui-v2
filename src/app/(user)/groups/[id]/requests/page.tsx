@@ -36,9 +36,8 @@ function RequestCard({ req, approveMutation, rejectMutation, router }: {
     if (!userId) return
     try {
       setMessaging(true)
-      const res = await apiClient.startConversation([userId])
-      const convId = res.data?.id || res.data?.conversationId
-      if (convId) router.push(`/messages/${convId}`)
+      const conv = await apiClient.getOrCreateConversation(userId)
+      if (conv.id) router.push(`/messages?conversationId=${conv.id}`)
     } catch { /* ignore */ } finally { setMessaging(false) }
   }
 

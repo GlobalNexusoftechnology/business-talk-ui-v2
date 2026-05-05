@@ -2,6 +2,7 @@
 
 import { MapPin, Briefcase } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import apiClient from '@/lib/api-client'
 
 export interface ProfileHeaderProps {
@@ -24,17 +25,18 @@ export function ProfileHeader({
 }: ProfileHeaderProps) {
 
   const router = useRouter()
+  const [messagingLoading, setMessagingLoading] = useState(false)
 
   const handleMessage = async () => {
+    if (messagingLoading) return
     try {
-      const res = await apiClient.startConversation([userId]) // Start conversation with the profile user
-
-      const conversation = res.data
-
-      router.push(`/messages?conversationId=${conversation.id}`)
-
+      setMessagingLoading(true)
+      const conv = await apiClient.getOrCreateConversation(userId)
+      router.push(`/messages?conversationId=${conv.id}`)
     } catch (err) {
-      console.error('Start chat error', err)
+      console.error('Open chat error', err)
+    } finally {
+      setMessagingLoading(false)
     }
   }
 
@@ -122,12 +124,13 @@ export function ProfileHeader({
               {/* MESSAGE */}
               <button
                 onClick={handleMessage}
-                className="px-4 py-2 text-sm font-medium rounded-lg border border-[#212529] text-[#212529] transition-all duration-200 active:scale-95"
+                disabled={messagingLoading}
+                className="px-4 py-2 text-sm font-medium rounded-lg border border-[#212529] text-[#212529] transition-all duration-200 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
                 style={{ backgroundColor: 'transparent' }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8F9FA')}
+                onMouseEnter={(e) => { if (!messagingLoading) e.currentTarget.style.backgroundColor = '#F8F9FA' }}
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
               >
-                Message
+                {messagingLoading ? 'Opening chat...' : 'Message'}
               </button>
 
             </div>

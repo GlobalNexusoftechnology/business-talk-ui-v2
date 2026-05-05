@@ -14,6 +14,7 @@ import {
 import { useState, useEffect } from 'react'
 
 import apiClient from '@/lib/api-client'
+import { validateImageFile } from '@/lib/utils'
 
 
 type ExperienceEntry = {
@@ -598,6 +599,8 @@ export default function SettingsPage() {
 
     const file = e.target.files?.[0]; if (!file) return
 
+    const err = validateImageFile(file); if (err) { alert(err); return }
+
     setProfilePhoto(file)
 
     const r = new FileReader(); r.onload = ev => setPhotoPreview(ev.target?.result as string); r.readAsDataURL(file)
@@ -607,6 +610,8 @@ export default function SettingsPage() {
   const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 
     const file = e.target.files?.[0]; if (!file) return
+
+    const err = validateImageFile(file); if (err) { alert(err); return }
 
     setCoverImage(file)
 

@@ -1,11 +1,12 @@
 'use client'
 
-import { Search, Clock, Eye, BookmarkPlus, Send } from 'lucide-react'
+import { Search, Clock, Eye, BookmarkPlus, Send, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useEffect } from 'react'
 import apiClient from '@/lib/api-client'
 import { useRouter } from 'next/navigation'
 import { ShareModal } from '@/components/shared/ShareModal'
+import { useAppSelector } from '@/hooks/useRedux'
 
 interface Author {
   name: string
@@ -31,12 +32,31 @@ const categories = ['All', 'Technology', 'Entrepreneurship', 'Marketing', 'Leade
 
 export default function BlogsPage() {
   const router = useRouter()
+  const reduxUser = useAppSelector((state: any) => state.auth.user)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('All')
   const [showShareModal, setShowShareModal] = useState(false)
   const [blogs, setBlogs] = useState<Blog[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedBlog, setSelectedBlog] = useState<Blog | null>(null)
+  const [currentUserId, setCurrentUserId] = useState('')
+  const [deleteToast, setDeleteToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+
+  const showDeleteToast = (message: string, type: 'success' | 'error') => {
+    setDeleteToast({ message, type })
+    setTimeout(() => setDeleteToast(null), 3000)
+  }
+
+  useEffect(() => {
+    if (reduxUser?.id) {
+      setCurrentUserId(String(reduxUser.id))
+    } else {
+      try {
+        const u = JSON.parse(localStorage.getItem('user') || '{}')
+        setCurrentUserId(String(u.id || ''))
+      } catch {}
+    }
+  }, [reduxUser])
 
   useEffect(() => {
     const fetchBlogs = async () => {
@@ -82,7 +102,35 @@ export default function BlogsPage() {
     router.push(`/blogs/${blog.id}`)
   }
 
+  const handleDeleteBlog = async (blogId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!window.confirm('Delete this blog? This cannot be undone.')) return
+    try {
+      await apiClient.deleteBlog(blogId)
+      setBlogs(prev => prev.filter(b => b.id !== blogId))
+      showDeleteToast('Blog deleted successfully', 'success')
+    } catch (err: any) {
+      const status = err?.response?.status
+      if (status === 403) {
+        showDeleteToast('You can only delete your own content', 'error')
+      } else if (status === 401) {
+        showDeleteToast('Session expired. Please log in again.', 'error')
+      } else {
+        showDeleteToast(err?.response?.data?.message || 'Failed to delete blog', 'error')
+      }
+    }
+  }
+
   return (
+    <>
+    {/* Delete toast */}
+    {deleteToast && (
+      <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 text-white text-sm font-medium px-5 py-3 rounded-full shadow-xl ${
+        deleteToast.type === 'success' ? 'bg-gray-900' : 'bg-red-600'
+      }`}>
+        {deleteToast.message}
+      </div>
+    )}
     <div className="p-6 overflow-y-auto" style={{ backgroundColor: '#F8F9FA' }}>
       <div className="max-w-5xl mx-auto">
         {/* Header */}
@@ -189,6 +237,16 @@ export default function BlogsPage() {
                   <Eye className="w-4 h-4" />
                   {blogs[0]?.views.toLocaleString()} views
                 </span>
+                {currentUserId && currentUserId === String(blogs[0]?.authorId) && (
+                  <button
+                    onClick={(e) => blogs[0] && handleDeleteBlog(blogs[0].id, e)}
+                    className="flex items-center gap-1 text-red-500 hover:text-red-700 transition-colors ml-2"
+                    title="Delete blog"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span className="text-xs">Delete</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -270,6 +328,15 @@ export default function BlogsPage() {
                         >
                           <Send className="w-5 h-5" />
                         </button>
+                        {currentUserId && currentUserId === String(blog.authorId) && (
+                          <button
+                            onClick={(e) => handleDeleteBlog(blog.id, e)}
+                            className="p-2 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors cursor-pointer"
+                            title="Delete blog"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -287,5 +354,6 @@ export default function BlogsPage() {
         postContent={selectedBlog?.excerpt}
       />
     </div>
+    </>
   )
 }

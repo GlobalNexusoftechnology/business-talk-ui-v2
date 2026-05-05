@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { ImageIcon, Tag } from 'lucide-react'
+import { ImageIcon, Tag, X } from 'lucide-react'
 import { TagsPopup } from '@/components/shared/TagsPopup'
 import apiClient from '@/lib/api-client'
+import { validateImageFile } from '@/lib/utils'
 
 export function AdminCreateStoryBox() {
   const [title, setTitle] = useState('')
@@ -55,9 +56,32 @@ export function AdminCreateStoryBox() {
         className="w-full mt-3 p-3 bg-gray-50 border rounded-xl"
       />
 
+      {cover.length > 0 && (
+        <div className="relative inline-block mt-3">
+          <img
+            src={URL.createObjectURL(cover[0])}
+            alt="Cover preview"
+            className="h-36 max-w-full rounded-xl border border-gray-200 object-cover"
+          />
+          <button
+            type="button"
+            onClick={() => setCover([])}
+            className="absolute -top-1.5 -right-1.5 bg-gray-900 text-white rounded-full w-5 h-5 flex items-center justify-center hover:bg-red-500 transition-colors"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-wrap justify-between gap-2 mt-4">
         <div className="flex gap-4">
-          <input hidden type="file" id="story-img" onChange={(e) => setCover(Array.from(e.target.files || []))} />
+          <input hidden type="file" id="story-img" accept="image/jpeg,image/png,image/gif,image/webp" onChange={(e) => {
+            const file = e.target.files?.[0]
+            if (!file) return
+            const err = validateImageFile(file)
+            if (err) { alert(err); return }
+            setCover([file])
+          }} />
           <label htmlFor="story-img" className="cursor-pointer">
             <ImageIcon />
           </label>

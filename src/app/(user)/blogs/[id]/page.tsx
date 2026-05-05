@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Trash2 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { ShareModal } from '@/components/shared/ShareModal'
 import apiClient from '@/lib/api-client'
@@ -32,6 +32,7 @@ interface Blog {
 /* ================== 🆕 ADDED: Comment Type ================== */
 interface Comment {
   id: string
+  authorId: string
   content: string
   createdAt: string
   user: {
@@ -45,6 +46,7 @@ function normalizeComment(c: any): Comment {
   const u = c.user ?? c.author ?? {}
   return {
     id: String(c.id),
+    authorId: String(u.id ?? u.user_id ?? ''),
     content: c.content ?? c.comment ?? '',
     createdAt: c.created_on ?? c.createdAt ?? '',
     user: {
@@ -58,11 +60,15 @@ function normalizeComment(c: any): Comment {
 function BlogCommentItem({
   comment,
   blogId,
+  currentUserId,
   onReplyAdded,
+  onCommentDeleted,
 }: {
   comment: Comment
   blogId: string
+  currentUserId: string
   onReplyAdded: (parentId: string, reply: Comment) => void
+  onCommentDeleted: (commentId: string) => void
 }) {
   const [showReply, setShowReply] = useState(false)
   const [replyText, setReplyText] = useState('')
@@ -78,6 +84,14 @@ function BlogCommentItem({
       setShowReply(false)
     } catch { /* silent */ }
     finally { setSubmitting(false) }
+  }
+
+  const handleDelete = async () => {
+    if (!window.confirm('Delete this comment?')) return
+    try {
+      await apiClient.deleteBlogComment(comment.id)
+      onCommentDeleted(comment.id)
+    } catch { /* silent */ }
   }
 
   return (
@@ -103,6 +117,16 @@ function BlogCommentItem({
             >
               Reply
             </button>
+            {currentUserId && currentUserId === comment.authorId && (
+              <button
+                onClick={handleDelete}
+                className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 transition-colors"
+                title="Delete comment"
+              >
+                <Trash2 className="w-3 h-3" />
+                Delete
+              </button>
+            )}
           </div>
 
           {showReply && (
@@ -129,7 +153,7 @@ function BlogCommentItem({
           {comment.replies && comment.replies.length > 0 && (
             <div className="mt-3 ml-4 pl-4 space-y-3" style={{ borderLeft: '2px solid #E8E8E8' }}>
               {comment.replies.map(reply => (
-                <BlogCommentItem key={reply.id} comment={reply} blogId={blogId} onReplyAdded={onReplyAdded} />
+                <BlogCommentItem key={reply.id} comment={reply} blogId={blogId} currentUserId={currentUserId} onReplyAdded={onReplyAdded} onCommentDeleted={onCommentDeleted} />
               ))}
             </div>
           )}
@@ -150,9 +174,17 @@ export default function BlogDetailsPage() {
   // const [isBookmarked, setIsBookmarked] = useState(false)
   // const [isLiked, setIsLiked] = useState(false)
 
-  /* ================== 🆕 ADDED: Comment States ================== */
   const [comments, setComments] = useState<Comment[]>([])
   const [newComment, setNewComment] = useState('')
+  const [currentUserId, setCurrentUserId] = useState('')
+  const [isDeleted, setIsDeleted] = useState(false)
+
+  useEffect(() => {
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || '{}')
+      setCurrentUserId(String(u.id || ''))
+    } catch {}
+  }, [])
 
   useEffect(() => {
     if (!blogId) return
@@ -260,17 +292,48 @@ export default function BlogDetailsPage() {
     setComments(prev => addReply(prev))
   }
 
+  /* ================== 🆕 ADDED: Delete Blog ================== */
+  const handleDeleteBlog = async () => {
+    if (!blog || !window.confirm('Delete this blog? This cannot be undone.')) return
+    try {
+      await apiClient.deleteBlog(blog.id)
+      setIsDeleted(true)
+    } catch { console.error('Failed to delete blog') }
+  }
+
+  /* ================== 🆕 ADDED: Delete Comment ================== */
+  const handleCommentDeleted = (commentId: string) => {
+    const remove = (list: Comment[]): Comment[] =>
+      list
+        .filter(c => c.id !== commentId)
+        .map(c => ({ ...c, replies: c.replies ? remove(c.replies) : [] }))
+    setComments(prev => remove(prev))
+  }
+
   if (loading) return <div className="p-6">Loading blog...</div>
   if (!blog) return <div className="p-6">Blog not found</div>
+  if (isDeleted) return <div className="p-6">Blog deleted.</div>
 
   return (
     <div className="p-6 bg-[#F8F9FA] min-h-screen">
       <div className="max-w-3xl mx-auto">
 
         {/* BACK */}
-        <button onClick={() => router.back()} className="mb-6 flex gap-2">
-          <ArrowLeft /> Back to blogs
-        </button>
+        <div className="mb-6 flex items-center justify-between">
+          <button onClick={() => router.back()} className="flex gap-2">
+            <ArrowLeft /> Back to blogs
+          </button>
+          {currentUserId && currentUserId === String(blog.authorId) && (
+            <button
+              onClick={handleDeleteBlog}
+              className="flex items-center gap-1 text-red-500 hover:text-red-700 transition-colors text-sm"
+              title="Delete blog"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete blog
+            </button>
+          )}
+        </div>
 
         {/* IMAGE */}
         <img src={blog.image} alt={blog.title} className="w-full h-48 sm:h-64 md:h-80 object-cover rounded-xl mb-6" />
@@ -303,7 +366,9 @@ export default function BlogDetailsPage() {
                 key={comment.id}
                 comment={comment}
                 blogId={blogId}
+                currentUserId={currentUserId}
                 onReplyAdded={handleReplyAdded}
+                onCommentDeleted={handleCommentDeleted}
               />
             ))}
           </div>
