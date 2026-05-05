@@ -2,6 +2,10 @@
 
 import { Bell, Search, Menu, X } from 'lucide-react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { useDispatch } from 'react-redux'
+import type { AppDispatch } from '@/redux/store'
+import { getUnreadCount } from '@/redux/slices/notificationsSlice'
 import { useAuth } from '@/hooks/useRedux'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useState, useEffect } from 'react'
@@ -15,9 +19,16 @@ interface UserNavbarProps {
 export const UserNavbar = ({ onMenuClick, children }: UserNavbarProps) => {
   const { user, isAuthenticated } = useAuth()
   const { unreadCount } = useNotifications()
+  const dispatch = useDispatch<AppDispatch>()
+  const pathname = usePathname()
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [avatarLoadFailed, setAvatarLoadFailed] = useState(false)
+
+  // Re-fetch unread count on every route change so the badge is always in sync
+  useEffect(() => {
+    dispatch(getUnreadCount())
+  }, [pathname, dispatch])
 
   // ✅ Fix hydration mismatch
   const [mounted, setMounted] = useState(false)

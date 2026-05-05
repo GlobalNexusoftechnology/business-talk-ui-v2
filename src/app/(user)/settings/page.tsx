@@ -699,33 +699,8 @@ export default function SettingsPage() {
 
 
 
-  // Reusable styled input for the profile tab (keeps existing style)
-
-  const SInput = ({ label, stateKey, type }: {
-
-    label: string; stateKey: keyof typeof profile; type?: string
-
-  }) => (
-
-    <div>
-
-      <label className="block text-sm font-medium mb-2" style={{ color: '#212529' }}>{label}</label>
-
-      <input type={type ?? 'text'} value={profile[stateKey]}
-
-        onChange={e => setProfile(p => ({ ...p, [stateKey]: e.target.value }))}
-
-        placeholder={profile[stateKey] || undefined}
-
-        className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition-all"
-
-        style={{ backgroundColor: '#F8F9FA', border: '1px solid #E8E8E8', color: '#212529' }}
-
-        onFocus={e => (e.currentTarget.style.outlineColor = '#1976D2')} />
-
-    </div>
-
-  )
+  const inputCls = 'w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition-all'
+  const inputStyle = { backgroundColor: '#F8F9FA', border: '1px solid #E8E8E8', color: '#212529' }
 
 
 
@@ -913,15 +888,40 @@ export default function SettingsPage() {
 
                   <h2 className="text-xl font-semibold" style={{ color: '#212529' }}>Basic Information</h2>
 
-                  <SInput label="Full Name"           stateKey="full_name" />
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: '#212529' }}>Full Name</label>
+                    <input type="text" value={profile.full_name}
+                      onChange={e => setProfile(p => ({ ...p, full_name: e.target.value }))}
+                      placeholder="Your full name" className={inputCls} style={inputStyle} />
+                  </div>
 
-                  <SInput label="Professional Title"  stateKey="profession" />
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: '#212529' }}>Professional Title</label>
+                    <input type="text" value={profile.profession}
+                      onChange={e => setProfile(p => ({ ...p, profession: e.target.value }))}
+                      placeholder="Ex: Senior Software Engineer" className={inputCls} style={inputStyle} />
+                  </div>
 
-                  <SInput label="Company"             stateKey="company" />
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: '#212529' }}>Company</label>
+                    <input type="text" value={profile.company}
+                      onChange={e => setProfile(p => ({ ...p, company: e.target.value }))}
+                      placeholder="Ex: Google" className={inputCls} style={inputStyle} />
+                  </div>
 
-                  <SInput label="Location"            stateKey="location" />
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: '#212529' }}>Location</label>
+                    <input type="text" value={profile.location}
+                      onChange={e => setProfile(p => ({ ...p, location: e.target.value }))}
+                      placeholder="Ex: London, UK" className={inputCls} style={inputStyle} />
+                  </div>
 
-                  <SInput label="Phone Number"        stateKey="phone_number" type="tel" />
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: '#212529' }}>Phone Number</label>
+                    <input type="tel" value={profile.phone_number}
+                      onChange={e => setProfile(p => ({ ...p, phone_number: e.target.value }))}
+                      placeholder="+1 234 567 8900" className={inputCls} style={inputStyle} />
+                  </div>
 
                   <div>
 

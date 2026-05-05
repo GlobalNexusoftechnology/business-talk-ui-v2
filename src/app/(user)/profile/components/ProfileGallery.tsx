@@ -73,24 +73,24 @@ export function ProfileGallery() {
         <div className="flex gap-2">
           <button
             onClick={() => setActiveTab('media')}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"
+            className="flex items-center gap-1.5 px-2 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all"
             style={{
               backgroundColor: activeTab === 'media' ? '#212529' : '#F8F9FA',
               color: activeTab === 'media' ? '#FFFFFF' : '#5F6368',
             }}
           >
-            <ImageIcon className="w-4 h-4" />
+            <ImageIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             My Media
           </button>
           <button
             onClick={() => setActiveTab('saved')}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"
+            className="flex items-center gap-1.5 px-2 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all"
             style={{
               backgroundColor: activeTab === 'saved' ? '#212529' : '#F8F9FA',
               color: activeTab === 'saved' ? '#FFFFFF' : '#5F6368',
             }}
           >
-            <Bookmark className="w-4 h-4" />
+            <Bookmark className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             Saved
           </button>
         </div>

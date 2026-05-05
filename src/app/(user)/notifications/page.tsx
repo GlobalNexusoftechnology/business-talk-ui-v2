@@ -2,6 +2,9 @@
 
 import { CheckCheck } from 'lucide-react'
 import { useState, useMemo, useEffect } from 'react'
+import { useDispatch } from 'react-redux'
+import type { AppDispatch } from '@/redux/store'
+import { markAsRead as reduxMarkAsRead, markAllAsRead as reduxMarkAllAsRead } from '@/redux/slices/notificationsSlice'
 import { useWebSocket } from '@/providers/WebSocketProvider'
 import { useRouter } from 'next/navigation'
 import { NotificationList } from '@/components/notifications/NotificationList'
@@ -53,6 +56,7 @@ export default function NotificationsPage() {
   const [filter, setFilter] = useState<'all' | 'unread' >('all') /*| 'mentions' if mention is added in future */
   const [loading, setLoading] = useState(false)
 
+  const dispatch = useDispatch<AppDispatch>()
   const router = useRouter()
   const { wsManager } = useWebSocket()
 
@@ -174,26 +178,18 @@ export default function NotificationsPage() {
   // =========================
   // MARK READ
   // =========================
-  const handleMarkAsRead = async (id: string) => {
+  const handleMarkAsRead = (id: string) => {
     setNotifications((prev) =>
-      prev.map((n) =>
-        n.id === id ? { ...n, is_read: true } : n
-      )
+      prev.map((n) => n.id === id ? { ...n, is_read: true } : n)
     )
-
-    try {
-      await apiClient.markNotificationAsRead(id)
-    } catch {}
+    dispatch(reduxMarkAsRead(id))
   }
 
-  const handleMarkAllAsRead = async () => {
+  const handleMarkAllAsRead = () => {
     setNotifications((prev) =>
       prev.map((n) => ({ ...n, is_read: true }))
     )
-
-    try {
-      await apiClient.markAllNotificationsRead()
-    } catch {}
+    dispatch(reduxMarkAllAsRead())
   }
 
   // =========================

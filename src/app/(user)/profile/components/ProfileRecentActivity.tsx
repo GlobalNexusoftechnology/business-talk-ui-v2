@@ -58,14 +58,20 @@ function PostCard({ post, onNavigate }: { post: any; onNavigate: (path: string) 
       <p className="text-sm text-gray-800 line-clamp-3 mb-2">
         {post.content || post.title || 'No content'}
       </p>
-      {post.media_url && (
-        <img
-          src={post.media_url}
-          alt=""
-          className="rounded-lg w-full max-h-40 object-cover mb-2"
-          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
-        />
-      )}
+      {(() => {
+        const videoSrc = post.video_url || post.video
+        const imgSrc = post.media_url || post.media_urls?.[0] || post.media?.[0]?.url ||
+          post.media || post.image_url || post.image ||
+          (Array.isArray(post.images) ? (post.images[0]?.url || post.images[0]) : null)
+        if (videoSrc) return (
+          <video src={videoSrc} className="rounded-lg w-full max-h-40 object-cover mb-2" controls />
+        )
+        if (imgSrc && typeof imgSrc === 'string') return (
+          <img src={imgSrc} alt="" className="rounded-lg w-full max-h-40 object-cover mb-2"
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+        )
+        return null
+      })()}
       <div className="flex items-center gap-4 mt-1">
         {/* API returns upvotes/downvotes; fall back to likes_count for other sources */}
         <StatPill icon={<Heart className="w-3 h-3" />} count={post.upvotes ?? post.likes_count ?? post.likes} />
@@ -200,7 +206,7 @@ export function ProfileRecentActivity({
     posts: 1, questions: 1, stories: 1, comments: 1,
   })
   const [hasMore, setHasMore] = useState<Record<ActivityTab, boolean>>({
-    posts: true, questions: true, stories: true, comments: true,
+    posts: false, questions: false, stories: false, comments: false,
   })
 
   // Pre-populate from the /user/activity API response
