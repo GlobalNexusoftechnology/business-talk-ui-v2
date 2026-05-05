@@ -55,7 +55,7 @@ function MediaLightbox({
     >
       {/* Close */}
       <button
-        className="absolute top-4 right-4 z-10 text-white bg-white/10 hover:bg-white/25 rounded-full p-2 transition-colors"
+        className="absolute top-4 right-4 z-10 text-white bg-gray-500 hover:bg-gray-700 rounded-full p-2 transition-colors"
         onClick={e => { e.stopPropagation(); onClose() }}
         aria-label="Close"
       >
@@ -72,7 +72,7 @@ function MediaLightbox({
       {/* Prev arrow — only when a previous item exists */}
       {index > 0 && (
         <button
-          className="absolute left-4 z-10 text-white bg-white/10 hover:bg-white/25 rounded-full p-3 transition-colors"
+          className="absolute left-4 z-10 text-white bg-gray-500 hover:bg-gray-700 rounded-full p-3 transition-colors"
           onClick={e => { e.stopPropagation(); goPrev() }}
           aria-label="Previous"
         >
@@ -83,7 +83,7 @@ function MediaLightbox({
       {/* Next arrow — only when a next item exists */}
       {index < media.length - 1 && (
         <button
-          className="absolute right-4 z-10 text-white bg-white/10 hover:bg-white/25 rounded-full p-3 transition-colors"
+          className="absolute right-4 z-10 text-white bg-gray-500 hover:bg-gray-700 rounded-full p-3 transition-colors"
           onClick={e => { e.stopPropagation(); goNext() }}
           aria-label="Next"
         >
