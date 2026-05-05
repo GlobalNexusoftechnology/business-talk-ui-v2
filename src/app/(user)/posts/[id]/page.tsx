@@ -25,6 +25,7 @@ interface Post {
   type: string
   content: string
   image?: string
+  video?: string
   author: Author
   createdAt: string
   upvotes: number
@@ -307,6 +308,20 @@ export default function PostDetailPage() {
           {post.image && (
             <img src={post.image} alt="Post media" className="w-full rounded-xl object-cover max-h-[480px] mb-4" />
           )}
+
+          {/* Video */}
+          {post.video && (
+            <div className="mb-4 rounded-xl overflow-hidden">
+              <video
+              src={post.video}
+              className="w-full h-48 sm:h-80 object-contain"
+              controls
+            >
+              <source src={post.video} type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+          </div>
+        )}
 
           {/* Tags */}
           {post.tags.length > 0 && (

@@ -24,15 +24,16 @@ interface FeedPostProps {
   video?: string
   timestamp: string
   likes: number
+  liked?: boolean
   dislikes: number
   comments: number
   sends: number
 }
 
-export function FeedPost({ id = Date.now().toString(), authorId = '', author, content, image, video, timestamp, likes, comments, sends }: FeedPostProps) {
+export function FeedPost({ id = Date.now().toString(), authorId = '', author, content, image, video, timestamp, likes, liked = false, comments, sends }: FeedPostProps) {
   const router = useRouter()
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string; avatar: string }>({ id: '', name: 'You', avatar: '' })
-  const [liked, setLiked] = useState(false)
+  const [isLiked, setIsLiked] = useState(liked)
   const [likeCount, setLikeCount] = useState(likes)
   const [showShareModal, setShowShareModal] = useState(false)
   const [showActionMenu, setShowActionMenu] = useState(false)
@@ -62,6 +63,10 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
       setCurrentUser({ id: u.id || '', name: u.username || u.full_name || 'You', avatar: u.profile_photo || '' })
     } catch {}
   }, [])
+
+  useEffect(() => {
+    setIsLiked(Boolean(liked))
+  }, [liked])
 
   useEffect(() => {
     const fetchCommentsCount = async () => {
@@ -215,14 +220,14 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
       // API returns updated vote counts and user's vote
       const { upvotes, userVote } = res
       setLikeCount(upvotes)
-      setLiked(userVote === 'up')
+      setIsLiked(userVote === 'up')
     } catch (err) {
       // fallback to optimistic UI
-      if (liked) {
-        setLiked(false)
+      if (isLiked) {
+        setIsLiked(false)
         setLikeCount(likeCount - 1)
       } else {
-        setLiked(true)
+        setIsLiked(true)
         setLikeCount(likeCount + 1)
       }
     }
@@ -551,7 +556,7 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
               active:scale-90
               hover:scale-105 hover:shadow-sm
               ${
-                liked
+                isLiked
                   ? 'bg-blue-50 text-[#1d9bf0] scale-105'
                   : 'text-gray-600 hover:text-[#1d9bf0] hover:bg-blue-50'
               }`}

@@ -58,6 +58,7 @@ interface QuestionPostProps {
   answers?: number
   views?: number
   likes?: number
+  liked?: boolean
   dislikes?: number
 }
 
@@ -73,6 +74,7 @@ export function QuestionPost({
   // answers,
   views,
   likes = 0,
+  liked = false,
   // dislikes = 0
 }: QuestionPostProps) {
 
@@ -94,7 +96,7 @@ export function QuestionPost({
   const [likeCount, setLikeCount] = useState(likes || 0)
   // const [dislikeCount, setDislikeCount] = useState(dislikes || 0)
 
-  const [liked, setLiked] = useState(false)
+  const [isLiked, setIsLiked] = useState(liked)
   const [disliked, setDisliked] = useState(false)
   const [likedAnswers, setLikedAnswers] = useState<Set<string>>(new Set())
   const [dislikedAnswers, setDislikedAnswers] = useState<Set<string>>(new Set())
@@ -109,6 +111,10 @@ export function QuestionPost({
       setCurrentUserId(u.id || '')
     } catch {}
   }, [])
+
+  useEffect(() => {
+    setIsLiked(Boolean(liked))
+  }, [liked])
 
   useEffect(() => {
     const handleClickOutside = (e: any) => {
@@ -145,15 +151,15 @@ export function QuestionPost({
       setLikeCount(res.upvotes)
       // setDislikeCount(res.downvotes)
 
-      setLiked(res.userVote === 'up')
+      setIsLiked(res.userVote === 'up')
       setDisliked(false)
     } catch {
       // fallback
-      if (liked) {
-        setLiked(false)
+      if (isLiked) {
+        setIsLiked(false)
         setLikeCount(prev => prev - 1)
       } else {
-        setLiked(true)
+        setIsLiked(true)
         setLikeCount(prev => prev + 1)
 
         if (disliked) {
@@ -605,7 +611,7 @@ export function QuestionPost({
               transition-all duration-200
               active:scale-90 hover:scale-105
               ${
-                liked
+                isLiked
                   ? 'bg-blue-50 text-blue-600 scale-105'
                   : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600'
               }`}

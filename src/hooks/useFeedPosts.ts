@@ -44,6 +44,7 @@ export function useFeedPosts(postType: 'NORMAL' | 'QUESTION') {
           },
 
           likes: post.upvotes || 0,
+          liked: Boolean(post.liked ?? post.is_liked ?? (post.userVote === 'up') ?? false),
           dislikes: post.downvotes || 0,
 
           views: post.views || post.view_count || 0,
