@@ -76,7 +76,7 @@ function MediaLightbox({
           onClick={e => { e.stopPropagation(); goPrev() }}
           aria-label="Previous"
         >
-          <ChevronLeft className="w-7 h-7" />
+          <ChevronLeft className="w-7 h-7 bg-gray-500" />
         </button>
       )}
 
@@ -87,7 +87,7 @@ function MediaLightbox({
           onClick={e => { e.stopPropagation(); goNext() }}
           aria-label="Next"
         >
-          <ChevronRight className="w-7 h-7" />
+          <ChevronRight className="w-7 h-7 bg-gray-500" />
         </button>
       )}
 
