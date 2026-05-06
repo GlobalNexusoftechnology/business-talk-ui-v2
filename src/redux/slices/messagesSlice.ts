@@ -39,9 +39,9 @@ export const getConversations = createAsyncThunk(
 
 export const getMessages = createAsyncThunk(
   'messages/getMessages',
-  async ({ conversationId, page }: { conversationId: string; page?: number }, { rejectWithValue }: any) => {
+  async ({ conversationId, cursor }: { conversationId: string; cursor?: string }, { rejectWithValue }: any) => {
     try {
-      const response = await apiClient.getMessages(conversationId, page)
+      const response = await apiClient.getMessages(conversationId, cursor)
       return response.data
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch messages')

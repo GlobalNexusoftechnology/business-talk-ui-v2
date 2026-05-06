@@ -4,8 +4,8 @@
 
 import {
 
-  User, Lock, Bell, Shield, Mail, 
-  // Smartphone, Eye, Globe,
+  User, Lock, Bell, Shield, Mail, Smartphone,
+  // Eye, Globe,
 
   Upload, X, Briefcase, GraduationCap, Plus, Pencil, Trash2,
 
@@ -15,6 +15,14 @@ import { useState, useEffect } from 'react'
 
 import apiClient from '@/lib/api-client'
 import { validateImageFile } from '@/lib/utils'
+import { useAppDispatch, useAppSelector } from '@/hooks/useRedux'
+import {
+  requestPushPermission,
+  revokePushPermission,
+  savePushPreferences,
+  syncPermissionState,
+} from '@/redux/slices/pushSlice'
+import { isPushSupported, getPushPermissionState } from '@/lib/fcm'
 
 
 type ExperienceEntry = {
@@ -467,6 +475,190 @@ function EducationModal({ initial, onSave, onClose }: {
 
 // â”€â”€ Main component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+
+// ─── Notifications tab (req 15 — notification preference UI) ─────────────────
+
+function Toggle({
+  checked,
+  onChange,
+  disabled,
+}: {
+  checked: boolean;
+  onChange: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      onClick={onChange}
+      disabled={disabled}
+      className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-40"
+      style={{ backgroundColor: checked ? '#1976D2' : '#BDBDBD' }}
+      role="switch"
+      aria-checked={checked}
+    >
+      <span
+        className="inline-block h-4 w-4 rounded-full bg-white transition-transform"
+        style={{ transform: checked ? 'translateX(24px)' : 'translateX(4px)' }}
+      />
+    </button>
+  );
+}
+
+function NotificationsTab({
+  emailNotifications,
+  setEmailNotifications,
+}: {
+  emailNotifications: boolean;
+  setEmailNotifications: (v: boolean) => void;
+}) {
+  const dispatch = useAppDispatch();
+  const permission = useAppSelector((s) => s.push.permission);
+  const isRegistering = useAppSelector((s) => s.push.isRegistering);
+  const registrationError = useAppSelector((s) => s.push.registrationError);
+  const prefs = useAppSelector((s) => s.push.preferences);
+  const isRegisteredWithBackend = useAppSelector((s) => s.push.isRegisteredWithBackend);
+  const supported = isPushSupported();
+
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      dispatch(syncPermissionState(getPushPermissionState()));
+    }
+  }, [dispatch]);
+
+  const handleEnablePush = async () => {
+    await dispatch(requestPushPermission());
+  };
+
+  const handleDisablePush = async () => {
+    await dispatch(revokePushPermission());
+  };
+
+  const handleTogglePref = (key: keyof typeof prefs) => {
+    dispatch(savePushPreferences({ [key]: !prefs[key] }));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSaveSuccess(false);
+    await dispatch(savePushPreferences(prefs));
+    setSaving(false);
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 3000);
+  };
+
+  const prefRows: { key: keyof Omit<typeof prefs, 'enabled'>; label: string; desc: string }[] = [
+    { key: 'likes',        label: 'Likes',          desc: 'When someone likes your content' },
+    { key: 'comments',     label: 'Comments',       desc: 'New comments on your posts' },
+    { key: 'follows',      label: 'Follows',        desc: 'When someone follows you' },
+    { key: 'messages',     label: 'Messages',       desc: 'New direct messages' },
+    { key: 'mentions',     label: 'Mentions',       desc: 'When someone mentions you' },
+    { key: 'groups',       label: 'Groups',         desc: 'Group activity and join requests' },
+    { key: 'systemAlerts', label: 'System alerts',  desc: 'Important account notifications' },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-2xl shadow-sm border p-6" style={{ border: '1px solid #E8E8E8' }}>
+        <h2 className="text-xl font-semibold mb-4" style={{ color: '#212529' }}>Email Notifications</h2>
+        <div className="flex items-center justify-between p-4 rounded-lg" style={{ backgroundColor: '#F8F9FA' }}>
+          <div className="flex items-center gap-3">
+            <Mail className="w-5 h-5" style={{ color: '#5F6368' }} />
+            <div>
+              <p className="font-medium" style={{ color: '#212529' }}>Email Notifications</p>
+              <p className="text-sm" style={{ color: '#5F6368' }}>Receive notifications via email</p>
+            </div>
+          </div>
+          <Toggle checked={emailNotifications} onChange={() => setEmailNotifications(!emailNotifications)} />
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-sm border p-6" style={{ border: '1px solid #E8E8E8' }}>
+        <h2 className="text-xl font-semibold mb-1" style={{ color: '#212529' }}>Push Notifications</h2>
+        <p className="text-sm text-gray-500 mb-4">Real-time alerts delivered directly to your browser or device.</p>
+
+        {!supported && (
+          <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+            Push notifications are not supported in this browser. Try Chrome, Edge, or Firefox. On iOS, install Business Talk 24 to your Home Screen via Safari.
+          </div>
+        )}
+
+        {supported && permission === 'denied' && (
+          <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+            You have blocked push notifications. Open your browser site settings and allow notifications for this site, then refresh the page.
+          </div>
+        )}
+
+        {supported && (permission === 'default' || !isRegisteredWithBackend) && permission !== 'denied' && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-4 rounded-lg" style={{ backgroundColor: '#F8F9FA' }}>
+              <div className="flex items-center gap-3">
+                <Bell className="w-5 h-5" style={{ color: '#5F6368' }} />
+                <div>
+                  <p className="font-medium" style={{ color: '#212529' }}>Push Notifications</p>
+                  <p className="text-sm" style={{ color: '#5F6368' }}>Click Enable to allow browser push notifications</p>
+                </div>
+              </div>
+              <button onClick={handleEnablePush} disabled={isRegistering}
+                className="px-4 py-2 text-sm font-semibold rounded-lg text-white transition-all disabled:opacity-50"
+                style={{ backgroundColor: '#1976D2' }}>
+                {isRegistering ? 'Enabling\u2026' : 'Enable'}
+              </button>
+            </div>
+            {registrationError && <p className="text-xs text-red-600 px-1">{registrationError}</p>}
+          </div>
+        )}
+
+        {supported && permission === 'granted' && isRegisteredWithBackend && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-4 rounded-lg border-2" style={{ backgroundColor: '#F0F7FF', borderColor: '#1976D2' }}>
+              <div className="flex items-center gap-3">
+                <Smartphone className="w-5 h-5 text-blue-600" />
+                <div>
+                  <p className="font-semibold text-blue-900">Push Notifications Active</p>
+                  <p className="text-sm text-blue-700">Your device is registered to receive push alerts</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Toggle checked={prefs.enabled} onChange={() => handleTogglePref('enabled')} />
+                <button onClick={handleDisablePush} className="text-xs text-red-500 hover:text-red-700 underline transition-colors">Disable</button>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-gray-200 overflow-hidden">
+              <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                <p className="text-sm font-semibold text-gray-700">Notify me about\u2026</p>
+              </div>
+              {prefRows.map((row, i) => (
+                <div key={row.key} className={`flex items-center justify-between px-4 py-3 ${i < prefRows.length - 1 ? 'border-b border-gray-100' : ''}`}>
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">{row.label}</p>
+                    <p className="text-xs text-gray-500">{row.desc}</p>
+                  </div>
+                  <Toggle checked={prefs[row.key]} onChange={() => handleTogglePref(row.key)} disabled={!prefs.enabled} />
+                </div>
+              ))}
+            </div>
+
+            <button onClick={handleSave} disabled={saving}
+              className="px-6 py-3 text-white rounded-lg transition-all disabled:opacity-50"
+              style={{ backgroundColor: '#212529' }}
+              onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#3D3D3D')}
+              onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#212529')}>
+              {saving ? 'Saving\u2026' : saveSuccess ? 'Saved \u2713' : 'Save Preferences'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="text-sm text-gray-500 bg-gray-50 rounded-xl p-4 border border-gray-200">
+        We are continuously improving our notification features and will have more options soon.
+      </div>
+    </div>
+  );
+}
 export default function SettingsPage() {
 
   const [activeTab, setActiveTab] = useState('profile')
@@ -1290,7 +1482,18 @@ export default function SettingsPage() {
 
 
 
-            {/* â”€â”€ NOTIFICATIONS TAB â”€â”€ */}
+      
+
+            {/* ── NOTIFICATIONS TAB ── */}
+
+            {activeTab === 'notifications' && (
+              <NotificationsTab
+                emailNotifications={emailNotifications}
+                setEmailNotifications={setEmailNotifications}
+              />
+            )}
+
+       {/* â”€â”€ NOTIFICATIONS TAB â”€â”€ */}
 
             {activeTab === 'notifications' && (
 

@@ -491,10 +491,13 @@ class ApiClient {
     return this.client.get('/chat/my/conversations')
   }
 
-  // FIXED
-  getMessages(conversationId: string, page?: number) {
+  // FIXED — cursor pagination: pass `before` (Unix ms string) to load older messages
+  getMessages(conversationId: string, cursor?: string, limit = 50) {
     return this.client.get(`/chat/${conversationId}/messages`, {
-      params: { page },
+      params: {
+        ...(cursor ? { before: cursor } : {}),
+        limit,
+      },
     })
   }
 
@@ -1128,6 +1131,28 @@ class ApiClient {
 
   getUserStats(userId: string) {
     return this.client.get(`/user/${userId}/stats`)
+  }
+
+  // =========================
+  // 🔔 PUSH NOTIFICATIONS (FCM)
+  // =========================
+
+  /**
+   * Register a push token with the backend (req 7).
+   * The server should store the token per-user for sending pushes.
+   */
+  registerPushToken(token: string) {
+    return this.client.post('/push/register', { token, platform: 'web' })
+  }
+
+  /** Unregister (revoke) a push token — called on logout or permission revoke. */
+  unregisterPushToken(token: string) {
+    return this.client.post('/push/unregister', { token })
+  }
+
+  /** Persist push preference booleans server-side. */
+  updatePushPreferences(preferences: Record<string, boolean>) {
+    return this.client.patch('/push/preferences', preferences)
   }
 }
 

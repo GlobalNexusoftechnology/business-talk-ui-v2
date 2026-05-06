@@ -1,123 +1,312 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-import apiClient from '@/lib/api-client'
+﻿import {
+  createSlice,
+  createAsyncThunk,
+  createEntityAdapter,
+  type PayloadAction,
+} from '@reduxjs/toolkit';
+import apiClient from '@/lib/api-client';
+import type {
+  NotificationEntity,
+  NotificationsState,
+} from '@/types/notification';
 
-interface Notification {
-  id: string
-  message: string
-  created_on: string
-  is_read: boolean
-  sender?: {
-    username?: string
-    profile_photo?: string
-  }
-  type?: string
-}
+// ─── Constants ────────────────────────────────────────────────────────────────
 
-interface NotificationsState {
-  notifications: Notification[]
-  unreadCount: number
-  isLoading: boolean
-  error: string | null
-}
+/** Minimum time (ms) before the same page is re-fetched from the API. */
+export const NOTIFICATION_STALE_TIME_MS = 5 * 60 * 1000; // 5 minutes
+export const NOTIFICATIONS_PER_PAGE = 20;
 
-const initialState: NotificationsState = {
-  notifications: [],
+// ─── Entity Adapter ───────────────────────────────────────────────────────────
+// IDs are strings; sortComparer keeps ids[] in newest-first order at all times.
+
+export const notificationsAdapter = createEntityAdapter<NotificationEntity>({
+  sortComparer: (a: NotificationEntity, b: NotificationEntity) => b.createdAt - a.createdAt,
+});
+
+// ─── Parse helper ─────────────────────────────────────────────────────────────
+// Converts raw API/WS payload → NotificationEntity.
+// Handles both future format (embedded actor object) and legacy (actor_id only).
+// NO getUserById calls — if actor data isn't present, defaults to "Unknown".
+
+export const parseApiNotification = (n: any): NotificationEntity => {
+  // Prefer embedded actor, fall back to sender, then construct from actor_id fields
+  const actorRaw =
+    n.actor ??
+    n.sender ??
+    {
+      id: n.actor_id ?? '',
+      full_name: n.actor_name ?? '',
+      profile_photo: n.actor_avatar ?? null,
+    };
+
+  const actorName =
+    (actorRaw?.full_name as string) ||
+    (actorRaw?.name as string) ||
+    (actorRaw?.username as string) ||
+    'Unknown';
+
+  return {
+    id: (n.id as string) ?? '',
+    type: (n.type as string) ?? 'unknown',
+    message: (n.message as string) ?? '',
+    createdAt: Number(n.created_on ?? n.createdAt ?? n.created_at ?? 0),
+    isRead: n.is_read === true,
+    actor: {
+      id: (actorRaw?.id as string) ?? '',
+      name: actorName,
+      avatar:
+        (actorRaw?.profile_photo as string) ??
+        (actorRaw?.avatar as string) ??
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(actorName)}`,
+    },
+    entityId: (n.entity_id as string) ?? '',
+    entityType: (n.entity_type as string) ?? '',
+  };
+};
+
+// ─── Async Thunks ─────────────────────────────────────────────────────────────
+
+type FetchPayload = {
+  entities: NotificationEntity[];
+  page: number;
+  hasMore: boolean;
+  total: number | null;
+};
+
+type FetchArg = { page?: number; force?: boolean } | undefined;
+
+/**
+ * Fetches notifications from the API.
+ *
+ * Stale cache prevention (req 13): the `condition` callback skips the API call
+ * entirely when data was fetched within NOTIFICATION_STALE_TIME_MS, unless
+ * force=true or page > 0 (infinite scroll load-more).
+ *
+ * React Query vs Redux sync rule (req 12): notifications are Redux-only.
+ * Never put notification data in React Query cache.
+ */
+export const fetchNotifications = createAsyncThunk<
+  FetchPayload,
+  FetchArg,
+  { state: { notifications: NotificationsState } }
+>(
+  'notifications/fetch',
+  async (params, { rejectWithValue }) => {
+    const page = params?.page ?? 0;
+
+    try {
+      const res = await apiClient.getMyNotifications();
+      const raw: any[] = res.data ?? [];
+      const entities = raw.map(parseApiNotification);
+      // Sort newest-first (adapter's sortComparer handles insert order, but
+      // we also sort here so pagination page merges are predictable)
+      entities.sort((a, b) => b.createdAt - a.createdAt);
+
+      return {
+        entities,
+        page,
+        // When the API adds pagination, replace these with actual values
+        hasMore: false,
+        total: entities.length,
+      };
+    } catch (err: any) {
+      return rejectWithValue(
+        err.response?.data?.message ?? err.message ?? 'Failed to fetch notifications',
+      );
+    }
+  },
+  {
+    // Stale cache guard: skip if not stale (page 0, not forced)
+    condition: (params, { getState }) => {
+      const page = params?.page ?? 0;
+      const force = params?.force ?? false;
+      if (force || page > 0) return true;
+
+      const { lastFetchedAt } = getState().notifications;
+      if (!lastFetchedAt) return true;
+      return Date.now() - lastFetchedAt >= NOTIFICATION_STALE_TIME_MS;
+    },
+  },
+);
+
+export const fetchUnreadCount = createAsyncThunk(
+  'notifications/fetchUnreadCount',
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await apiClient.getUnreadNotificationCount();
+      return Number(res.data?.unread ?? 0);
+    } catch (err: any) {
+      return rejectWithValue(err.message);
+    }
+  },
+);
+
+/**
+ * Marks a single notification as read.
+ * Optimistic: applied immediately in .pending, rolled back in .rejected.
+ */
+export const markNotificationRead = createAsyncThunk<string, string>(
+  'notifications/markRead',
+  async (id, { rejectWithValue }) => {
+    try {
+      await apiClient.markNotificationAsRead(id);
+      return id;
+    } catch (err: any) {
+      // Pass the ID back so .rejected can identify which to roll back
+      return rejectWithValue(id);
+    }
+  },
+);
+
+/**
+ * Marks all notifications as read.
+ * Optimistic in .pending; on .rejected invalidates cache so next render re-fetches.
+ */
+export const markAllNotificationsRead = createAsyncThunk(
+  'notifications/markAllRead',
+  async (_, { rejectWithValue }) => {
+    try {
+      await apiClient.markAllNotificationsRead();
+      return true;
+    } catch (err: any) {
+      return rejectWithValue(err.message);
+    }
+  },
+);
+
+// Backward-compat aliases so existing imports keep working without changes
+export const getNotifications = fetchNotifications;
+export const getUnreadCount = fetchUnreadCount;
+export const markAsRead = markNotificationRead;
+export const markAllAsRead = markAllNotificationsRead;
+
+// ─── Initial state ─────────────────────────────────────────────────────────────
+
+type NotificationsExtraState = Omit<NotificationsState, 'ids' | 'entities'>;
+
+const initialState = notificationsAdapter.getInitialState<NotificationsExtraState>({
   unreadCount: 0,
   isLoading: false,
+  isFetchingMore: false,
   error: null,
-}
+  pagination: { page: 0, hasMore: false, total: null },
+  lastFetchedAt: null,
+});
 
-// ✅ GET NOTIFICATIONS
-export const getNotifications = createAsyncThunk(
-  'notifications/getNotifications',
-  async (_, { rejectWithValue }) => {
-    try {
-      const res = await apiClient.getMyNotifications()
-      return res.data
-    } catch (error: any) {
-      return rejectWithValue(error.message)
-    }
-  }
-)
-
-// ✅ MARK SINGLE
-export const markAsRead = createAsyncThunk(
-  'notifications/markAsRead',
-  async (id: string, { rejectWithValue }) => {
-    try {
-      await apiClient.markNotificationAsRead(id)
-      return id
-    } catch (error: any) {
-      return rejectWithValue(error.message)
-    }
-  }
-)
-
-// ✅ MARK ALL
-export const markAllAsRead = createAsyncThunk(
-  'notifications/markAllAsRead',
-  async (_, { rejectWithValue }) => {
-    try {
-      await apiClient.markAllNotificationsRead()
-      return true
-    } catch (error: any) {
-      return rejectWithValue(error.message)
-    }
-  }
-)
-
-// ✅ UNREAD COUNT
-export const getUnreadCount = createAsyncThunk(
-  'notifications/getUnreadCount',
-  async (_, { rejectWithValue }) => {
-    try {
-      const res = await apiClient.getUnreadNotificationCount()
-      return res.data.unread
-    } catch (error: any) {
-      return rejectWithValue(error.message)
-    }
-  }
-)
+// ─── Slice ─────────────────────────────────────────────────────────────────────
 
 const notificationsSlice = createSlice({
   name: 'notifications',
   initialState,
-  reducers: {},
-  extraReducers: (builder) => {
-    builder
-      // GET
-      .addCase(getNotifications.pending, (state) => {
-        state.isLoading = true
-      })
-      .addCase(getNotifications.fulfilled, (state, action) => {
-        state.isLoading = false
-        state.notifications = action.payload || []
-      })
-      .addCase(getNotifications.rejected, (state, action: any) => {
-        state.isLoading = false
-        state.error = action.payload
-      })
+  reducers: {
+    /**
+     * Real-time: a new notification arrived via WebSocket.
+     * `upsertOne` deduplicates by ID — safe to call multiple times with the same event.
+     * This is the ONLY place WebSocket notification data enters Redux (req 7).
+     */
+    wsNotificationReceived(state, action: PayloadAction<NotificationEntity>) {
+      const isNew = !state.entities[action.payload.id];
+      notificationsAdapter.upsertOne(state, action.payload);
+      if (isNew && !action.payload.isRead) {
+        state.unreadCount += 1;
+      }
+    },
 
-      // MARK ONE
-      .addCase(markAsRead.fulfilled, (state, action) => {
-        const n = state.notifications.find((x) => x.id === action.payload)
-        if (n && !n.is_read) {
-          n.is_read = true
-          state.unreadCount -= 1
+    /**
+     * Invalidate the notification cache (req 9).
+     * Next call to fetchNotifications() will bypass the stale check and hit the API.
+     */
+    invalidateNotificationCache(state) {
+      state.lastFetchedAt = null;
+    },
+  },
+
+  extraReducers: (builder) => {
+    // ── fetchNotifications ─────────────────────────────────────────────────────
+    builder
+      .addCase(fetchNotifications.pending, (state, action) => {
+        const page = action.meta.arg?.page ?? 0;
+        if (page === 0) {
+          state.isLoading = true;
+        } else {
+          state.isFetchingMore = true;
+        }
+        state.error = null;
+      })
+      .addCase(fetchNotifications.fulfilled, (state, action) => {
+        const { entities, page, hasMore, total } = action.payload;
+        state.isLoading = false;
+        state.isFetchingMore = false;
+
+        if (page === 0) {
+          // Full replace on first page — clears any stale or orphaned entities
+          notificationsAdapter.setAll(state, entities);
+          // Derive unread from the fresh data
+          state.unreadCount = entities.filter((n) => !n.isRead).length;
+        } else {
+          // Subsequent pages: upsert (deduplication via adapter IDs)
+          notificationsAdapter.upsertMany(state, entities);
+          // Recount across all loaded entities
+          state.unreadCount = (
+            Object.values(state.entities) as NotificationEntity[]
+          ).filter((n) => !n.isRead).length;
+        }
+
+        state.pagination = { page, hasMore, total };
+        state.lastFetchedAt = Date.now();
+      })
+      .addCase(fetchNotifications.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isFetchingMore = false;
+        state.error = (action.payload as string) ?? 'Failed to fetch notifications';
+      });
+
+    // ── fetchUnreadCount ───────────────────────────────────────────────────────
+    // Authoritative override from server — always wins over derived count
+    builder.addCase(fetchUnreadCount.fulfilled, (state, action) => {
+      state.unreadCount = action.payload;
+    });
+
+    // ── markNotificationRead (optimistic + rollback) ───────────────────────────
+    builder
+      .addCase(markNotificationRead.pending, (state, action) => {
+        // Optimistic apply
+        const n = state.entities[action.meta.arg];
+        if (n && !n.isRead) {
+          n.isRead = true;
+          state.unreadCount = Math.max(0, state.unreadCount - 1);
         }
       })
+      .addCase(markNotificationRead.rejected, (state, action) => {
+        // Rollback: payload is the notification ID (passed via rejectWithValue)
+        const id = (action.payload as string) ?? action.meta.arg;
+        const n = state.entities[id];
+        if (n && n.isRead) {
+          n.isRead = false;
+          state.unreadCount += 1;
+        }
+      });
+    // .fulfilled is a no-op — optimistic already applied in .pending
 
-      // MARK ALL
-      .addCase(markAllAsRead.fulfilled, (state) => {
-        state.notifications.forEach((n) => (n.is_read = true))
-        state.unreadCount = 0
+    // ── markAllNotificationsRead (optimistic + invalidate-on-fail) ────────────
+    builder
+      .addCase(markAllNotificationsRead.pending, (state) => {
+        // Optimistic: mark every loaded notification as read
+        for (const id of state.ids) {
+          const n = state.entities[id];
+          if (n) n.isRead = true;
+        }
+        state.unreadCount = 0;
       })
-
-      // UNREAD COUNT
-      .addCase(getUnreadCount.fulfilled, (state, action) => {
-        state.unreadCount = action.payload
-      })
+      .addCase(markAllNotificationsRead.rejected, (state) => {
+        // Rollback via cache invalidation — next render triggers a fresh fetch
+        state.lastFetchedAt = null;
+      });
+    // .fulfilled is a no-op
   },
-})
+});
 
-export default notificationsSlice.reducer
+export const { wsNotificationReceived, invalidateNotificationCache } =
+  notificationsSlice.actions;
+
+export default notificationsSlice.reducer;

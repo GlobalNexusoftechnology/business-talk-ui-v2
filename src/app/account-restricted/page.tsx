@@ -5,7 +5,7 @@ import { ShieldAlert, LogOut, Mail } from 'lucide-react'
 import { useAppSelector } from '@/hooks/useRedux'
 import apiClient from '@/lib/api-client'
 
-const SUPPORT_EMAIL = 'support@yourapp.com'
+const SUPPORT_EMAIL = 'support@businesstalk24.com'
 
 export default function AccountRestrictedPage() {
   const router = useRouter()

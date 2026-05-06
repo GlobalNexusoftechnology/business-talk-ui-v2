@@ -4,6 +4,7 @@ import { Provider } from 'react-redux'
 import { store } from '@/redux/store'
 import { ContentViewerProvider } from '@/providers/ContentViewerProvider'
 import { WebSocketProvider } from '@/providers/WebSocketProvider'
+import { PushNotificationProvider } from '@/providers/PushNotificationProvider'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fetchCurrentUser } from '@/redux/slices/authSlice'
 import { useEffect, useState } from 'react'
@@ -85,9 +86,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
         <WebSocketProvider>
-          <ContentViewerProvider>
-            {children}
-          </ContentViewerProvider>
+          <PushNotificationProvider>
+            <ContentViewerProvider>
+              {children}
+            </ContentViewerProvider>
+          </PushNotificationProvider>
         </WebSocketProvider>
 
         {/* Toast: regular 403 permission errors */}

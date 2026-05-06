@@ -1,265 +1,113 @@
-'use client'
+﻿'use client'
 
-import { CheckCheck } from 'lucide-react'
-import { useState, useMemo, useEffect } from 'react'
-import { useDispatch } from 'react-redux'
-import type { AppDispatch } from '@/redux/store'
-import { markAsRead as reduxMarkAsRead, markAllAsRead as reduxMarkAllAsRead } from '@/redux/slices/notificationsSlice'
-import { useWebSocket } from '@/providers/WebSocketProvider'
-import { useRouter } from 'next/navigation'
+import { CheckCheck, RefreshCw } from 'lucide-react'
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
+import { useAppDispatch, useAppSelector } from '@/hooks/useRedux'
+import {
+  fetchNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  invalidateNotificationCache,
+} from '@/redux/slices/notificationsSlice'
+import {
+  selectAllNotifications,
+  selectNotificationUnreadCount,
+  selectNotificationsLoading,
+  selectIsFetchingMore,
+  selectHasMoreNotifications,
+} from '@/redux/selectors/notificationSelectors'
 import { NotificationList } from '@/components/notifications/NotificationList'
-import apiClient from '@/lib/api-client'
-
-// ✅ UPDATED TYPE
-export interface Notification {
-  id: string
-  type: string
-
-  user: {
-    name: string
-    avatar: string
-  }
-
-  message: string
-
-  timestamp: string // formatted
-  rawTimestamp: number // 🔥 used for sorting
-
-  is_read: boolean
-
-  entity_id: string
-  entity_type: string
-}
-
-// ✅ TIME FORMATTER
-const getTimeAgo = (ts: string) => {
-  const diff = Date.now() - Number(ts)
-
-  const minutes = Math.floor(diff / 60000)
-  const hours = Math.floor(diff / 3600000)
-  const days = Math.floor(diff / 86400000)
-  const weeks = Math.floor(diff / 604800000)
-  const months = Math.floor(diff / 2629800000)
-  const years = Math.floor(diff / 31557600000)
-
-  if (minutes < 1) return 'just now'
-  if (minutes < 60) return `${minutes}m`
-  if (hours < 24) return `${hours}h`
-  if (days < 7) return `${days}d`
-  if (weeks < 4) return `${weeks}w`
-  if (months < 12) return `${months}mo`
-  return `${years}y`
-}
+import { useRouter } from 'next/navigation'
+import { resolveNotificationRoute } from '@/lib/notificationRegistry'
+import type { NotificationEntity } from '@/types/notification'
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [filter, setFilter] = useState<'all' | 'unread' >('all') /*| 'mentions' if mention is added in future */
-  const [loading, setLoading] = useState(false)
+  // ── Pure UI state (filter only — all notification data lives in Redux) ──────
+  const [filter, setFilter] = useState<'all' | 'unread'>('all')
 
-  const dispatch = useDispatch<AppDispatch>()
+  const dispatch = useAppDispatch()
   const router = useRouter()
-  const { wsManager } = useWebSocket()
 
-  // =========================
-  // 🔥 FETCH + MAP FIXED
-  // =========================
+  // ── Redux state ────────────────────────────────────────────────────────────
+  const notifications = useAppSelector(selectAllNotifications)
+  const unreadCount = useAppSelector(selectNotificationUnreadCount)
+  const isLoading = useAppSelector(selectNotificationsLoading)
+  const isFetchingMore = useAppSelector(selectIsFetchingMore)
+  const hasMore = useAppSelector(selectHasMoreNotifications)
+
+  // ── Bootstrap ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    const fetchNotifications = async () => {
-      setLoading(true)
+    dispatch(fetchNotifications())
+  }, [dispatch])
 
-      try {
-        const res = await apiClient.getMyNotifications()
+  // ── Infinite scroll sentinel ───────────────────────────────────────────────
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  const paginationPage = useAppSelector((s) => s.notifications.pagination.page)
 
-        const mapped = await Promise.all(
-          (res.data || []).map(async (n: any) => {
-            let userData = null
-
-            try {
-              const userRes = await apiClient.getUserById(n.actor_id)
-              userData = userRes.data
-            } catch {
-              userData = null
-            }
-
-            return {
-              id: n.id,
-              type: n.type,
-
-              user: {
-                name:
-                  userData?.full_name ||
-                  userData?.name ||
-                  userData?.username ||
-                  'Unknown',
-
-                avatar:
-                  userData?.profile_photo ||
-                  userData?.avatar ||
-                  '/assets/images/default-avatar.png',
-              },
-
-              message: n.message,
-
-              timestamp: getTimeAgo(n.created_on),
-              rawTimestamp: Number(n.created_on),
-
-              is_read: n.is_read === true,
-
-              entity_id: n.entity_id,
-              entity_type: n.entity_type,
-            }
-          })
-        )
-
-        // ✅ FIXED SORT (IMPORTANT)
-        mapped.sort((a, b) => b.rawTimestamp - a.rawTimestamp)
-
-        setNotifications(mapped)
-      } catch (e) {
-        console.error('Notification fetch failed', e)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchNotifications()
-  }, [])
-
-  // =========================
-  // 🔥 WEBSOCKET FIXED
-  // =========================
   useEffect(() => {
-    if (!wsManager) return
+    const sentinel = sentinelRef.current
+    if (!sentinel) return
 
-    const handler = async (data: any) => {
-      let userData = null
-
-      try {
-        const userRes = await apiClient.getUserById(data.actor_id)
-        userData = userRes.data
-      } catch {}
-
-      const newNotification: Notification = {
-        id: data.id,
-        type: data.type,
-
-        user: {
-          name:
-            userData?.full_name ||
-            userData?.name ||
-            userData?.username ||
-            'Unknown',
-
-          avatar:
-            userData?.profile_photo ||
-            userData?.avatar ||
-            '/assets/images/default-avatar.png',
-        },
-
-        message: data.message,
-
-        timestamp: getTimeAgo(data.created_on),
-        rawTimestamp: Number(data.created_on),
-
-        is_read: false,
-
-        entity_id: data.entity_id,
-        entity_type: data.entity_type,
-      }
-
-      setNotifications((prev) => [newNotification, ...prev])
-    }
-
-    const unsubscribe = wsManager.on('notification', handler)
-
-    return () => unsubscribe && unsubscribe()
-  }, [wsManager])
-
-  // =========================
-  // MARK READ
-  // =========================
-  const handleMarkAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => n.id === id ? { ...n, is_read: true } : n)
-    )
-    dispatch(reduxMarkAsRead(id))
-  }
-
-  const handleMarkAllAsRead = () => {
-    setNotifications((prev) =>
-      prev.map((n) => ({ ...n, is_read: true }))
-    )
-    dispatch(reduxMarkAllAsRead())
-  }
-
-  // =========================
-  // 🔥 ROUTING LOGIC (FIXED)
-  // =========================
-  const handleNotificationClick = (id: string) => {
-    const n = notifications.find((x) => x.id === id)
-    if (!n) return
-
-    handleMarkAsRead(id)
-
-    const { entity_id, entity_type, type } = n
-
-    switch (entity_type) {
-      case 'user':
-        router.push(`/profile/${entity_id}`)
-        break
-
-      case 'post':
-        if (type === 'QUESTION') {
-          router.push(`/questions/${entity_id}`)
-        } else {
-          router.push(`/posts/${entity_id}`)
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isFetchingMore) {
+          dispatch(fetchNotifications({ page: paginationPage + 1 }))
         }
-        break
+      },
+      { threshold: 0.1 },
+    )
 
-      case 'blog':
-        if (type === 'STORY') {
-          router.push(`/stories/${entity_id}`)
-        } else {
-          router.push(`/blogs/${entity_id}`)
-        }
-        break
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [dispatch, hasMore, isFetchingMore, paginationPage])
 
-      case 'comment':
-        router.push(`/posts/${entity_id}?highlight=comment`)
-        break
+  // ── Force-refresh handler (cache invalidation) ────────────────────────────
+  const handleRefresh = useCallback(() => {
+    dispatch(invalidateNotificationCache())
+    dispatch(fetchNotifications({ force: true }))
+  }, [dispatch])
 
-      case 'conversation':
-        router.push(`/messages/${entity_id}`)
-        break
+  // ── Mark read actions ─────────────────────────────────────────────────────
+  const handleMarkAsRead = useCallback(
+    (id: string) => {
+      dispatch(markNotificationRead(id))
+    },
+    [dispatch],
+  )
 
-      case 'group':
-        router.push(`/groups/${entity_id}/requests`)
-        break
+  const handleMarkAllAsRead = useCallback(() => {
+    dispatch(markAllNotificationsRead())
+  }, [dispatch])
 
-      default:
-        console.warn('Unknown notification type')
-    }
-  }
+  // ── Routing on click ─────────────────────────────────────────────────────
+  const handleNotificationClick = useCallback(
+    (id: string) => {
+      const n = notifications.find((x: NotificationEntity) => x.id === id)
+      if (!n) return
 
-  // =========================
-  // FILTERS
-  // =========================
+      handleMarkAsRead(id)
+      router.push(resolveNotificationRoute(n))
+    },
+    [notifications, handleMarkAsRead, router],
+  )
+
+  // ── Filter ────────────────────────────────────────────────────────────────
   const filteredNotifications = useMemo(() => {
-    if (filter === 'unread')
-      return notifications.filter((n) => !n.is_read)
+    const list =
+      filter === 'unread' ? notifications.filter((n) => !n.isRead) : notifications
 
-    // NOTE: Mentions filter can be added in future when mention notifications are supported by backend
-    // if (filter === 'mentions')
-    //   return notifications.filter((n) => n.type === 'mention')
-
-    return notifications
+    // Map NotificationEntity → NotificationList prop shape
+    return list.map((n) => ({
+      id: n.id,
+      type: n.type,
+      user: { name: n.actor.name, avatar: n.actor.avatar },
+      message: n.message,
+      createdAt: n.createdAt,
+      isRead: n.isRead,
+    }))
   }, [notifications, filter])
 
-  const unreadCount = notifications.filter((n) => !n.is_read).length
-
-  // =========================
-  // UI
-  // =========================
+  // ── UI ─────────────────────────────────────────────────────────────────────
   return (
     <div className="p-6 overflow-y-auto min-h-screen bg-gray-50 text-white">
       <div className="max-w-4xl mx-auto">
@@ -271,7 +119,6 @@ export default function NotificationsPage() {
               <h1 className="text-3xl font-semibold mb-2 text-black">
                 Notifications
               </h1>
-
               <p className="text-neutral-400">
                 {unreadCount > 0
                   ? `You have ${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}`
@@ -279,15 +126,27 @@ export default function NotificationsPage() {
               </p>
             </div>
 
-            {unreadCount > 0 && (
+            <div className="flex items-center gap-2">
+              {/* Refresh / cache invalidation */}
               <button
-                onClick={handleMarkAllAsRead}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-black text-black hover:bg-neutral-100"
+                onClick={handleRefresh}
+                disabled={isLoading}
+                className="p-2 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 transition-colors"
+                aria-label="Refresh notifications"
               >
-                <CheckCheck className="w-5 h-5" />
-                Mark all as read
+                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
               </button>
-            )}
+
+              {unreadCount > 0 && (
+                <button
+                  onClick={handleMarkAllAsRead}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-black text-black hover:bg-neutral-100"
+                >
+                  <CheckCheck className="w-5 h-5" />
+                  Mark all as read
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -296,9 +155,7 @@ export default function NotificationsPage() {
           <button
             onClick={() => setFilter('all')}
             className={`flex-1 py-2.5 rounded-lg ${
-              filter === 'all'
-                ? 'bg-black text-white'
-                : 'text-neutral-700'
+              filter === 'all' ? 'bg-black text-white' : 'text-neutral-700'
             }`}
           >
             All
@@ -307,33 +164,39 @@ export default function NotificationsPage() {
           <button
             onClick={() => setFilter('unread')}
             className={`flex-1 py-2.5 rounded-lg ${
-              filter === 'unread'
-                ? 'bg-black text-white'
-                : 'text-neutral-700'
+              filter === 'unread' ? 'bg-black text-white' : 'text-neutral-700'
             }`}
           >
             Unread ({unreadCount})
           </button>
 
-          {/* Note: Mentions filter can be added in future when mention notifications are supported by backend */}
-          {/* <button
-            onClick={() => setFilter('mentions')}
-            className={`flex-1 py-2.5 rounded-lg ${
-              filter === 'mentions'
-                ? 'bg-black text-white'
-                : 'text-neutral-700'
-            }`}
-          >
-            Mentions
-          </button> */}
+          {/* Note: Mentions filter reserved for future backend support */}
         </div>
 
-        {/* LIST */}
+        {/* NOTIFICATION LIST */}
         <NotificationList
           notifications={filteredNotifications}
-          loading={loading}
+          loading={isLoading}
           onNotificationClick={handleNotificationClick}
         />
+
+        {/* INFINITE SCROLL SENTINEL + load-more skeleton */}
+        {hasMore && (
+          <div ref={sentinelRef} className="py-4 flex justify-center">
+            {isFetchingMore && (
+              <div className="flex gap-2 items-center text-sm text-neutral-400">
+                <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                Loading more...
+              </div>
+            )}
+          </div>
+        )}
+
+        {!hasMore && notifications.length > 0 && !isLoading && (
+          <p className="text-center text-xs text-neutral-400 py-4">
+            You've seen all notifications
+          </p>
+        )}
       </div>
     </div>
   )

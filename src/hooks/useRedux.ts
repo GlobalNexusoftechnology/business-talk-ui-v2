@@ -1,6 +1,16 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useDispatch, useSelector, TypedUseSelectorHook } from 'react-redux'
 import type { RootState, AppDispatch } from '@/redux/store'
+import {
+  selectSortedConversations,
+  selectActiveConversation,
+  selectActiveConversationId,
+  selectConversationMessages,
+  selectConversationsLoading,
+  selectTotalUnreadCount,
+  selectTypingUsers,
+  selectMessagesLoading,
+} from '@/redux/selectors/chatSelectors'
 
 export const useAppDispatch = () => useDispatch<AppDispatch>()
 export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector
@@ -17,13 +27,18 @@ export const useAuth = () => {
 
 
 export const useNotifications = () => {
-  const notifications = useAppSelector((state) => state.notifications)
-  const dispatch = useAppDispatch()
+  const unreadCount = useAppSelector(
+    (state) => state.notifications.unreadCount,
+  );
+  const isLoading = useAppSelector(
+    (state) => state.notifications.isLoading,
+  );
+  const error = useAppSelector(
+    (state) => state.notifications.error,
+  );
+  const dispatch = useAppDispatch();
 
-  return {
-    ...notifications,
-    dispatch,
-  }
+  return { unreadCount, isLoading, error, dispatch };
 }
 
 export const useAccountStatus = () => {
@@ -43,6 +58,7 @@ export const useAccountStatus = () => {
   return { isBanned, isShadowBanned, isRestricted }
 }
 
+/** @deprecated Use useChat() for the normalized chat state instead. */
 export const useMessages = () => {
   const messages = useAppSelector((state) => state.messages)
   const dispatch = useAppDispatch()
@@ -52,3 +68,51 @@ export const useMessages = () => {
     dispatch,
   }
 }
+
+/**
+ * Convenience hook for the normalized Redux chat state.
+ *
+ * @param conversationId - optional; when provided, also returns the messages
+ *   and typing indicator for that conversation.
+ */
+export const useChat = (conversationId?: string) => {
+  const dispatch = useAppDispatch()
+
+  const conversations = useAppSelector(selectSortedConversations)
+  const activeConversation = useAppSelector(selectActiveConversation)
+  const activeConversationId = useAppSelector(selectActiveConversationId)
+  const conversationsLoading = useAppSelector(selectConversationsLoading)
+  const totalUnreadCount = useAppSelector(selectTotalUnreadCount)
+
+  const targetId = conversationId ?? activeConversationId ?? ''
+
+  const messagesSelector = useMemo(
+    () => selectConversationMessages(targetId),
+    [targetId],
+  )
+  const messagesLoadingSelector = useMemo(
+    () => selectMessagesLoading(targetId),
+    [targetId],
+  )
+  const typingSelector = useMemo(
+    () => selectTypingUsers(targetId),
+    [targetId],
+  )
+
+  const messages = useAppSelector(messagesSelector)
+  const messagesLoading = useAppSelector(messagesLoadingSelector)
+  const typingUser = useAppSelector(typingSelector)
+
+  return {
+    dispatch,
+    conversations,
+    activeConversation,
+    activeConversationId,
+    conversationsLoading,
+    totalUnreadCount,
+    messages,
+    messagesLoading,
+    typingUser,
+  }
+}
+

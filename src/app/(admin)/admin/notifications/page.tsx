@@ -20,6 +20,7 @@ import { useWebSocket } from '@/providers/WebSocketProvider'
 import { useRouter } from 'next/navigation'
 import { NotificationList } from '@/components/notifications/NotificationList'
 import apiClient from '@/lib/api-client'
+import { resolveAdminNotificationRoute } from '@/lib/notificationRegistry'
 
 // ✅ UPDATED TYPE
 export interface Notification {
@@ -81,83 +82,64 @@ const getTimeAgo = (ts: string) => {
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([])
-  const [filter, setFilter] = useState<'all' | 'unread' >('all') /*| 'mentions' if mention is added in future */
+  const [filter, setFilter] = useState<'all' | 'unread'>('all')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [unreadCount, setUnreadCount] = useState(0)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const limit = 20
 
   const router = useRouter()
   const { wsManager } = useWebSocket()
 
-  // =========================
-  // 🔥 FETCH + MAP FIXED
-  // =========================
+  // ── Fetch ─────────────────────────────────────────────────────────────────
   useEffect(() => {
     const fetchNotifications = async () => {
       setLoading(true)
+      setError(null)
 
       try {
         const [notificationsRes, unreadRes] = await Promise.all([
-          apiClient.getAdminNotifications(page, limit),
-          apiClient.getAdminUnreadNotificationCount(),
+          apiClient.getMyNotifications(),
+          apiClient.getUnreadNotificationCount(),
         ])
 
-        const notificationsData = notificationsRes.data?.data || []
-        const pagination = notificationsRes.data?.pagination
+        // Backend returns { notifications: [...], nextCursor } or { data: [...] }
+        const raw: any[] =
+          notificationsRes.data?.notifications ||
+          notificationsRes.data?.data ||
+          []
 
-        const mapped = await Promise.all(
-          notificationsData.map(async (n: any) => {
-            let userData = null
+        const mapped: Notification[] = raw.map((n: any) => {
+          const actorRaw = n.actor ?? n.sender ?? {}
+          const actorName =
+            actorRaw?.full_name || actorRaw?.name || actorRaw?.username ||
+            n.actor_name || 'Unknown'
+          const actorAvatar =
+            actorRaw?.profile_photo || actorRaw?.avatar ||
+            n.actor_avatar || '/assets/images/default-avatar.png'
 
-            if (n.actor_id) {
-              try {
-                const userRes = await apiClient.getUserById(n.actor_id)
-                userData = userRes.data
-              } catch {
-                userData = null
-              }
-            }
+          return {
+            id: n.id,
+            type: n.type,
+            user: { name: actorName, avatar: actorAvatar },
+            message: n.message,
+            timestamp: getTimeAgo(n.created_on ?? n.created_at ?? '0'),
+            rawTimestamp: Number(n.created_on ?? n.created_at ?? 0),
+            is_read: n.is_read === true,
+            entity_id: n.entity_id ?? '',
+            entity_type: n.entity_type ?? '',
+          }
+        })
 
-            return {
-              id: n.id,
-              type: n.type,
-
-              user: {
-                name:
-                  userData?.full_name ||
-                  userData?.name ||
-                  userData?.username ||
-                  'Unknown',
-
-                avatar:
-                  userData?.profile_photo ||
-                  userData?.avatar ||
-                  '/assets/images/default-avatar.png',
-              },
-
-              message: n.message,
-
-              timestamp: getTimeAgo(n.created_on),
-              rawTimestamp: Number(n.created_on),
-
-              is_read: n.is_read === true,
-
-              entity_id: n.entity_id,
-              entity_type: n.entity_type,
-            }
-          })
-        )
-
-        // ✅ FIXED SORT (IMPORTANT)
         mapped.sort((a, b) => b.rawTimestamp - a.rawTimestamp)
 
         setNotifications(mapped)
         setUnreadCount(Number(unreadRes.data?.unread || 0))
-        setTotalPages(Number(pagination?.totalPages || 1))
-      } catch (e) {
+        setTotalPages(1) // user endpoint is cursor-based; pagination handled by backend
+      } catch (e: any) {
         console.error('Notification fetch failed', e)
+        setError('Failed to load notifications.')
       } finally {
         setLoading(false)
       }
@@ -166,46 +148,29 @@ export default function NotificationsPage() {
     fetchNotifications()
   }, [page])
 
-  // =========================
-  // 🔥 WEBSOCKET FIXED
-  // =========================
+  // ── WebSocket: new notification arrives ─────────────────────────────────
   useEffect(() => {
     if (!wsManager) return
 
-    const handler = async (data: any) => {
-      let userData = null
-
-      try {
-        const userRes = await apiClient.getUserById(data.actor_id)
-        userData = userRes.data
-      } catch {}
+    const handler = (data: any) => {
+      const actorRaw = data.actor ?? data.sender ?? {}
+      const actorName =
+        actorRaw?.full_name || actorRaw?.name || actorRaw?.username ||
+        data.actor_name || 'Unknown'
+      const actorAvatar =
+        actorRaw?.profile_photo || actorRaw?.avatar ||
+        data.actor_avatar || '/assets/images/default-avatar.png'
 
       const newNotification: Notification = {
         id: data.id,
         type: data.type,
-
-        user: {
-          name:
-            userData?.full_name ||
-            userData?.name ||
-            userData?.username ||
-            'Unknown',
-
-          avatar:
-            userData?.profile_photo ||
-            userData?.avatar ||
-            '/assets/images/default-avatar.png',
-        },
-
+        user: { name: actorName, avatar: actorAvatar },
         message: data.message,
-
-        timestamp: getTimeAgo(data.created_on),
-        rawTimestamp: Number(data.created_on),
-
+        timestamp: getTimeAgo(data.created_on ?? data.created_at ?? '0'),
+        rawTimestamp: Number(data.created_on ?? data.created_at ?? 0),
         is_read: false,
-
-        entity_id: data.entity_id,
-        entity_type: data.entity_type,
+        entity_id: data.entity_id ?? '',
+        entity_type: data.entity_type ?? '',
       }
 
       setNotifications((prev) => [newNotification, ...prev])
@@ -213,7 +178,6 @@ export default function NotificationsPage() {
     }
 
     const unsubscribe = wsManager.on('notification', handler)
-
     return () => unsubscribe && unsubscribe()
   }, [wsManager])
 
@@ -234,7 +198,7 @@ export default function NotificationsPage() {
     }
 
     try {
-      await apiClient.markAdminNotificationAsRead(id)
+      await apiClient.markNotificationAsRead(id)
     } catch {
       if (target && !target.is_read) {
         setUnreadCount((prev) => prev + 1)
@@ -249,86 +213,59 @@ export default function NotificationsPage() {
     setUnreadCount(0)
 
     try {
-      await apiClient.markAllAdminNotificationsRead()
+      await apiClient.markAllNotificationsRead()
     } catch {
       const fallbackUnread = notifications.filter((n) => !n.is_read).length
       setUnreadCount(fallbackUnread)
     }
   }
 
-  // =========================
-  // 🔥 ROUTING LOGIC (FIXED)
-  // =========================
+  // ── Routing ───────────────────────────────────────────────────────────────
   const handleNotificationClick = (id: string) => {
     const n = notifications.find((x) => x.id === id)
     if (!n) return
 
     handleMarkAsRead(id)
 
-    const { entity_id, entity_type, type } = n
-    const normalizedEntityType = String(entity_type || '').toLowerCase()
-    const normalizedType = String(type || '').toLowerCase()
-
+    // Special-case overrides (admin-specific logic)
     if (isReportedContentNotification(n)) {
       router.push('/admin/reports')
       return
     }
 
     if (isWarningNotification(n)) {
-      if (normalizedEntityType === 'user' && entity_id) {
-        router.push(`/admin/users/${entity_id}`)
+      if (n.entity_type && n.entity_id) {
+        router.push(`/admin/users/${n.entity_id}`)
       } else {
         router.push('/admin/users')
       }
       return
     }
 
-    switch (normalizedEntityType) {
-      case 'user':
-        router.push(`/admin/users/${entity_id}`)
-        break
-
-      case 'post':
-        if (normalizedType === 'question') {
-          router.push(`/question/${entity_id}`)
-        } else {
-          router.push(`/post/${entity_id}`)
-        }
-        break
-
-      case 'blog':
-        if (normalizedType === 'story') {
-          router.push(`/story/${entity_id}`)
-        } else {
-          router.push(`/blog/${entity_id}`)
-        }
-        break
-
-      case 'comment':
-        router.push(`/post/${entity_id}?highlight=comment`)
-        break
-
-      case 'conversation':
-        router.push(`/messages/${entity_id}`)
-        break
-
-      default:
-        console.warn('Unknown notification type')
-    }
+    // Delegate all remaining routing to the centralized admin registry
+    router.push(
+      resolveAdminNotificationRoute(
+        n.entity_id ?? '',
+        n.entity_type ?? '',
+        n.type ?? '',
+      ),
+    )
   }
 
-  // =========================
-  // FILTERS
-  // =========================
+  // ── Filters ───────────────────────────────────────────────────────────────
   const filteredNotifications = useMemo(() => {
-    if (filter === 'unread')
-      return notifications.filter((n) => !n.is_read)
+    const list =
+      filter === 'unread' ? notifications.filter((n) => !n.is_read) : notifications
 
-    // NOTE: Mentions filter can be added in future when mention notifications are supported by backend
-    // if (filter === 'mentions')
-    //   return notifications.filter((n) => n.type === 'mention')
-
-    return notifications
+    // Map admin Notification shape → NotificationList prop shape
+    return list.map((n) => ({
+      id: n.id,
+      type: n.type,
+      user: n.user,
+      message: n.message,
+      createdAt: n.rawTimestamp,
+      isRead: n.is_read,
+    }))
   }, [notifications, filter])
 
   // =========================
@@ -403,11 +340,15 @@ export default function NotificationsPage() {
         </div>
 
         {/* LIST */}
-        <NotificationList
-          notifications={filteredNotifications}
-          loading={loading}
-          onNotificationClick={handleNotificationClick}
-        />
+        {error ? (
+          <div className="py-10 text-center text-red-500 text-sm">{error}</div>
+        ) : (
+          <NotificationList
+            notifications={filteredNotifications}
+            loading={loading}
+            onNotificationClick={handleNotificationClick}
+          />
+        )}
 
         {totalPages > 1 && (
           <div className="mt-6 flex items-center justify-between gap-3">
