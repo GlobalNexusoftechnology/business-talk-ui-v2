@@ -112,13 +112,13 @@ export const savePushPreferences = createAsyncThunk<
   Partial<PushPreferences>
 >('push/savePreferences', async (partial, { getState }) => {
   const state = (getState() as { push: PushState }).push;
-  const updated: PushPreferences = { ...state.preferences, ...partial };
+  const updated = { ...state.preferences, ...partial } as PushPreferences;
   savePrefs(updated);
 
   // Best-effort: sync to backend (non-critical)
   try {
     const apiClient = (await import('@/lib/api-client')).default;
-    await apiClient.updatePushPreferences(updated);
+    await apiClient.updatePushPreferences(updated as unknown as Record<string, boolean>);
   } catch {}
 
   return updated;

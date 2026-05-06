@@ -17,7 +17,6 @@ import {
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ShareModal } from '@/components/shared/ShareModal'
-import { useOpenContent } from '@/hooks/useOpenContent'
 import { useStoryComments } from '@/hooks/useStoryComments'
 import { useStoryLike } from '@/hooks/useStoryLike'
 import { useFollow } from '@/hooks/useFollow'
@@ -61,7 +60,6 @@ export function StoryPost({
   // readTime,
   // category,
 }: StoryPostProps) {
-  const { openStory } = useOpenContent()
   const router = useRouter()
 
   const [showShareModal, setShowShareModal] = useState(false)
@@ -531,43 +529,15 @@ export function StoryPost({
           <img
             src={coverImage}
             alt={storyTitle}
-            className="rounded-xl mb-4 cursor-pointer"
-            onClick={() =>
-              openStory({
-                id,
-                storyTitle,
-                content: excerpt,
-                excerpt,
-                coverImage,
-                author,
-                authorId,
-                timestamp,
-                likes: likeCount,
-                liked: isLiked,
-                views,
-              })
-            }
+            className="rounded-xl mb-4 cursor-pointer hover:opacity-90 transition-opacity"
+            onClick={() => id && router.push(`/stories/${id}`)}
           />
         )}
 
         {/* CONTENT */}
         <h2
-          className="font-semibold text-lg cursor-pointer"
-          onClick={() =>
-            openStory({
-              id,
-              storyTitle,
-              content: excerpt,
-              excerpt,
-              coverImage,
-              author,
-              authorId,
-              timestamp,
-              likes: likeCount,
-              liked: isLiked,
-              views,
-            })
-          }
+          className="font-semibold text-lg cursor-pointer hover:underline"
+          onClick={() => id && router.push(`/stories/${id}`)}
         >
           {storyTitle}
         </h2>

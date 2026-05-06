@@ -22,7 +22,7 @@ export default function CommunityGuidelinesPage() {
         <li><b>Not Allowed Content:</b> The following content is strictly prohibited:
           <ul className="list-disc ml-6">
             <li>Non-business or irrelevant content</li>
-            <li>Spam, excessive promotion, or advertisements</li>
+            <li>Promotions are permitted; spam and misleading advertisements are strictly prohibited.</li>
             <li>Misleading, false, or fraudulent information</li>
             <li>Hate speech, abusive language, or harassment</li>
             <li>Illegal activities or content violating laws</li>

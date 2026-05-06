@@ -1,22 +1,42 @@
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-gradient-to-br from-primary-50 to-secondary-50">
+    <div className="min-h-screen flex flex-col lg:flex-row" style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e8ecf0 100%)' }}>
       {/* Left Side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-center px-12 py-8">
-        <div className="max-w-lg">
-          <h1 className="text-5xl font-bold text-primary-900 mb-4" style={{ fontSize: '3.5rem' }}>Welcome to Businesstalk24</h1>
-          <p className="text-lg text-secondary-600 mb-12">
-            Ask questions, share thoughts, and contribute to business discussions.
+      <div className="hidden lg:flex lg:w-1/2 flex-col justify-center px-14 py-12 relative overflow-hidden">
+        {/* subtle decorative circle */}
+        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full opacity-10" style={{ background: 'radial-gradient(circle, #212529 0%, transparent 70%)' }} />
+        <div className="absolute -bottom-24 -right-24 w-80 h-80 rounded-full opacity-5" style={{ background: 'radial-gradient(circle, #212529 0%, transparent 70%)' }} />
+
+        <div className="relative max-w-lg">
+          {/* Logo / brand name */}
+          <p className="text-sm font-semibold tracking-[0.2em] uppercase mb-6" style={{ color: '#5F6368' }}>
+            Businesstalk24
           </p>
 
-          <div className="space-y-8 align-items-center">
+          {/* Hero tagline — 3 large words */}
+          <div className="space-y-1 mb-8">
+            {['Ask.', 'Share.', 'Contribute.'].map((word) => (
+              <h1
+                key={word}
+                className="font-extrabold leading-none tracking-tight"
+                style={{ fontSize: 'clamp(3.5rem, 6vw, 5.5rem)', color: '#212529' }}
+              >
+                {word}
+              </h1>
+            ))}
+          </div>
 
-            <div className="flex items-start">
-              <div className="ml-4">
-                <h3 className="text-3xl font-bold text-primary-900 mb-2">Ask. Share. Contribute...</h3>
-              </div>
-            </div>
+          <p className="text-lg leading-relaxed" style={{ color: '#5F6368', maxWidth: '28rem' }}>
+            Ask business questions, share your experiences, and contribute to meaningful professional discussions.
+          </p>
 
+          {/* divider accent */}
+          <div className="mt-10 flex items-center gap-3">
+            <div className="h-px flex-1" style={{ backgroundColor: '#D1D5DB' }} />
+            <span className="text-xs font-medium tracking-widest uppercase" style={{ color: '#9E9E9E' }}>
+              Professional Network
+            </span>
+            <div className="h-px flex-1" style={{ backgroundColor: '#D1D5DB' }} />
           </div>
         </div>
       </div>

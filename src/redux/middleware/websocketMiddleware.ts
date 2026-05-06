@@ -37,8 +37,8 @@ export interface EmitTypingPayload {
   conversationId: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type EmitMessagePayload = Record<string, any>;
+// broad payload shape — no index signature needed on callers
+export type EmitMessagePayload = Record<string, any>; // eslint-disable-line
 
 export const emitTypingAction = (
   payload: EmitTypingPayload,
@@ -56,22 +56,24 @@ export const emitMessageAction = (
 
 // ─── Middleware ────────────────────────────────────────────────────────────────
 
-export const websocketMiddleware: Middleware =
+export const websocketMiddleware = ((
   (_store: MiddlewareAPI) =>
   (next: Dispatch) =>
-  (action: AnyAction) => {
+  (action: unknown) => {
+    const a = action as AnyAction;
     // Outgoing typing indicator — fire-and-forget, stop here
-    if (action.type === WS_EMIT_TYPING) {
-      _wsManager?.emit('typing', action.payload);
+    if (a.type === WS_EMIT_TYPING) {
+      _wsManager?.emit('typing', a.payload);
       return;
     }
 
     // Outgoing message emit — fire-and-forget, stop here
-    if (action.type === WS_EMIT_MESSAGE) {
-      _wsManager?.emit('send_message', action.payload);
+    if (a.type === WS_EMIT_MESSAGE) {
+      _wsManager?.emit('send_message', a.payload);
       return;
     }
 
     // All other actions pass through to reducers normally
-    return next(action);
-  };
+    return next(a);
+  }
+) as unknown as Middleware);

@@ -10,8 +10,6 @@ const selectConversationsById = (state: RootState) =>
 const selectConversationAllIds = (state: RootState) =>
   state.chat.conversations.allIds;
 
-const selectByConversation = (state: RootState) =>
-  state.chat.messages.byConversation;
 
 // ─── Conversation selectors ────────────────────────────────────────────────────
 

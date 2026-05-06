@@ -42,6 +42,7 @@ import {
 import {
   emitTypingAction,
   emitMessageAction,
+  type EmitMessagePayload,
 } from '@/redux/middleware/websocketMiddleware';
 import {
   selectNonArchivedConversations,
@@ -364,6 +365,7 @@ const MessagesClient = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const emojiToggleRef = useRef<HTMLButtonElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollAnchorRef = useRef<number | null>(null);
   const isNearBottomRef = useRef(true);
   const isFetchingOlderRef = useRef(false);
@@ -605,7 +607,7 @@ const MessagesClient = () => {
           message,
         );
       }
-      dispatch(emitMessageAction(message));
+      dispatch(emitMessageAction(message as EmitMessagePayload));
     } else if (hasRqCache) {
       markMessageFailedInCache(queryClient, activeConversationId, tempId);
     }
@@ -620,6 +622,9 @@ const MessagesClient = () => {
 
   const handleEmojiClick = (emojiData: any) => {
     setMessageInput((prev) => prev + emojiData.emoji);
+    setShowEmojiPicker(false);
+    // Return focus to textarea so Enter key works immediately
+    setTimeout(() => textareaRef.current?.focus(), 0);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -901,6 +906,7 @@ const MessagesClient = () => {
           )}
 
           <textarea
+            ref={textareaRef}
             value={messageInput}
             onChange={(e) => {
               setMessageInput(e.target.value);

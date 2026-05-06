@@ -32,7 +32,6 @@ import {
   requestPushPermission,
   syncPermissionState,
   setBadgeCount,
-  tokenRefreshed,
   refreshPushTokenThunk,
 } from '@/redux/slices/pushSlice';
 import {

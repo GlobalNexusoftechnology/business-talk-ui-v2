@@ -792,6 +792,13 @@ class ApiClient {
     return this.client.post(`/groups/${groupId}/posts`, data)
   }
 
+  // 14a. CREATE POST INSIDE GROUP (with media)
+  createGroupPostWithMedia(groupId: string, formData: FormData) {
+    return this.client.post(`/groups/${groupId}/posts`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  }
+
   // 15. GET GROUP FEED (paginated)
   getGroupFeed(groupId: string, page = 1, limit = 20) {
     return this.client.get(`/groups/${groupId}/feed`, { params: { page, limit } })

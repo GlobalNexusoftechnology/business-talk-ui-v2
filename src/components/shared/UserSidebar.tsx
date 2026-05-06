@@ -65,13 +65,19 @@ export const UserSidebar = () => {
     <aside className="hidden lg:fixed lg:left-0 lg:top-0 lg:h-screen lg:w-64 lg:flex lg:flex-col bg-white border-r overflow-y-auto" style={{ borderColor: '#E8E8E8' }}>
       {/* Logo */}
       <div className="px-6 py-6 border-b" style={{ borderColor: '#E8E8E8' }}>
-        <img 
-          src="/assets/logos/BUSINESSTALK24_LOGO_png.png" 
-          alt="BusinessTalk24 Logo" 
-          width={160}
-          height={100}
-          className="mb-2"
-        />
+        <Link
+          href="/dashboard"
+          aria-label="Go to home feed"
+          className="inline-block outline-none focus-visible:ring-2 focus-visible:ring-black rounded-md transition-opacity hover:opacity-80 active:opacity-60"
+        >
+          <img 
+            src="/assets/logos/BUSINESSTALK24_LOGO_png.png" 
+            alt="BusinessTalk24 Logo" 
+            width={160}
+            height={100}
+            className="mb-2"
+          />
+        </Link>
         <p className="text-xs mt-1" style={{ color: '#5F6368' }}>Professional Network</p>
       </div>
 

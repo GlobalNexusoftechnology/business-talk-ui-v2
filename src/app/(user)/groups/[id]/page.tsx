@@ -1,8 +1,8 @@
 'use client'
 
 import { useRouter, useParams } from 'next/navigation'
-import { Lock, Globe, MessageCircle, Share2, ClipboardList, MapPin, X, Check } from 'lucide-react'
-import { useState } from 'react'
+import { Lock, Globe, MessageCircle, Share2, ClipboardList, MapPin, X, Check, Image as ImageIcon, Video, Trash2 } from 'lucide-react'
+import { useState, useRef } from 'react'
 import { ShareModal } from '@/components/shared/ShareModal'
 import { useEffect } from 'react'
 import apiClient from '@/lib/api-client'
@@ -193,6 +193,13 @@ export default function GroupDetailsPage() {
   const [inviteLoading, setInviteLoading] = useState(false)
   const [inviteMessage, setInviteMessage] = useState<string | null>(null)
 
+  // ── Media upload state ──────────────────────────────────────────────────
+  const [mediaFiles, setMediaFiles] = useState<File[]>([])
+  const [mediaPreviews, setMediaPreviews] = useState<{ url: string; type: 'image' | 'video' }[]>([])
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const videoInputRef = useRef<HTMLInputElement>(null)
+
   useEffect(() => {
     try {
       const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -305,19 +312,33 @@ export default function GroupDetailsPage() {
   const isGroupOwner = Boolean(group && currentUserId && (group.ownerId === currentUserId || group.membersList.some((m: any) => m.id === currentUserId && String(m.title || '').toUpperCase() === 'OWNER')))
 
   const handleCreateGroupPost = async () => {
-    if (!group || !postContent.trim()) return
+    if (!group || (!postContent.trim() && mediaFiles.length === 0)) return
 
     try {
       setPosting(true)
       setPostNotice(null)
+      setUploadProgress(0)
 
-      await apiClient.createGroupPost(group.id, {
-        type: 'NORMAL',
-        content: postContent.trim(),
-        tags: [],
-      })
+      if (mediaFiles.length > 0) {
+        // Multipart upload with media
+        const formData = new FormData()
+        formData.append('type', 'NORMAL')
+        formData.append('content', postContent.trim())
+        mediaFiles.forEach((file) => formData.append('media', file))
+
+        await apiClient.createGroupPostWithMedia(group.id, formData)
+      } else {
+        await apiClient.createGroupPost(group.id, {
+          type: 'NORMAL',
+          content: postContent.trim(),
+          tags: [],
+        })
+      }
 
       setPostContent('')
+      setMediaFiles([])
+      setMediaPreviews([])
+      setUploadProgress(0)
       setPostNotice('Post created successfully.')
 
       const feedRes = await apiClient.getGroupFeed(group.id, 1, 20)
@@ -341,8 +362,29 @@ export default function GroupDetailsPage() {
     }
   }
 
-  const handleOpenGroupMessage = async () => {
-    if (!group || openingChat) return
+  const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video') => {
+    const files = Array.from(e.target.files ?? [])
+    if (!files.length) return
+    // Max 4 total files
+    const remaining = 4 - mediaFiles.length
+    const accepted = files.slice(0, remaining)
+    setMediaFiles((prev) => [...prev, ...accepted])
+    accepted.forEach((file) => {
+      const url = URL.createObjectURL(file)
+      setMediaPreviews((prev) => [...prev, { url, type }])
+    })
+    e.target.value = ''
+  }
+
+  const handleRemoveMedia = (index: number) => {
+    setMediaFiles((prev) => prev.filter((_, i) => i !== index))
+    setMediaPreviews((prev) => {
+      URL.revokeObjectURL(prev[index].url)
+      return prev.filter((_, i) => i !== index)
+    })
+  }
+
+  const handleOpenGroupMessage = async () => {    if (!group || openingChat) return
 
     try {
       setOpeningChat(true)
@@ -494,9 +536,6 @@ export default function GroupDetailsPage() {
       <h2 className="text-xl font-bold mb-3" style={{ color: '#212529' }}>
         Create Post
       </h2>
-      <p className="text-sm mb-4" style={{ color: '#5F6368' }}>
-        You can only publish NORMAL posts inside groups.
-      </p>
 
       <textarea
         value={postContent}
@@ -506,13 +545,83 @@ export default function GroupDetailsPage() {
         className="w-full min-h-[120px] p-4 rounded-xl resize-none bg-gray-50 border"
       />
 
+      {/* Media previews */}
+      {mediaPreviews.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {mediaPreviews.map((preview, i) => (
+            <div key={i} className="relative w-24 h-24 rounded-xl overflow-hidden border" style={{ borderColor: '#E8E8E8' }}>
+              {preview.type === 'image' ? (
+                <img src={preview.url} alt={`preview-${i}`} className="w-full h-full object-cover" />
+              ) : (
+                <video src={preview.url} className="w-full h-full object-cover" muted />
+              )}
+              <button
+                onClick={() => handleRemoveMedia(i)}
+                className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center text-white"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Upload progress */}
+      {posting && uploadProgress > 0 && uploadProgress < 100 && (
+        <div className="mt-3">
+          <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+            <div className="h-full bg-gray-800 transition-all" style={{ width: `${uploadProgress}%` }} />
+          </div>
+          <p className="text-xs mt-1" style={{ color: '#5F6368' }}>{uploadProgress}% uploaded</p>
+        </div>
+      )}
+
+      {/* Hidden file inputs */}
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => handleMediaSelect(e, 'image')}
+      />
+      <input
+        ref={videoInputRef}
+        type="file"
+        accept="video/*"
+        multiple
+        className="hidden"
+        onChange={(e) => handleMediaSelect(e, 'video')}
+      />
+
       <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <span className="text-xs" style={{ color: '#5F6368' }}>
-          Post type: NORMAL
-        </span>
+        {/* Media buttons */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => imageInputRef.current?.click()}
+            disabled={!isJoined || posting || mediaFiles.length >= 4}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ borderColor: '#E8E8E8', color: '#5F6368' }}
+            title="Add image"
+          >
+            <ImageIcon className="w-4 h-4" /> Photo
+          </button>
+          <button
+            type="button"
+            onClick={() => videoInputRef.current?.click()}
+            disabled={!isJoined || posting || mediaFiles.length >= 4}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ borderColor: '#E8E8E8', color: '#5F6368' }}
+            title="Add video"
+          >
+            <Video className="w-4 h-4" /> Video
+          </button>
+        </div>
+
         <button
           onClick={handleCreateGroupPost}
-          disabled={!isJoined || posting || !postContent.trim()}
+          disabled={!isJoined || posting || (!postContent.trim() && mediaFiles.length === 0)}
           className="w-full sm:w-auto px-5 py-2 rounded-lg font-medium border transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
             borderColor: '#212529',
