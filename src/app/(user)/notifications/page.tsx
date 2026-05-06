@@ -229,7 +229,7 @@ export default function NotificationsPage() {
         break
 
       case 'conversation':
-        router.push(`/messages?conversationId=${entityId}`)
+        router.push(`/messages?conversationId=${entity_id}`)
         break
 
       case 'group':
