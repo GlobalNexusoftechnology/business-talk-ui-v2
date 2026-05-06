@@ -13,7 +13,7 @@ export default function UserAgreementPage() {
               <section>
                 <h2 className="text-2xl font-bold mb-3" style={{ color: '#212529' }}>1. Acceptance of Terms</h2>
                 <p style={{ color: '#5F6368' }}>
-                  By accessing and using Business Talk 24, you accept and agree to be bound by the terms and provision
+                  By accessing and using Businesstalk24, you accept and agree to be bound by the terms and provision
                   of this agreement. If you do not agree to abide by the above, please do not use this service.
                 </p>
               </section>
@@ -21,7 +21,7 @@ export default function UserAgreementPage() {
               <section>
                 <h2 className="text-2xl font-bold mb-3" style={{ color: '#212529' }}>2. Use License</h2>
                 <p style={{ color: '#5F6368' }}>
-                  You are granted a limited license to use the Business Talk 24 platform for lawful purposes. You may
+                  You are granted a limited license to use the Businesstalk24 platform for lawful purposes. You may
                   not:
                 </p>
                 <ul className="list-disc pl-6 space-y-2 mt-2" style={{ color: '#5F6368' }}>
@@ -74,7 +74,7 @@ export default function UserAgreementPage() {
               <section>
                 <h2 className="text-2xl font-bold mb-3" style={{ color: '#212529' }}>7. Limitation of Liability</h2>
                 <p style={{ color: '#5F6368' }}>
-                  To the fullest extent permitted by law, Business Talk 24 shall not be liable for any indirect,
+                  To the fullest extent permitted by law, Businesstalk24 shall not be liable for any indirect,
                   incidental, special, consequential, or punitive damages resulting from your use of the platform.
                 </p>
               </section>
@@ -82,7 +82,7 @@ export default function UserAgreementPage() {
               <section>
                 <h2 className="text-2xl font-bold mb-3" style={{ color: '#212529' }}>8. Indemnification</h2>
                 <p style={{ color: '#5F6368' }}>
-                  You agree to indemnify and hold harmless Business Talk 24, its officers, directors, employees, and
+                  You agree to indemnify and hold harmless Businesstalk24, its officers, directors, employees, and
                   agents from any claims, damages, or costs arising from your violation of these terms or your use of
                   the platform.
                 </p>

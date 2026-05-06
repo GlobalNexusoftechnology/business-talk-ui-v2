@@ -1,6 +1,6 @@
 # Deployment Guide
 
-This document provides instructions for deploying the Business Talk 24 Platform UI to various platforms.
+This document provides instructions for deploying the Businesstalk24 Platform UI to various platforms.
 
 ## Local Development
 

@@ -1,5 +1,5 @@
 /**
- * FCM Token Manager — Business Talk 24
+ * FCM Token Manager — Businesstalk24
  *
  * Handles:
  *   - Permission request flow (req 3)

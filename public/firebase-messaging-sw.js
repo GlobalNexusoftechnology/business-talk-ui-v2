@@ -1,5 +1,5 @@
 /**
- * Firebase Cloud Messaging Service Worker — Business Talk 24
+ * Firebase Cloud Messaging Service Worker — Businesstalk24
  *
  * Responsibilities:
  *   1. Background push message display (req 5)
@@ -59,7 +59,7 @@ function handleBackgroundMessage(payload) {
   }
 
   const notificationTitle =
-    payload.notification?.title || data.title || 'Business Talk 24';
+    payload.notification?.title || data.title || 'Businesstalk24';
 
   const notificationBody =
     payload.notification?.body || data.body || 'You have a new notification';
@@ -137,7 +137,7 @@ self.addEventListener('push', (event) => {
     return;
   }
 
-  const title = payload.notification?.title || payload.data?.title || 'Business Talk 24';
+  const title = payload.notification?.title || payload.data?.title || 'Businesstalk24';
   const options = {
     body: payload.notification?.body || payload.data?.body || '',
     icon: '/assets/icons/BUSINESSTALK24_LOGO_Icon_png.png',

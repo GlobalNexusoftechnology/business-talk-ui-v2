@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * PushNotificationProvider — Business Talk 24
+ * PushNotificationProvider — Businesstalk24
  *
  * Responsibilities (all requirements):
  *   req 3  — Permission request flow (triggered on mount for authenticated users)
@@ -162,7 +162,7 @@ export const PushNotificationProvider: React.FC<{
         if (document.visibilityState !== 'visible') return;
 
         const title =
-          payload.notification?.title ?? data.title ?? 'Business Talk 24';
+          payload.notification?.title ?? data.title ?? 'Businesstalk24';
         const body =
           payload.notification?.body ?? data.body ?? 'You have a new notification';
         const url = resolveDeepLink(

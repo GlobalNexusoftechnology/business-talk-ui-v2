@@ -1,6 +1,6 @@
 # 📋 Development Checklist
 
-Track your progress as you develop the Business Talk 24 Platform.
+Track your progress as you develop the Businesstalk24 Platform.
 
 ---
 

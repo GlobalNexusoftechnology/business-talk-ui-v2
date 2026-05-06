@@ -1,5 +1,5 @@
 /**
- * Push notification Redux slice — Business Talk 24
+ * Push notification Redux slice — Businesstalk24
  *
  * Tracks permission state, FCM token, user preferences, and
  * registration status. Does NOT call FCM APIs directly —

@@ -1,6 +1,6 @@
 # Demo Credentials
 
-This document contains demo credentials that can be used to test the Business Talk 24 application without a backend server.
+This document contains demo credentials that can be used to test the Businesstalk24 application without a backend server.
 
 ## Quick Start
 

@@ -20,7 +20,7 @@ export function ShareModal({
   isOpen, 
   onClose, 
   title = 'Share with Friends',
-  postContent = 'Check this out on Business Talk 24!',
+  postContent = 'Check this out on Businesstalk24!',
   contentType = 'posts',
   contentId = '12345'
 }: ShareModalProps) {

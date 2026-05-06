@@ -44,7 +44,7 @@ export default function SignupPage() {
       <Card>
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-secondary-900 mb-2">Create Account</h1>
-          <p className="text-secondary-600">Join Business Talk 24 today</p>
+          <p className="text-secondary-600">Join Businesstalk24 today</p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

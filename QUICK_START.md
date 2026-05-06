@@ -1,6 +1,6 @@
 # 🚀 Quick Start Guide
 
-Get the Business Talk 24 Platform UI running in 5 minutes.
+Get the Businesstalk24 Platform UI running in 5 minutes.
 
 ---
 

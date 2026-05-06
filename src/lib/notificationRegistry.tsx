@@ -1,4 +1,4 @@
-// ─── Notification Registry — Business Talk 24 ─────────────────────────────────
+// ─── Notification Registry — Businesstalk24 ─────────────────────────────────
 //
 // Single source of truth for:
 //   • All backend notification type metadata (icon, category, priority, label)

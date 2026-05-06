@@ -1,6 +1,6 @@
 # 📁 Complete File Manifest
 
-Reference guide for all 50+ files created in the Business Talk 24 Platform UI.
+Reference guide for all 50+ files created in the Businesstalk24 Platform UI.
 
 ---
 

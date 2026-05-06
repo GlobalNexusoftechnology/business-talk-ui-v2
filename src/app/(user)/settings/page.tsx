@@ -581,7 +581,7 @@ function NotificationsTab({
 
         {!supported && (
           <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
-            Push notifications are not supported in this browser. Try Chrome, Edge, or Firefox. On iOS, install Business Talk 24 to your Home Screen via Safari.
+            Push notifications are not supported in this browser. Try Chrome, Edge, or Firefox. On iOS, install Businesstalk24 to your Home Screen via Safari.
           </div>
         )}
 

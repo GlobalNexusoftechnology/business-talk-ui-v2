@@ -1,4 +1,4 @@
-# Business Talk 24 Platform UI
+# Businesstalk24 Platform UI
 
 A production-ready SaaS platform UI for professional networking, built with Next.js 15, React, TypeScript, and Tailwind CSS.
 
@@ -318,7 +318,7 @@ docker run -p 3000:3000 businesstalk24
 
 ## 📄 License
 
-© 2024 Business Talk 24. All rights reserved.
+© 2024 Businesstalk24. All rights reserved.
 
 ## 👥 Contributing
 

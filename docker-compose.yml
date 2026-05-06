@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # Business Talk 24 Platform UI
+  # Businesstalk24 Platform UI
   ui:
     build:
       context: .

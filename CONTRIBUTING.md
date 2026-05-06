@@ -1,6 +1,6 @@
-# Contributing to Business Talk 24
+# Contributing to Businesstalk24
 
-Thank you for your interest in contributing to the Business Talk 24 Platform UI! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to the Businesstalk24 Platform UI! This document provides guidelines and instructions for contributing.
 
 ## Code of Conduct
 
@@ -264,4 +264,4 @@ By contributing, you agree your code will be licensed under the same license as 
 
 ---
 
-Thank you for contributing to Business Talk 24! 🎉
+Thank you for contributing to Businesstalk24! 🎉

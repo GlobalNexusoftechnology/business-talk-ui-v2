@@ -1,6 +1,6 @@
 # 📖 Documentation Index & Getting Started
 
-**Welcome to Business Talk 24 Platform UI!** Choose your starting point below.
+**Welcome to Businesstalk24 Platform UI!** Choose your starting point below.
 
 ---
 
