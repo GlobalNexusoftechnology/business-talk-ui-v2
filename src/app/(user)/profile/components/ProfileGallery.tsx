@@ -64,6 +64,40 @@ export function ProfileGallery() {
     }
   }
 
+  const resolveSavedThumbnail = (data: any): string | null => {
+    const cover = data?.cover_image
+    if (typeof cover === 'string' && cover !== 'null' && cover !== 'undefined' && cover.length > 0) {
+      return cover
+    }
+
+    const media = data?.media
+    if (typeof media === 'string' && media !== 'null' && media !== 'undefined' && media.length > 0) {
+      return media
+    }
+
+    if (Array.isArray(media) && media.length > 0) {
+      const firstImage = media.find((m: any) => String(m?.type ?? '').toLowerCase() === 'image')
+      const candidate = firstImage ?? media[0]
+      const url = candidate?.url
+      if (typeof url === 'string' && url.length > 0) return url
+    }
+
+    return null
+  }
+
+  const formatSavedDate = (savedAt: unknown): string | null => {
+    const value = Number(savedAt)
+    if (!Number.isFinite(value) || value <= 0) return null
+
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return null
+
+    return date.toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+    })
+  }
+
   return (
     <div className="bg-white p-6 rounded-2xl border">
 
@@ -187,8 +221,9 @@ export function ProfileGallery() {
                 const data = item.data
                 const isPost = item.type === 'post'
                 const isBlog = item.type === 'blog' || item.type === 'story'
-                const rawSrc = data?.cover_image || data?.media
-                const imgSrc = rawSrc && typeof rawSrc === 'string' && rawSrc !== 'null' && rawSrc !== 'undefined' && rawSrc.length > 0 ? rawSrc : null
+                const imgSrc = resolveSavedThumbnail(data)
+                const authorHandle = (data?.user?.username || data?.user?.full_name || '').trim()
+                const savedDate = formatSavedDate(item.savedAt)
 
                 const handleCardClick = () => {
                   const id = data?.id
@@ -242,7 +277,7 @@ export function ProfileGallery() {
                           )}
                           {data?.user && (
                             <p className="text-xs text-gray-400 mt-1">
-                              by @{data.user.username}
+                              by @{authorHandle || 'user'}
                             </p>
                           )}
                         </div>
@@ -266,12 +301,9 @@ export function ProfileGallery() {
                         >
                           {item.type}
                         </span>
-                        {item.savedAt && (
+                        {savedDate && (
                           <span className="text-xs text-gray-400">
-                            {new Date(item.savedAt).toLocaleDateString(undefined, {
-                              month: 'short',
-                              day: 'numeric',
-                            })}
+                            {savedDate}
                           </span>
                         )}
                       </div>

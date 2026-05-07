@@ -32,6 +32,7 @@ export default function AdminDashboardPage() {
   const [engagement, setEngagement] = useState<any[]>([])
   const [recentUsers, setRecentUsers] = useState<any[]>([])
   const [reports, setReports] = useState<any[]>([])
+  const [resolvingReportId, setResolvingReportId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -106,6 +107,64 @@ export default function AdminDashboardPage() {
       return 'reported'
     }
     return 'active'
+  }
+
+  const normalizeReportStatus = (report: any): string =>
+    String(report?.status || '').trim().toLowerCase()
+
+  const isResolvedReport = (report: any): boolean =>
+    normalizeReportStatus(report) === 'resolved'
+
+  const actionLabelMap: Record<string, string> = {
+    IGNORE: 'Approved / Ignored',
+    REMOVE_POST: 'Post Removed',
+    WARN_USER: 'User Warned',
+  }
+
+  const getResolvedAction = (report: any): string => {
+    const raw = String(
+      report?.resolution_action ??
+      report?.resolved_action ??
+      report?.action_taken ??
+      report?.action ??
+      report?.resolvedByAction ??
+      '',
+    ).trim().toUpperCase()
+
+    if (!raw) return 'Resolved'
+    return actionLabelMap[raw] || raw.replace(/_/g, ' ')
+  }
+
+  const handleResolveReport = async (
+    reportId: string,
+    action: 'IGNORE' | 'REMOVE_POST' | 'WARN_USER',
+  ) => {
+    try {
+      setResolvingReportId(reportId)
+      const response = await adminApi.resolveReport(reportId, action)
+      const updated = response?.data?.data ?? response?.data ?? null
+
+      setReports((prev) =>
+        prev.map((r) => {
+          if (r.id !== reportId) return r
+          return {
+            ...r,
+            ...(updated && typeof updated === 'object' ? updated : {}),
+            status: 'resolved',
+            resolution_action:
+              updated?.resolution_action ??
+              updated?.resolved_action ??
+              updated?.action_taken ??
+              updated?.action ??
+              action,
+          }
+        }),
+      )
+    } catch (err) {
+      console.error('Resolve report error:', err)
+    } finally {
+      setResolvingReportId(null)
+    }
   }
 
   return (
@@ -238,43 +297,63 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="p-4 space-y-3">
-            {reports.map((r: any) => (
-              <div key={r.id} className="border p-3 rounded bg-white">
-                <p className="text-sm">{r.reason}</p>
-                <p className="text-xs text-gray-500">
-                  {r.content_type}
-                </p>
+            {reports.map((r: any) => {
+              const resolved = isResolvedReport(r)
+              const resolvedAction = getResolvedAction(r)
+              const isBusy = resolvingReportId === r.id
 
-                <div className="flex gap-2 mt-2">
-                  <button
-                    className="bg-green-600 text-white px-2 py-1 rounded text-xs"
-                    onClick={() =>
-                      adminApi.resolveReport(r.id, 'IGNORE')
-                    }
-                  >
-                    Approve
-                  </button>
+              return (
+                <div key={r.id} className="border p-3 rounded bg-white">
+                  <p className="text-sm">{r.reason}</p>
+                  <p className="text-xs text-gray-500">{r.content_type}</p>
 
-                  <button
-                    className="bg-red-600 text-white px-2 py-1 rounded text-xs"
-                    onClick={() =>
-                      adminApi.resolveReport(r.id, 'REMOVE_POST')
-                    }
-                  >
-                    Delete
-                  </button>
+                  <div className="mt-2 flex items-center gap-2 flex-wrap">
+                    {resolved ? (
+                      <>
+                        <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-800 font-medium">
+                          Resolved
+                        </span>
+                        <span className="text-xs px-2 py-1 rounded bg-blue-50 text-blue-700">
+                          Action: {resolvedAction}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-xs px-2 py-1 rounded bg-amber-100 text-amber-800 font-medium">
+                        Pending
+                      </span>
+                    )}
+                  </div>
 
-                  <button
-                    className="bg-yellow-600 text-white px-2 py-1 rounded text-xs"
-                    onClick={() =>
-                      adminApi.resolveReport(r.id, 'WARN_USER')
-                    }
-                  >
-                    Warn
-                  </button>
+                  {!resolved && (
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        className="bg-green-600 text-white px-2 py-1 rounded text-xs disabled:opacity-60"
+                        disabled={isBusy}
+                        onClick={() => handleResolveReport(r.id, 'IGNORE')}
+                      >
+                        {isBusy ? 'Processing...' : 'Approve'}
+                      </button>
+
+                      <button
+                        className="bg-red-600 text-white px-2 py-1 rounded text-xs disabled:opacity-60"
+                        disabled={isBusy}
+                        onClick={() => handleResolveReport(r.id, 'REMOVE_POST')}
+                      >
+                        Delete
+                      </button>
+
+                      <button
+                        className="bg-yellow-600 text-white px-2 py-1 rounded text-xs disabled:opacity-60"
+                        disabled={isBusy}
+                        onClick={() => handleResolveReport(r.id, 'WARN_USER')}
+                      >
+                        Warn
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
 

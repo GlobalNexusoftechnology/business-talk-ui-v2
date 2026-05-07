@@ -104,6 +104,7 @@ export const PushNotificationProvider: React.FC<{
 
   // Pull unread count to sync badge (req 9)
   const unreadCount = useAppSelector((s) => s.notifications.unreadCount);
+  const activeConversationId = useAppSelector((s) => s.chat.activeConversationId);
   // Push preferences: check master switch (req 14 + preference gate)
   const pushEnabled = useAppSelector((s) => s.push.preferences.enabled);
   // Current user — only register when authenticated
@@ -146,6 +147,32 @@ export const PushNotificationProvider: React.FC<{
       const unsubscribe = subscribeToForegroundMessages((payload: MessagePayload) => {
         if (cancelled) return;
         const data = payload.data ?? {};
+
+        const dataEntityType = String(data.entityType ?? data.entity_type ?? '').toLowerCase();
+        const notificationType = String(data.notifType ?? data.type ?? '').toLowerCase();
+        const notificationConversationId = String(
+          data.conversationId ??
+          data.conversation_id ??
+          data.entityId ??
+          data.entity_id ??
+          '',
+        );
+        const isChatNotification =
+          dataEntityType === 'conversation' ||
+          notificationType === 'message' ||
+          notificationType === 'conversation';
+        const isMessagesRoute = window.location.pathname.startsWith('/messages');
+
+        // Suppress redundant foreground popups for the currently open chat.
+        if (
+          isChatNotification &&
+          !!notificationConversationId &&
+          notificationConversationId === activeConversationId &&
+          isMessagesRoute &&
+          document.visibilityState === 'visible'
+        ) {
+          return;
+        }
 
         // req 11: silent — no toast
         if (data.silent === 'true') {
@@ -197,7 +224,7 @@ export const PushNotificationProvider: React.FC<{
       cancelled = true;
       foregroundUnsubRef.current?.();
     };
-  }, [isSupported, isAuthenticated, pushEnabled, dispatch]);
+  }, [isSupported, isAuthenticated, pushEnabled, dispatch, activeConversationId]);
 
   // ── SW message handler (deep-link + offline sync req 6, 8) ───────────────
   useEffect(() => {

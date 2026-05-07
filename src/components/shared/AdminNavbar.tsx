@@ -1,6 +1,6 @@
 'use client'
 
-import { Bell, Search, Menu } from 'lucide-react'
+import { Bell, Menu } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/hooks/useRedux'
 import { useEffect, useState } from 'react'
@@ -49,14 +49,15 @@ export const AdminNavbar = ({ onMenuClick }: AdminNavbarProps) => {
           </button>
 
           {/* Search Bar */}
-          <div className="hidden md:flex items-center gap-2 bg-secondary-50 rounded-lg px-4 py-2 flex-1 max-w-xs">
+          {/* will add search Bar in next update as right now it is unnecessary */}
+          {/* <div className="hidden md:flex items-center gap-2 bg-secondary-50 rounded-lg px-4 py-2 flex-1 max-w-xs">
             <Search className="h-5 w-5 text-secondary-400" />
             <input
               type="text"
               placeholder="Search users, posts..."
               className="bg-transparent outline-none text-sm w-full"
             />
-          </div>
+          </div> */}
         </div>
 
         {/* Right Side */}
