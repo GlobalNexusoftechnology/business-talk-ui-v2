@@ -115,7 +115,9 @@ const ConversationItem = React.memo<ConversationItemProps>(({
 }) => {
   const dispatch = useAppDispatch();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
   const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -128,6 +130,13 @@ const ConversationItem = React.memo<ConversationItemProps>(({
 
   const handleMenuToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!menuOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setMenuPos({
+        top: rect.bottom + 4,
+        right: window.innerWidth - rect.right,
+      });
+    }
     setMenuOpen((prev) => !prev);
   };
 
@@ -223,12 +232,12 @@ const ConversationItem = React.memo<ConversationItemProps>(({
 
       {/* 3-dot context menu (visible on hover) */}
       <div
-        ref={menuRef}
         className={`absolute right-2 bottom-2 transition-opacity ${
           menuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100'
         }`}
       >
         <button
+          ref={buttonRef}
           className="p-1 rounded-md hover:bg-gray-200 transition-colors"
           onClick={handleMenuToggle}
           aria-label="Conversation options"
@@ -237,7 +246,11 @@ const ConversationItem = React.memo<ConversationItemProps>(({
         </button>
 
         {menuOpen && (
-          <div className="absolute right-0 bottom-7 z-60 bg-white border border-gray-100 rounded-xl shadow-lg min-w-[160px] py-1 overflow-hidden">
+          <div
+            ref={menuRef}
+            style={{ position: 'fixed', top: menuPos.top, right: menuPos.right }}
+            className="z-[9999] bg-white border border-gray-100 rounded-xl shadow-lg min-w-[160px] py-1 overflow-hidden"
+          >
             <button
               className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2.5 transition-colors"
               onClick={handlePin}
