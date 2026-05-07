@@ -65,21 +65,83 @@ export function ProfileGallery() {
   }
 
   const resolveSavedThumbnail = (data: any): string | null => {
-    const cover = data?.cover_image
-    if (typeof cover === 'string' && cover !== 'null' && cover !== 'undefined' && cover.length > 0) {
-      return cover
+    const isValidUrlString = (value: unknown): value is string => {
+      if (typeof value !== 'string') return false
+      const normalized = value.trim()
+      return normalized.length > 0 && normalized !== 'null' && normalized !== 'undefined'
     }
+
+    const pickFromObject = (obj: any): string | null => {
+      if (!obj || typeof obj !== 'object') return null
+
+      const directCandidates = [
+        obj.cover_image,
+        obj.coverImage,
+        obj.image,
+        obj.image_url,
+        obj.media_url,
+        obj.thumbnail,
+        obj.thumbnail_url,
+        obj.url,
+        obj.src,
+      ]
+
+      const direct = directCandidates.find(isValidUrlString)
+      if (direct) return direct
+
+      if (Array.isArray(obj.media)) {
+        const fromMedia = pickFromArray(obj.media)
+        if (fromMedia) return fromMedia
+      }
+
+      return null
+    }
+
+    const pickFromArray = (arr: any[]): string | null => {
+      if (!Array.isArray(arr) || arr.length === 0) return null
+
+      const imageLike = arr.find((item) => {
+        if (typeof item === 'string') return false
+        const type = String(item?.type ?? item?.media_type ?? item?.mime_type ?? '').toLowerCase()
+        return type.includes('image')
+      })
+
+      const candidate = imageLike ?? arr[0]
+      if (isValidUrlString(candidate)) return candidate
+
+      return pickFromObject(candidate)
+    }
+
+    const parseMaybeJson = (value: string): unknown => {
+      const trimmed = value.trim()
+      if (!(trimmed.startsWith('{') || trimmed.startsWith('['))) return value
+      try {
+        return JSON.parse(trimmed)
+      } catch {
+        return value
+      }
+    }
+
+    const primary = pickFromObject(data)
+    if (primary) return primary
 
     const media = data?.media
-    if (typeof media === 'string' && media !== 'null' && media !== 'undefined' && media.length > 0) {
-      return media
+    if (isValidUrlString(media)) {
+      const parsed = parseMaybeJson(media)
+      if (typeof parsed === 'string') return parsed
+      if (Array.isArray(parsed)) {
+        const fromArray = pickFromArray(parsed)
+        if (fromArray) return fromArray
+      }
+      if (parsed && typeof parsed === 'object') {
+        const fromObj = pickFromObject(parsed)
+        if (fromObj) return fromObj
+      }
     }
 
-    if (Array.isArray(media) && media.length > 0) {
-      const firstImage = media.find((m: any) => String(m?.type ?? '').toLowerCase() === 'image')
-      const candidate = firstImage ?? media[0]
-      const url = candidate?.url
-      if (typeof url === 'string' && url.length > 0) return url
+    if (Array.isArray(media)) {
+      const fromArray = pickFromArray(media)
+      if (fromArray) return fromArray
     }
 
     return null
@@ -217,12 +279,12 @@ export function ProfileGallery() {
             </div>
           ) : (
             <div className="space-y-3">
-              {savedItems.map((item) => {
-                const data = item.data
+              {savedItems.map((item, idx) => {
+                const data = item?.data ?? {}
                 const isPost = item.type === 'post'
                 const isBlog = item.type === 'blog' || item.type === 'story'
                 const imgSrc = resolveSavedThumbnail(data)
-                const authorHandle = (data?.user?.username || data?.user?.full_name || '').trim()
+                const authorHandle = String(data?.user?.username || data?.user?.full_name || '').trim()
                 const savedDate = formatSavedDate(item.savedAt)
 
                 const handleCardClick = () => {
@@ -242,7 +304,7 @@ export function ProfileGallery() {
 
                 return (
                   <div
-                    key={item.savedId}
+                    key={String(item.savedId ?? item.contentId ?? data?.id ?? `saved-${idx}`)}
                     className="flex gap-4 p-4 rounded-xl border hover:border-gray-300 transition group cursor-pointer"
                     style={{ borderColor: '#E8E8E8' }}
                     onClick={handleCardClick}

@@ -235,7 +235,14 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
       // API returns updated vote counts and user's vote
       const { upvotes, myVote } = res
       setLikeCount(upvotes)
-      setIsLiked(myVote === 'up' || Boolean(res.liked))
+      // Prefer myVote when available; null/undefined means the vote was removed.
+      if (myVote === null || myVote === undefined) {
+        setIsLiked(false)
+      } else if (typeof myVote === 'string') {
+        setIsLiked(myVote.toLowerCase() === 'up')
+      } else {
+        setIsLiked(Boolean(res.liked))
+      }
     } catch (err) {
       // fallback to optimistic UI
       if (isLiked) {

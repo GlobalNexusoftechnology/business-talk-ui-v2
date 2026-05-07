@@ -160,7 +160,14 @@ export function QuestionPost({
       setLikeCount(res.upvotes)
       // setDislikeCount(res.downvotes)
 
-      setIsLiked(res.myVote === 'up' || Boolean(res.liked))
+      // Prefer myVote when available; null/undefined means the vote was removed.
+      if (res.myVote === null || res.myVote === undefined) {
+        setIsLiked(false)
+      } else if (typeof res.myVote === 'string') {
+        setIsLiked(res.myVote.toLowerCase() === 'up')
+      } else {
+        setIsLiked(Boolean(res.liked))
+      }
       setDisliked(false)
     } catch {
       // fallback

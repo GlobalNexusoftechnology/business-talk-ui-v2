@@ -7,7 +7,7 @@ import React, {
   useRef,
   useCallback,
 } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import EmojiPicker from 'emoji-picker-react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -287,8 +287,9 @@ const normalizeId = (value: unknown): string => String(value ?? '').trim().toLow
 const MessagesClient = () => {
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
-  const authUser = useAppSelector((state) => state.auth?.user as any);
-  const currentUserId = useAppSelector((state) => {
+  const router = useRouter();
+  const authUser = useAppSelector((state: any) => state.auth?.user as any);
+  const currentUserId = useAppSelector((state: any) => {
     const user = state.auth?.user as any;
     return String(user?.id ?? user?.user_id ?? user?.userId ?? '');
   });
@@ -515,6 +516,11 @@ const MessagesClient = () => {
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
+
+  const handleHeaderAvatarClick = useCallback(() => {
+    if (selectedConversation?.isGroup || !selectedConversation?.participantId) return;
+    router.push(`/profile/${selectedConversation.participantId}`);
+  }, [router, selectedConversation]);
 
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !activeConversationId) return;
@@ -769,16 +775,35 @@ const MessagesClient = () => {
             <ArrowLeft className="w-5 h-5 text-gray-600" />
           </button>
 
-          <div className="relative shrink-0">
-            <img
-              src={selectedConversation.avatar}
-              alt={selectedConversation.name}
-              className="w-9 h-9 md:w-10 md:h-10 rounded-full object-cover"
-            />
-            {activeConvIsOnline && (
-              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
-            )}
-          </div>
+          {selectedConversation.isGroup || !selectedConversation.participantId ? (
+            <div className="relative shrink-0">
+              <img
+                src={selectedConversation.avatar}
+                alt={selectedConversation.name}
+                className="w-9 h-9 md:w-10 md:h-10 rounded-full object-cover"
+              />
+              {activeConvIsOnline && (
+                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+              )}
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleHeaderAvatarClick}
+              className="relative shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-black/20"
+              aria-label={`Open ${selectedConversation.name} profile`}
+              title={`Open ${selectedConversation.name} profile`}
+            >
+              <img
+                src={selectedConversation.avatar}
+                alt={selectedConversation.name}
+                className="w-9 h-9 md:w-10 md:h-10 rounded-full object-cover cursor-pointer"
+              />
+              {activeConvIsOnline && (
+                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+              )}
+            </button>
+          )}
 
           <div className="min-w-0 flex-1">
             <h2 className="font-semibold text-sm md:text-base truncate">
