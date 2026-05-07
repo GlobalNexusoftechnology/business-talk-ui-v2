@@ -11,6 +11,14 @@ let failedRequestQueue: Array<{
   reject: (reason: unknown) => void
 }> = []
 
+const PUBLIC_AUTH_PATHS = [
+  '/login',
+  '/signup',
+  '/forgot-password',
+  '/reset-password',
+  '/google-success',
+]
+
 const processQueue = (error: unknown) => {
   failedRequestQueue.forEach(({ resolve, reject }) => {
     error ? reject(error) : resolve(null)
@@ -40,6 +48,7 @@ class ApiClient {
         if (!error.response) return Promise.reject(error)
 
         const originalRequest = error.config as RetryableRequestConfig
+        const requestUrl = String(originalRequest?.url || '')
         const status = Number(error.response.status)
         const responseCode = String(error.response?.data?.code || '')
         const responseMessage = String(
@@ -72,10 +81,19 @@ class ApiClient {
         }
 
         // ── 2. Handle 401 with silent token refresh + request retry ──────
-        const isRefreshEndpoint =
-          originalRequest?.url?.includes('/auth/refresh-token')
+        const isRefreshEndpoint = requestUrl.includes('/auth/refresh-token')
+        const isPublicAuthEndpoint =
+          requestUrl.includes('/auth/login') ||
+          requestUrl.includes('/auth/signup') ||
+          requestUrl.includes('/auth/forgot-password') ||
+          requestUrl.includes('/auth/reset-password')
 
-        if (status === 401 && !originalRequest?._retry && !isRefreshEndpoint) {
+        if (
+          status === 401 &&
+          !originalRequest?._retry &&
+          !isRefreshEndpoint &&
+          !isPublicAuthEndpoint
+        ) {
           // If a refresh is already in-flight, queue this request and wait.
           if (isRefreshing) {
             return new Promise((resolve, reject) => {
@@ -98,8 +116,14 @@ class ApiClient {
             processQueue(refreshError)
             // Refresh failed → session is truly expired → force logout.
             if (typeof window !== 'undefined') {
+              const isOnPublicAuthPage = PUBLIC_AUTH_PATHS.some(
+                (path) =>
+                  window.location.pathname === path ||
+                  window.location.pathname.startsWith(`${path}/`)
+              )
+
               localStorage.removeItem('user')
-              if (window.location.pathname !== '/login') {
+              if (!isOnPublicAuthPage && window.location.pathname !== '/login') {
                 window.location.href = '/login'
               }
             }

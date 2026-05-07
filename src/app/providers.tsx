@@ -8,10 +8,23 @@ import { PushNotificationProvider } from '@/providers/PushNotificationProvider'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fetchCurrentUser } from '@/redux/slices/authSlice'
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import apiClient from '@/lib/api-client'
 
+const PUBLIC_AUTH_ROUTES = [
+  '/login',
+  '/signup',
+  '/forgot-password',
+  '/reset-password',
+  '/google-success',
+]
+
 export function Providers({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+  const isPublicAuthRoute = PUBLIC_AUTH_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`)
+  )
+
   const [queryClient] = useState(() => new QueryClient())
   const [sessionChecked, setSessionChecked] = useState(false)
   const [forbiddenToast, setForbiddenToast] = useState(false)
@@ -40,6 +53,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   // On mount: refresh the access-token then sync user state
   useEffect(() => {
+    if (isPublicAuthRoute) {
+      setSessionChecked(true)
+      return
+    }
+
     ;(async () => {
       // Try to refresh the access token. If this fails (401 on mobile/cross-domain
       // environments) we still attempt fetchCurrentUser — the session cookie may be
@@ -68,7 +86,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       }
     })()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [isPublicAuthRoute])
 
   if (!sessionChecked) {
     return (
@@ -85,13 +103,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
-        <WebSocketProvider>
-          <PushNotificationProvider>
-            <ContentViewerProvider>
-              {children}
-            </ContentViewerProvider>
-          </PushNotificationProvider>
-        </WebSocketProvider>
+        {isPublicAuthRoute ? (
+          children
+        ) : (
+          <WebSocketProvider>
+            <PushNotificationProvider>
+              <ContentViewerProvider>
+                {children}
+              </ContentViewerProvider>
+            </PushNotificationProvider>
+          </WebSocketProvider>
+        )}
 
         {/* Toast: regular 403 permission errors */}
         {forbiddenToast && (
