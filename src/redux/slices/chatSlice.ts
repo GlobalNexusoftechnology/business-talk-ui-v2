@@ -55,47 +55,97 @@ export const fetchConversations = createAsyncThunk(
     try {
       const res = await apiClient.getConversations();
       const currentUser = parseCurrentUser();
+      const rows: any[] = Array.isArray(res.data)
+        ? res.data
+        : (res.data?.data ?? []);
 
-      const conversations: ConversationEntity[] = res.data.map((c: any) => {
+      const conversations: ConversationEntity[] = rows.map((c: any) => {
         const conv = c.conversation ?? c;
-        const isGroup: boolean = conv.is_group ?? false;
+        const isGroup: boolean = conv.is_group ?? conv.isGroup ?? false;
 
-        let name: string = conv.title ?? '';
+        // ── Normalize participants ───────────────────────────────────────────
+        // API may wrap each entry as { user: {...} } or return bare user objects.
+        const participants: any[] = (conv.participants ?? []).map(
+          (p: any) => p.user ?? p,
+        );
+
+        let name: string = conv.title ?? conv.name ?? '';
         let avatar: string =
           conv.cover_image ??
-          `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.title || 'User')}`;
+          conv.avatar ??
+          '';
 
         let participantId: string | undefined;
+
         if (!isGroup) {
-          const otherUser = conv.participants?.find(
-            (p: any) => p.user?.id !== currentUser.id,
-          )?.user;
+          // DM: find the other participant (not the current user)
+          // Compare as strings to handle numeric/UUID mismatches
+          const currentId = String(currentUser.id ?? '');
+          const otherUser = participants.find(
+            (p: any) =>
+              String(p.id ?? p.user_id ?? '') !== currentId &&
+              String(p.id ?? p.user_id ?? '') !== '',
+          );
           if (otherUser) {
-            name = otherUser.full_name || otherUser.username || '';
+            name =
+              otherUser.full_name ||
+              otherUser.name ||
+              otherUser.username ||
+              otherUser.email ||
+              '';
             avatar =
-              otherUser.profile_photo ??
-              `https://ui-avatars.com/api/?name=${encodeURIComponent(otherUser.full_name || 'User')}`;
-            participantId = otherUser.id as string | undefined;
+              otherUser.profile_photo ||
+              otherUser.avatar ||
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                otherUser.full_name || otherUser.username || otherUser.email || 'User',
+              )}`;
+            participantId = String(otherUser.id ?? otherUser.user_id ?? '');
+          } else {
+            // Fallback: couldn't determine other user
+            avatar =
+              avatar ||
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}`;
           }
         } else {
+          // Group: use title, then participant names
           name =
             conv.title ||
-            conv.participants?.map((p: any) => p.user?.username).join(', ') ||
-            '';
+            conv.name ||
+            participants.map((p) => p.username || p.full_name).filter(Boolean).join(', ') ||
+            'Group';
+          avatar =
+            conv.cover_image ||
+            conv.avatar ||
+            `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}`;
         }
 
-        const lastMsg = conv.messages?.[conv.messages.length - 1] ?? null;
+        // ── Last message preview ─────────────────────────────────────────────
+        // API may return messages array (newest last) or last_message object
+        const lastMsgRaw =
+          conv.last_message ??
+          conv.lastMessage ??
+          (Array.isArray(conv.messages) ? conv.messages[conv.messages.length - 1] : null);
+
+        const lastMessageText: string =
+          lastMsgRaw?.content ?? lastMsgRaw?.text ?? '';
+        const lastMessageAt: number = lastMsgRaw
+          ? Number(lastMsgRaw.created_on ?? lastMsgRaw.createdAt ?? lastMsgRaw.created_at ?? 0)
+          : 0;
+
+        // ── Unread count ──────────────────────────────────────────────────────
+        const unread: number =
+          Number(conv.unread_count ?? conv.unreadCount ?? c.unread_count ?? c.unreadCount ?? 0);
 
         return {
           id: conv.id as string,
           name: name || 'Unknown',
           avatar,
-          lastMessage: lastMsg?.content ?? '',
-          lastMessageAt: lastMsg ? Number(lastMsg.created_on) : 0,
-          unread: 0,
-          online: true,
+          lastMessage: lastMessageText,
+          lastMessageAt,
+          unread,
+          online: false,
           isGroup,
-          members: conv.participants?.length,
+          members: participants.length || conv.member_count || 0,
           participantId,
           muted: false,
           archived: false,
@@ -127,19 +177,35 @@ export const sendMessage = createAsyncThunk(
       const m = res.data;
       const user = parseCurrentUser();
 
+      // Normalize timestamp — server may return created_on (ms), created_at (ISO), etc.
+      const rawTs = m.created_on ?? m.createdAt ?? m.created_at ?? Date.now();
+      let createdAt: number;
+      if (typeof rawTs === 'number') {
+        createdAt = rawTs;
+      } else {
+        const parsed = Number(rawTs);
+        createdAt = Number.isFinite(parsed) && parsed > 1e10
+          ? parsed
+          : new Date(rawTs).getTime();
+      }
+      if (!Number.isFinite(createdAt) || createdAt === 0) createdAt = Date.now();
+
       const message: MessageEntity = {
-        id: m.id as string,
+        id: (m.id ?? m.message_id ?? tempId) as string,
         conversationId,
-        text: m.content as string,
+        text: (m.content ?? m.text ?? content) as string,
         sender: 'me',
-        timestamp: new Date(Number(m.created_on)).toLocaleTimeString(),
-        createdAt: Number(m.created_on),
-        senderId: (user as any).id ?? '',
+        timestamp: new Date(createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        createdAt,
+        senderId: String((user as any).id ?? ''),
         senderName:
-          (user as any).full_name || (user as any).username || 'Me',
+          (user as any).full_name || (user as any).name || (user as any).username || 'Me',
         senderAvatar:
-          (user as any).profile_photo ??
-          `https://ui-avatars.com/api/?name=Me`,
+          (user as any).profile_photo ||
+          (user as any).avatar ||
+          `https://ui-avatars.com/api/?name=${encodeURIComponent(
+            (user as any).full_name || (user as any).username || 'Me',
+          )}`,
         status: 'sent',
         tempId,
       };
@@ -213,8 +279,12 @@ const chatSlice = createSlice({
       if (conv) {
         conv.lastMessage = message.isDeleted ? 'This message was deleted' : message.text;
         conv.lastMessageAt = message.createdAt;
-        // Only increment unread if conversation is not active AND not muted
-        if (state.activeConversationId !== conversationId && !conv.muted) {
+        // Only increment unread if:
+        //   • the conversation is not currently active, AND
+        //   • it is not muted, AND
+        //   • the message was sent by someone else (not the current user)
+        const isMine = message.sender === 'me';
+        if (state.activeConversationId !== conversationId && !conv.muted && !isMine) {
           conv.unread += 1;
           if (!state.messages.byConversation[conversationId]) {
             state.messages.byConversation[conversationId] = emptyConvMessages();

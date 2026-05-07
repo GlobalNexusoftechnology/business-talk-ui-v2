@@ -140,8 +140,8 @@ class ApiClient {
       phone_number,
       created_by: '73f52c44-1746-49e6-ab08-8f86a8d8967f',
       modified_by: '73f52c44-1746-49e6-ab08-8f86a8d8967f',
-      role_id: 'e360b4ab-a828-4a4f-8792-701e785f89c0',
-      // role_id: '73f52c44-1746-49e6-ab08-8f86a8d8967f',
+      // role_id: 'e360b4ab-a828-4a4f-8792-701e785f89c0',
+      role_id: '73f52c44-1746-49e6-ab08-8f86a8d8967f',
     })
 
     if (createRes.data.UserExist) {
@@ -267,6 +267,10 @@ class ApiClient {
 
   getFollowingFeed() {
     return this.client.get('/posts/feed/following')
+  }
+
+  getAllPosts() {
+    return this.client.get('/posts/all')
   }
 
   createPost(data: any) {

@@ -2,6 +2,7 @@
 
 import { HelpCircle, Tag, X } from 'lucide-react'
 import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { TagsPopup } from '@/components/shared/TagsPopup'
 import apiClient from '@/lib/api-client'
 import { useAccountStatus } from '@/hooks/useRedux'
@@ -14,6 +15,7 @@ export function PostQuestionBox() {
   const [loading, setLoading] = useState(false)
   const [savingDraft, setSavingDraft] = useState(false)
   const [draftToast, setDraftToast] = useState<string | null>(null)
+  const queryClient = useQueryClient()
 
   const showDraftToast = (msg: string) => {
     setDraftToast(msg)
@@ -54,8 +56,7 @@ export function PostQuestionBox() {
 
       setQuestionText('')
       setTags([])
-
-      window.location.reload()
+      await queryClient.invalidateQueries({ queryKey: ['feed'] })
     } catch (err) {
       console.error('Question post failed:', err)
     } finally {
@@ -87,13 +88,14 @@ export function PostQuestionBox() {
       />
 
       <div className="flex flex-wrap justify-between gap-2 mt-3">
-        <button onClick={() => setShowTagsPopup(true)} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-all">
+        <button type="button" onClick={() => setShowTagsPopup(true)} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-all">
           <Tag className="w-4 h-4" />
           Add Tags ({tags.length})
         </button>
 
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={handleSaveDraft}
             disabled={savingDraft || loading || !questionText.trim() || isBanned}
             className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -101,6 +103,7 @@ export function PostQuestionBox() {
             {savingDraft ? 'Saving...' : 'Save Draft'}
           </button>
           <button
+            type="button"
             onClick={handlePostQuestion}
             disabled={loading || !questionText.trim() || isBanned}
             className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-400 disabled:bg-gray-400 disabled:cursor-not-allowed"

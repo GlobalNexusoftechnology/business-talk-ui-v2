@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 
 interface BlogCardProps {
   blog: {
@@ -6,6 +7,7 @@ interface BlogCardProps {
     title: string;
     content: string;
     author?: {
+      id?: string | number;
       name?: string;
       avatar?: string;
     };
@@ -19,16 +21,25 @@ const BlogCard: React.FC<BlogCardProps> = ({ blog }) => {
     <div className="bg-white rounded-lg shadow p-4 border border-gray-100">
       <div className="flex items-center mb-2">
         {blog.author?.avatar && (
-          <img
-            src={blog.author.avatar}
-            alt={blog.author.name || 'Author'}
-            className="w-8 h-8 rounded-full object-cover mr-2"
-          />
+          <Link href={blog.author?.id ? `/profile/${blog.author.id}` : '#'} className="shrink-0 mr-2">
+            <img
+              src={blog.author.avatar}
+              alt={blog.author.name || 'Author'}
+              className="w-8 h-8 rounded-full object-cover hover:opacity-80 transition-opacity"
+            />
+          </Link>
         )}
         <div>
           <h3 className="font-semibold text-gray-900 text-lg">{blog.title}</h3>
           {blog.author?.name && (
-            <p className="text-xs text-gray-500">By {blog.author.name}</p>
+            <p className="text-xs text-gray-500">
+              By{' '}
+              {blog.author?.id ? (
+                <Link href={`/profile/${blog.author.id}`} className="hover:underline">{blog.author.name}</Link>
+              ) : (
+                blog.author.name
+              )}
+            </p>
           )}
           {blog.created_at && (
             <p className="text-xs text-gray-400">{new Date(blog.created_at).toLocaleDateString()}</p>

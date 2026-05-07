@@ -144,7 +144,7 @@ export default function AdminBlogsPage() {
               media={b.media || []}
               tags={b.tags || []}
               likes={b.upvotes ?? b.likes ?? 0}
-              commentsCount={b.comments_count ?? 0}
+              commentsCount={b.commentsCount ?? b.comments_count ?? b.comment_count ?? 0}
               views={b.views}
               createdOn={b.created_on}
               // onWarn={(uid) => warnUser.mutate(uid)}
@@ -159,7 +159,7 @@ export default function AdminBlogsPage() {
       {showCreate && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
           <div className="w-full max-w-2xl">
-            <AdminCreateBlogBox />
+            <AdminCreateBlogBox onCreated={() => setShowCreate(false)} />
             <div className="text-center mt-4">
               <Button onClick={() => setShowCreate(false)}>Close</Button>
             </div>

@@ -2,6 +2,7 @@
 
 import { X, ImageIcon, BookOpen, Tag } from 'lucide-react'
 import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { TagsPopup } from '@/components/shared/TagsPopup'
 import apiClient from '@/lib/api-client'
 import { validateImageFile } from '@/lib/utils'
@@ -15,6 +16,7 @@ export function ShareStoryBox() {
   const [loading, setLoading] = useState(false)
   const [savingDraft, setSavingDraft] = useState(false)
   const [draftToast, setDraftToast] = useState<string | null>(null)
+  const queryClient = useQueryClient()
 
   const showDraftToast = (msg: string) => {
     setDraftToast(msg)
@@ -69,16 +71,13 @@ export function ShareStoryBox() {
         formData.append('cover_image', coverImage[0])
       }
 
-      await apiClient['client'].post('/blogs', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      await apiClient.createBlog(formData)
 
       setStoryTitle('')
       setStoryText('')
       setCoverImage([])
       setTags([])
-
-      window.location.reload()
+      await queryClient.invalidateQueries({ queryKey: ['stories-feed'] })
     } catch (err) {
       console.error('Story failed:', err)
     } finally {
@@ -123,7 +122,7 @@ export function ShareStoryBox() {
             <ImageIcon className='text-[#474b50]'/> Add Cover
           </label>
 
-          <button onClick={() => setShowTagsPopup(true)} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-all">
+          <button type="button" onClick={() => setShowTagsPopup(true)} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-all">
             <Tag className="w-4 h-4" />
             Add Tags ({tags.length})
           </button>
@@ -131,6 +130,7 @@ export function ShareStoryBox() {
 
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={handleSaveDraft}
             disabled={savingDraft || loading || (!storyTitle.trim() && !storyText.trim())}
             className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -138,6 +138,7 @@ export function ShareStoryBox() {
             {savingDraft ? 'Saving...' : 'Save Draft'}
           </button>
           <button
+            type="button"
             onClick={handleShareStory}
             disabled={loading || !storyText.trim()}
             className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-400 disabled:bg-gray-400 disabled:cursor-not-allowed"

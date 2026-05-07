@@ -2,6 +2,7 @@
 
 import { ImageIcon, Video, X } from 'lucide-react'
 import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/lib/api-client'
 import { useAccountStatus } from '@/hooks/useRedux'
 import { validateMediaFile } from '@/lib/utils'
@@ -13,6 +14,7 @@ export function CreatePostBox() {
   const [loading, setLoading] = useState(false)
   const [savingDraft, setSavingDraft] = useState(false)
   const [draftToast, setDraftToast] = useState<string | null>(null)
+  const queryClient = useQueryClient()
 
   const showDraftToast = (msg: string) => {
     setDraftToast(msg)
@@ -70,8 +72,8 @@ export function CreatePostBox() {
 
       setPostContent('')
       setSelectedFiles([])
-
-      window.location.reload()
+      await queryClient.invalidateQueries({ queryKey: ['feed'] })
+      await queryClient.invalidateQueries({ queryKey: ['posts'] })
     } catch (err) {
       console.error('Create post failed:', err)
     } finally {
@@ -138,6 +140,7 @@ export function CreatePostBox() {
 
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={handleSaveDraft}
             disabled={savingDraft || loading || !postContent.trim() || isBanned}
             className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -145,6 +148,7 @@ export function CreatePostBox() {
             {savingDraft ? 'Saving...' : 'Save Draft'}
           </button>
           <button
+            type="button"
             onClick={handleCreatePost}
             disabled={loading || !postContent.trim() || isBanned}
             className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-400 disabled:bg-gray-400 disabled:cursor-not-allowed"

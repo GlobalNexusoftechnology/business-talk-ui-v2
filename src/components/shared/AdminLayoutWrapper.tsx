@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { AdminSidebar } from '@/components/shared/AdminSidebar'
 import { AdminNavbar } from '@/components/shared/AdminNavbar'
 import { isAdmin } from '@/lib/roles'
+import { store } from '@/redux/store'
 
 const isRestrictedUser = (user: any) =>
   Boolean(user?.is_banned || user?.isBanned || user?.is_shadow_banned || user?.isShadowBanned)
@@ -12,29 +13,29 @@ const isRestrictedUser = (user: any) =>
 export const AdminLayoutWrapper = ({ children }: { children: React.ReactNode }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [loading, setLoading] = useState(true)
+  const checkedRef = useRef(false)
 
   const router = useRouter()
 
   useEffect(() => {
+    // Only run the auth check once per mount — do not re-run on router changes
+    // to avoid false logouts during ongoing admin sessions.
+    if (checkedRef.current) return
+    checkedRef.current = true
+
     try {
+      // Prefer Redux store (always up-to-date) over localStorage
+      const reduxUser = store.getState().auth?.user
       const stored = localStorage.getItem('user')
+      const user = reduxUser || (stored ? JSON.parse(stored) : null)
 
-      if (!stored) {
-        router.replace('/login')
-        return
-      }
-
-      const user = JSON.parse(stored)
-
-      // ❌ Not logged in
       if (!user?.id) {
         router.replace('/login')
         return
       }
 
-      // ❌ Not admin
       if (!isAdmin(user.role_id)) {
-        router.replace('/dashboard') // safer than "/"
+        router.replace('/dashboard')
         return
       }
 
@@ -45,12 +46,12 @@ export const AdminLayoutWrapper = ({ children }: { children: React.ReactNode }) 
       }
 
       setLoading(false)
-
     } catch (err) {
       console.error('Auth check failed', err)
       router.replace('/login')
     }
-  }, [router])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   if (loading) {
     return (

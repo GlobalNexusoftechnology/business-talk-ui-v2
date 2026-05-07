@@ -136,9 +136,9 @@ export function resolveAdminNotificationRoute(
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
-/** Normalize type string to lowercase + underscores for map lookup. */
-const normalizeType = (type: string): string =>
-  type.toLowerCase().replace(/-/g, '_').trim();
+/** Normalize type to lowercase + underscores for map lookup. */
+const normalizeType = (type: unknown): string =>
+  String(type ?? '').toLowerCase().replace(/-/g, '_').trim();
 
 /** Build a grouped actor message ("Alice and 3 others liked your post"). */
 function grouped(actors: NotificationActor[], action: string): string {

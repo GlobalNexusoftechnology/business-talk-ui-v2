@@ -1,18 +1,20 @@
 'use client'
 
 import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { ImageIcon, Tag, X } from 'lucide-react'
 import { TagsPopup } from '@/components/shared/TagsPopup'
 import apiClient from '@/lib/api-client'
 import { validateImageFile } from '@/lib/utils'
 
-export function AdminCreateStoryBox() {
+export function AdminCreateStoryBox({ onCreated }: { onCreated?: () => void }) {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [cover, setCover] = useState<File[]>([])
   const [tags, setTags] = useState<string[]>([])
   const [showTags, setShowTags] = useState(false)
   const [loading, setLoading] = useState(false)
+  const queryClient = useQueryClient()
 
   const handleCreate = async () => {
     if (!content.trim()) return
@@ -34,7 +36,9 @@ export function AdminCreateStoryBox() {
       setContent('')
       setCover([])
       setTags([])
-      window.location.reload()
+      await queryClient.invalidateQueries({ queryKey: ['admin-stories'] })
+      await queryClient.invalidateQueries({ queryKey: ['stories-feed'] })
+      onCreated?.()
     } finally {
       setLoading(false)
     }
@@ -86,12 +90,13 @@ export function AdminCreateStoryBox() {
             <ImageIcon />
           </label>
 
-          <button onClick={() => setShowTags(true)}>
+          <button type="button" onClick={() => setShowTags(true)}>
             <Tag /> Tags
           </button>
         </div>
 
         <button
+          type="button"
           onClick={handleCreate}
           className="bg-black text-white px-6 py-2 rounded-lg"
         >

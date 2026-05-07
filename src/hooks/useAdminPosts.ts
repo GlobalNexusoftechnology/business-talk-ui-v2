@@ -12,19 +12,24 @@ export function useAdminPosts(filter: string) {
         const res = await apiClient.getTrendingPosts()
         posts = res.data || []
       } else {
-        const res = await apiClient.getForYouFeed()
+        const res = await apiClient.getAllPosts()
         posts = res.data || []
       }
 
+      // Posts page should show only NORMAL content, not QUESTION content.
+      const normalPosts = posts.filter(
+        (p: any) => (p.post_type || p.type || '').toUpperCase() === 'NORMAL',
+      )
+
       if (filter === 'Latest') {
-        return posts.sort((a, b) => Number(b.created_on) - Number(a.created_on))
+        return normalPosts.sort((a, b) => Number(b.created_on) - Number(a.created_on))
       }
 
       if (filter === 'Reported') {
-        return posts.filter((p: any) => p.report_count > 0) // fallback
+        return normalPosts.filter((p: any) => p.report_count > 0)
       }
 
-      return posts
+      return normalPosts
     },
   })
 }

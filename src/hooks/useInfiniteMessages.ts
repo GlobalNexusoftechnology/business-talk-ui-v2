@@ -38,29 +38,97 @@ export const messagesQueryKey = (conversationId: string) =>
   ['messages', conversationId] as const;
 
 // ─── Shared message parser (used by hook AND WebSocketProvider) ───────────────
-
+//
+// Normalizes multiple backend and WebSocket payload shapes:
+//   sender object:   { id, full_name, username, profile_photo }
+//   flat fields:     sender_id, sender_name, sender_avatar
+//   legacy alias:    user  (instead of sender)
+//   timestamps:      created_on (ms string/number) | created_at (ISO or ms)
+//   conversation id: conversationId | conversation_id
+//
 export const parseApiMessage = (
   m: any,
   currentUserId: string,
   conversationId: string,
-): MessageEntity => ({
-  id: m.id as string,
-  conversationId,
-  text: (m.content ?? '') as string,
-  sender: m.sender?.id === currentUserId ? 'me' : 'other',
-  timestamp: new Date(Number(m.created_on)).toLocaleTimeString(),
-  createdAt: Number(m.created_on),
-  senderId: (m.sender?.id as string) ?? '',
-  senderName:
-    (m.sender?.full_name as string) || (m.sender?.username as string) || 'User',
-  senderAvatar:
-    (m.sender?.profile_photo as string) ??
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(
-      m.sender?.full_name || m.sender?.username || 'User',
-    )}`,
-  status: (m.status as MessageEntity['status']) ?? 'sent',
-  isDeleted: Boolean(m.is_deleted),
-});
+): MessageEntity => {
+  const firstNonEmptyString = (...values: unknown[]): string | undefined => {
+    for (const v of values) {
+      if (typeof v === 'string' && v.trim() !== '') return v;
+    }
+    return undefined;
+  };
+
+  // ── Normalize sender ──────────────────────────────────────────────────────
+  // Priority: sender object > user object > flat sender_id field
+  const senderObj = m.sender ?? m.user ?? null;
+  const rawSenderId: string =
+    senderObj?.id ??
+    senderObj?.user_id ??
+    m.sender_id ??
+    m.senderId ??
+    '';
+
+  const senderName: string =
+    firstNonEmptyString(
+      senderObj?.full_name,
+      senderObj?.name,
+      senderObj?.username,
+      m.sender_name,
+      m.senderName,
+    ) ?? 'User';
+
+  const senderAvatar: string =
+    firstNonEmptyString(
+      senderObj?.profile_photo,
+      senderObj?.avatar,
+      m.sender_avatar,
+      m.senderAvatar,
+    ) ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(senderName)}`;
+
+  // ── Normalize timestamp ───────────────────────────────────────────────────
+  const rawTs =
+    m.created_on ?? m.createdAt ?? m.created_at ?? m.timestamp ?? 0;
+  // Support Unix-ms numbers, numeric strings, and ISO date strings
+  let createdAt: number;
+  if (typeof rawTs === 'number') {
+    createdAt = rawTs;
+  } else {
+    const parsed = Number(rawTs);
+    createdAt = Number.isFinite(parsed) && parsed > 1e10
+      ? parsed
+      : new Date(rawTs).getTime();
+  }
+
+  // ── Normalize conversation id ─────────────────────────────────────────────
+  const convId: string =
+    conversationId ||
+    m.conversationId ||
+    m.conversation_id ||
+    '';
+
+  // ── Sender-side detection ─────────────────────────────────────────────────
+  // Compare as strings to avoid type mismatches (number vs string UUIDs).
+  const isMe =
+    !!currentUserId &&
+    !!rawSenderId &&
+    String(rawSenderId) === String(currentUserId);
+
+  return {
+    id: (m.id ?? m.message_id ?? m.tempId ?? '') as string,
+    conversationId: convId,
+    text: (m.content ?? m.text ?? m.message ?? m.preview ?? '') as string,
+    sender: isMe ? 'me' : 'other',
+    senderId: rawSenderId,
+    senderName,
+    senderAvatar,
+    timestamp: createdAt
+      ? new Date(createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : '',
+    createdAt,
+    status: (m.status as MessageEntity['status']) ?? 'sent',
+    isDeleted: Boolean(m.is_deleted ?? m.isDeleted),
+  };
+};
 
 const parseCurrentUserId = (): string => {
   try {
@@ -132,8 +200,8 @@ export function useInfiniteMessages(conversationId: string | null) {
 // ─── Cache helpers (used by WebSocketProvider and MessagesClient) ─────────────
 
 /**
- * Insert a single message into page[0] of an existing query cache entry.
- * Deduplicates by message ID.
+ * Insert a single message into the latest page of an existing query cache entry.
+ * Deduplicates by message ID across ALL pages to prevent duplicates.
  * Noop if no cache entry exists yet.
  */
 export function insertMessageIntoCache(
@@ -146,11 +214,14 @@ export function insertMessageIntoCache(
     (old) => {
       if (!old || old.pages.length === 0) return old;
 
-      const pages = old.pages.slice();
-      const latestPage = pages[pages.length - 1]; // page[last] = latest messages
+      // Deduplicate across ALL pages
+      const isDuplicate = old.pages.some((page) =>
+        page.messages.some((m) => m.id === message.id),
+      );
+      if (isDuplicate) return old;
 
-      // Deduplicate
-      if (latestPage.messages.some((m) => m.id === message.id)) return old;
+      const pages = old.pages.slice();
+      const latestPage = pages[pages.length - 1]; // pages[last] = newest messages
 
       pages[pages.length - 1] = {
         ...latestPage,
@@ -164,7 +235,9 @@ export function insertMessageIntoCache(
 
 /**
  * Replace an optimistic message (by tempId) with the server-confirmed message
- * in the React Query cache. Falls back to a deduplication-safe append.
+ * in the React Query cache.
+ * If tempId is not found, appends the confirmed message to the latest page
+ * (deduplicated by confirmed message ID) to ensure it is never lost.
  */
 export function replaceOptimisticInCache(
   queryClient: QueryClient,
@@ -177,17 +250,35 @@ export function replaceOptimisticInCache(
     (old) => {
       if (!old) return old;
 
+      let replaced = false;
+
       const pages = old.pages.map((page) => {
         const idx = page.messages.findIndex((m) => m.id === tempId);
-        if (idx === -1) {
-          // tempId not found in this page — check for duplicate confirmed ID
-          if (page.messages.some((m) => m.id === confirmedMessage.id)) return page;
-          return page;
+        if (idx !== -1) {
+          replaced = true;
+          const msgs = page.messages.slice();
+          msgs[idx] = confirmedMessage;
+          return { ...page, messages: msgs };
         }
-        const msgs = page.messages.slice();
-        msgs[idx] = confirmedMessage;
-        return { ...page, messages: msgs };
+        return page;
       });
+
+      if (replaced) {
+        return { ...old, pages };
+      }
+
+      // tempId not found — ensure confirmed message is present (deduplicated)
+      const alreadyPresent = pages.some((page) =>
+        page.messages.some((m) => m.id === confirmedMessage.id),
+      );
+      if (alreadyPresent) return { ...old, pages };
+
+      // Append to latest page
+      const latestIdx = pages.length - 1;
+      pages[latestIdx] = {
+        ...pages[latestIdx],
+        messages: [...pages[latestIdx].messages, confirmedMessage],
+      };
 
       return { ...old, pages };
     },

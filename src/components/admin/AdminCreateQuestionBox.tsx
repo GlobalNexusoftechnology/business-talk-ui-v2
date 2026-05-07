@@ -1,15 +1,17 @@
 'use client'
 
 import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Tag } from 'lucide-react'
 import { TagsPopup } from '@/components/shared/TagsPopup'
 import apiClient from '@/lib/api-client'
 
-export function AdminCreateQuestionBox() {
+export function AdminCreateQuestionBox({ onCreated }: { onCreated?: () => void }) {
   const [question, setQuestion] = useState('')
   const [tags, setTags] = useState<string[]>([])
   const [showTags, setShowTags] = useState(false)
   const [loading, setLoading] = useState(false)
+  const queryClient = useQueryClient()
 
   const handleCreate = async () => {
     if (!question.trim()) return
@@ -25,7 +27,9 @@ export function AdminCreateQuestionBox() {
 
       setQuestion('')
       setTags([])
-      window.location.reload()
+      await queryClient.invalidateQueries({ queryKey: ['admin-questions'] })
+      await queryClient.invalidateQueries({ queryKey: ['feed'] })
+      onCreated?.()
     } catch (err) {
       console.error(err)
     } finally {
@@ -43,11 +47,12 @@ export function AdminCreateQuestionBox() {
       />
 
       <div className="flex flex-wrap justify-between gap-2 mt-3">
-        <button onClick={() => setShowTags(true)} className="flex gap-2 text-sm">
+        <button type="button" onClick={() => setShowTags(true)} className="flex gap-2 text-sm">
           <Tag /> Tags ({tags.length})
         </button>
 
         <button
+          type="button"
           onClick={handleCreate}
           disabled={loading}
           className="bg-black text-white px-5 py-2 rounded-lg"

@@ -1,14 +1,16 @@
 'use client'
 
 import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { ImageIcon, Video, X } from 'lucide-react'
 import apiClient from '@/lib/api-client'
 import { validateMediaFile } from '@/lib/utils'
 
-export function AdminCreatePostBox() {
+export function AdminCreatePostBox({ onCreated }: { onCreated?: () => void }) {
   const [content, setContent] = useState('')
   const [files, setFiles] = useState<File[]>([])
   const [loading, setLoading] = useState(false)
+  const queryClient = useQueryClient()
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -39,7 +41,10 @@ export function AdminCreatePostBox() {
 
       setContent('')
       setFiles([])
-      window.location.reload()
+      await queryClient.invalidateQueries({ queryKey: ['admin-posts'] })
+      await queryClient.invalidateQueries({ queryKey: ['feed'] })
+      await queryClient.invalidateQueries({ queryKey: ['posts'] })
+      onCreated?.()
     } catch (err) {
       console.error(err)
     } finally {
@@ -91,6 +96,7 @@ export function AdminCreatePostBox() {
         </label>
 
         <button
+          type="button"
           onClick={handleCreate}
           disabled={loading || !content.trim()}
           className="bg-black text-white px-6 py-2 rounded-lg"

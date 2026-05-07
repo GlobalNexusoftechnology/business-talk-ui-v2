@@ -63,7 +63,7 @@ export default function AdminQuestionsPage() {
               content={q.description}
               tags={q.tags || []}
               likes={q.upvotes ?? q.likes ?? 0}
-              commentsCount={q.comments_count ?? 0}
+              commentsCount={q.commentsCount ?? q.comments_count ?? q.comment_count ?? 0}
               views={q.views}
               createdOn={q.created_on}
               onWarn={(uid) => warnUser.mutate(uid)}
@@ -77,7 +77,7 @@ export default function AdminQuestionsPage() {
       {showCreate && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="w-full max-w-2xl">
-            <AdminCreateQuestionBox />
+            <AdminCreateQuestionBox onCreated={() => setShowCreate(false)} />
             <div className="text-center mt-4">
               <Button onClick={() => setShowCreate(false)}>Close</Button>
             </div>

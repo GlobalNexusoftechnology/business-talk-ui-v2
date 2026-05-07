@@ -43,6 +43,35 @@ export interface Notification {
   entity_type: string
 }
 
+const parseTimestampMs = (raw: unknown): number => {
+  if (typeof raw === 'number') return Number.isFinite(raw) ? raw : Date.now()
+  const asNum = Number(raw)
+  if (Number.isFinite(asNum) && asNum > 0) return asNum
+  const fromDate = new Date(String(raw ?? '')).getTime()
+  return Number.isFinite(fromDate) && fromDate > 0 ? fromDate : Date.now()
+}
+
+const safeType = (raw: unknown): string => {
+  const t = String(raw ?? '').trim()
+  return t.length ? t : 'unknown'
+}
+
+const safeId = (raw: unknown, seed: string): string => {
+  const id = String(raw ?? '').trim()
+  return id.length ? id : `notif-${seed}`
+}
+
+const dedupeById = (items: Notification[]): Notification[] => {
+  const map = new Map<string, Notification>()
+  for (const item of items) {
+    const prev = map.get(item.id)
+    if (!prev || item.rawTimestamp >= prev.rawTimestamp) {
+      map.set(item.id, item)
+    }
+  }
+  return Array.from(map.values())
+}
+
 const isReportedContentNotification = (n: Notification) => {
   const type = String(n.type || '').toLowerCase()
   const message = String(n.message || '').toLowerCase()
@@ -110,7 +139,7 @@ export default function NotificationsPage() {
           notificationsRes.data?.data ||
           []
 
-        const mapped: Notification[] = raw.map((n: any) => {
+        const mapped: Notification[] = raw.map((n: any, index: number) => {
           const actorRaw = n.actor ?? n.sender ?? {}
           const actorName =
             actorRaw?.full_name || actorRaw?.name || actorRaw?.username ||
@@ -119,22 +148,28 @@ export default function NotificationsPage() {
             actorRaw?.profile_photo || actorRaw?.avatar ||
             n.actor_avatar || '/assets/images/default-avatar.png'
 
+          const rawTimestamp = parseTimestampMs(n.created_on ?? n.created_at)
+          const id = safeId(
+            n.id,
+            `${rawTimestamp}-${safeType(n.type)}-${index}`,
+          )
+
           return {
-            id: n.id,
-            type: n.type,
+            id,
+            type: safeType(n.type),
             user: { name: actorName, avatar: actorAvatar },
-            message: n.message,
-            timestamp: getTimeAgo(n.created_on ?? n.created_at ?? '0'),
-            rawTimestamp: Number(n.created_on ?? n.created_at ?? 0),
+            message: String(n.message ?? ''),
+            timestamp: getTimeAgo(String(rawTimestamp)),
+            rawTimestamp,
             is_read: n.is_read === true,
-            entity_id: n.entity_id ?? '',
-            entity_type: n.entity_type ?? '',
+            entity_id: String(n.entity_id ?? ''),
+            entity_type: String(n.entity_type ?? ''),
           }
         })
 
-        mapped.sort((a, b) => b.rawTimestamp - a.rawTimestamp)
+        const normalized = dedupeById(mapped).sort((a, b) => b.rawTimestamp - a.rawTimestamp)
 
-        setNotifications(mapped)
+        setNotifications(normalized)
         setUnreadCount(Number(unreadRes.data?.unread || 0))
         setTotalPages(1) // user endpoint is cursor-based; pagination handled by backend
       } catch (e: any) {
@@ -161,19 +196,33 @@ export default function NotificationsPage() {
         actorRaw?.profile_photo || actorRaw?.avatar ||
         data.actor_avatar || '/assets/images/default-avatar.png'
 
+      const rawTimestamp = parseTimestampMs(data.created_on ?? data.created_at)
+      const id = safeId(
+        data.id,
+        `${rawTimestamp}-${safeType(data.type)}-ws`,
+      )
+
       const newNotification: Notification = {
-        id: data.id,
-        type: data.type,
+        id,
+        type: safeType(data.type),
         user: { name: actorName, avatar: actorAvatar },
-        message: data.message,
-        timestamp: getTimeAgo(data.created_on ?? data.created_at ?? '0'),
-        rawTimestamp: Number(data.created_on ?? data.created_at ?? 0),
+        message: String(data.message ?? ''),
+        timestamp: getTimeAgo(String(rawTimestamp)),
+        rawTimestamp,
         is_read: false,
-        entity_id: data.entity_id ?? '',
-        entity_type: data.entity_type ?? '',
+        entity_id: String(data.entity_id ?? ''),
+        entity_type: String(data.entity_type ?? ''),
       }
 
-      setNotifications((prev) => [newNotification, ...prev])
+      setNotifications((prev) => {
+        const existingIdx = prev.findIndex((n) => n.id === newNotification.id)
+        if (existingIdx !== -1) {
+          const next = prev.slice()
+          next[existingIdx] = { ...next[existingIdx], ...newNotification }
+          return next.sort((a, b) => b.rawTimestamp - a.rawTimestamp)
+        }
+        return [newNotification, ...prev]
+      })
       setUnreadCount((prev) => prev + 1)
     }
 

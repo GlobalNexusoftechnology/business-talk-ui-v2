@@ -6,21 +6,17 @@ export function useAdminQuestions(filter: string) {
   return useQuery({
     queryKey: ['admin-questions', filter],
     queryFn: async () => {
-      const res = await apiClient.getForYouFeed()
+      const baseRes =
+        filter === 'Trending'
+          ? await apiClient.getTrendingPosts()
+          : await apiClient.getAllPosts()
 
-      let questions = (res.data || []).filter(
+      const questions = (baseRes.data || []).filter(
         (p: any) => (p.post_type || p.type)?.toUpperCase() === 'QUESTION'
       )
 
       if (filter === 'Latest') {
         return questions.sort((a: any, b: any) => Number(b.created_on) - Number(a.created_on))
-      }
-
-      if (filter === 'Trending') {
-        const trendingRes = await apiClient.getTrendingBlogs()
-        const trendingPosts = trendingRes.data || []
-        const trendingIds = new Set(trendingPosts.map((p: any) => p.id))
-        return questions.filter((q: any) => trendingIds.has(q.id))
       }
 
       if (filter === 'Reported') {

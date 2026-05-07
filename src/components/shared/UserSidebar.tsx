@@ -78,7 +78,6 @@ export const UserSidebar = () => {
             className="mb-2"
           />
         </Link>
-        <p className="text-xs mt-1" style={{ color: '#5F6368' }}>Professional Network</p>
       </div>
 
       {/* Nav */}

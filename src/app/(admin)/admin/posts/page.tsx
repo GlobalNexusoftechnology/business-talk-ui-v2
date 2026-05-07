@@ -62,7 +62,7 @@ export default function AdminPostsPage() {
               media={p.media || []}
               tags={p.tags || []}
               likes={p.upvotes ?? p.likes ?? 0}
-              commentsCount={p.comments_count ?? 0}
+              commentsCount={p.commentsCount ?? p.comments_count ?? p.comment_count ?? 0}
               views={p.views}
               createdOn={p.created_on}
               onWarn={(uid) => warnUser.mutate(uid)}
@@ -76,7 +76,7 @@ export default function AdminPostsPage() {
       {showCreate && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="w-full max-w-2xl">
-            <AdminCreatePostBox />
+            <AdminCreatePostBox onCreated={() => setShowCreate(false)} />
             <div className="text-center mt-4">
               <Button onClick={() => setShowCreate(false)}>Close</Button>
             </div>

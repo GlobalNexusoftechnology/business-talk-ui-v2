@@ -141,7 +141,15 @@ const MessageBubble = React.memo<MessageBubbleProps>(({ msg, isGroup }) => {
           <div className="flex items-center justify-end gap-1 mt-1">
             <span className="text-[10px] text-gray-500">{msg.timestamp}</span>
             {isMe && (
-              <span className="text-[10px] text-gray-500">
+              <span
+                className={`text-[10px] ${
+                  msg.status === 'seen'
+                    ? 'text-blue-500'
+                    : msg.status === 'failed'
+                    ? 'text-red-500'
+                    : 'text-gray-400'
+                }`}
+              >
                 {msg.status === 'failed'
                   ? '✗'
                   : msg.status === 'seen' || msg.status === 'delivered'
@@ -571,12 +579,16 @@ const MessagesClient = () => {
       conversationId: activeConversationId,
       text: messageInput,
       sender: 'me',
-      timestamp: new Date().toLocaleTimeString(),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       createdAt: Date.now(),
-      senderId: user.id ?? '',
-      senderName: user.full_name || user.username || 'Me',
+      senderId: String(user.id ?? ''),
+      senderName: user.full_name || user.name || user.username || 'Me',
       senderAvatar:
-        user.profile_photo ?? `https://ui-avatars.com/api/?name=Me`,
+        user.profile_photo ||
+        user.avatar ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(
+          user.full_name || user.username || 'Me',
+        )}`,
       status: 'pending',
       tempId,
     };

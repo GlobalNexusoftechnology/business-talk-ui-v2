@@ -10,7 +10,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="relative max-w-lg">
           {/* Logo / brand name */}
           <p className="text-sm font-semibold tracking-[0.2em] uppercase mb-6" style={{ color: '#5F6368' }}>
-            Businesstalk24
+            Welcome to Businesstalk24
           </p>
 
           {/* Hero tagline — 3 large words */}
@@ -19,7 +19,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
               <h1
                 key={word}
                 className="font-extrabold leading-none tracking-tight"
-                style={{ fontSize: 'clamp(3.5rem, 6vw, 5.5rem)', color: '#212529' }}
+                style={{ fontSize: 'clamp(4rem, 7vw, 6.5rem)', color: '#212529' }}
               >
                 {word}
               </h1>
@@ -29,15 +29,6 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <p className="text-lg leading-relaxed" style={{ color: '#5F6368', maxWidth: '28rem' }}>
             Ask business questions, share your experiences, and contribute to meaningful professional discussions.
           </p>
-
-          {/* divider accent */}
-          <div className="mt-10 flex items-center gap-3">
-            <div className="h-px flex-1" style={{ backgroundColor: '#D1D5DB' }} />
-            <span className="text-xs font-medium tracking-widest uppercase" style={{ color: '#9E9E9E' }}>
-              Professional Network
-            </span>
-            <div className="h-px flex-1" style={{ backgroundColor: '#D1D5DB' }} />
-          </div>
         </div>
       </div>
 

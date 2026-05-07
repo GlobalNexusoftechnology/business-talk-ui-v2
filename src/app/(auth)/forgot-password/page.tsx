@@ -7,6 +7,7 @@ import { Card } from '@/components/shared/Card'
 import { Button } from '@/components/shared/Button'
 import { Input } from '@/components/shared/Input'
 import apiClient from '@/lib/api-client'
+import { mapAuthError } from '@/lib/auth-errors'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -25,8 +26,8 @@ export default function ForgotPasswordPage() {
     try {
       await apiClient.forgotPassword(email.trim())
       setSent(true)
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to send reset email. Please try again.')
+    } catch (err) {
+      setError(mapAuthError(err, 'forgot-password'))
     } finally {
       setLoading(false)
     }
@@ -85,8 +86,9 @@ export default function ForgotPasswordPage() {
 
       <form onSubmit={handleSubmit} className="space-y-5">
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-            {error}
+          <div role="alert" className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-start gap-2">
+            <span className="shrink-0 mt-0.5" aria-hidden>⚠</span>
+            <span>{error}</span>
           </div>
         )}
 

@@ -64,7 +64,7 @@ export default function AdminStoriesPage() {
               coverImage={s.cover_image}
               media={s.media || []}
               likes={s.upvotes ?? s.likes ?? 0}
-              commentsCount={s.comments_count ?? 0}
+              commentsCount={s.commentsCount ?? s.comments_count ?? s.comment_count ?? 0}
               views={s.views}
               createdOn={s.created_on}
               onWarn={(uid) => warnUser.mutate(uid)}
@@ -78,7 +78,7 @@ export default function AdminStoriesPage() {
       {showCreate && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="w-full max-w-2xl">
-            <AdminCreateStoryBox />
+            <AdminCreateStoryBox onCreated={() => setShowCreate(false)} />
             <div className="text-center mt-4">
               <Button onClick={() => setShowCreate(false)}>Close</Button>
             </div>
