@@ -4,6 +4,7 @@
   type PayloadAction,
 } from '@reduxjs/toolkit';
 import apiClient from '@/lib/api-client';
+import { isRawMessageContract, normalizeMessage } from '@/lib/chat/normalizeMessage';
 import type {
   ChatState,
   ConversationEntity,
@@ -37,13 +38,19 @@ const upsertMessageInto = (
   }
 };
 
-const parseCurrentUser = (): { id: string } => {
-  try {
-    return JSON.parse(localStorage.getItem('user') || '{}');
-  } catch {
-    return { id: '' };
+const getConversationPreviewText = (message: MessageEntity): string => {
+  if (message.isDeleted) return 'This message was deleted';
+  if (message.text.trim().length > 0) return message.text;
+  if (message.messageType === 'blog') {
+    return message.preview?.title || 'Shared a blog';
   }
+  if (message.messageType === 'post') {
+    return message.preview?.title || 'Shared a post';
+  }
+  return 'New message';
 };
+
+const normalizeId = (value: unknown): string => String(value ?? '').trim().toLowerCase();
 
 // ─── Async Thunks ─────────────────────────────────────────────────────────────
 // NOTE: fetchMessages has been removed — React Query (useInfiniteMessages) owns
@@ -51,90 +58,82 @@ const parseCurrentUser = (): { id: string } => {
 
 export const fetchConversations = createAsyncThunk(
   'chat/fetchConversations',
-  async (_: void, { rejectWithValue }) => {
+  async (_: void, { rejectWithValue, getState }) => {
     try {
       const res = await apiClient.getConversations();
-      const currentUser = parseCurrentUser();
       const rows: any[] = Array.isArray(res.data)
         ? res.data
         : (res.data?.data ?? []);
 
+      const state = getState() as { auth?: { user?: { id?: string } } };
+      const currentUserId = String(state.auth?.user?.id ?? '');
+
       const conversations: ConversationEntity[] = rows.map((c: any) => {
         const conv = c.conversation ?? c;
-        const isGroup: boolean = conv.is_group ?? conv.isGroup ?? false;
+        const isGroup: boolean = conv.isGroup === true;
 
-        // ── Normalize participants ───────────────────────────────────────────
-        // API may wrap each entry as { user: {...} } or return bare user objects.
-        const participants: any[] = (conv.participants ?? []).map(
-          (p: any) => p.user ?? p,
-        );
+        const participants: any[] = Array.isArray(conv.participants)
+          ? conv.participants
+          : [];
+        const displayUser =
+          conv.displayUser ??
+          (!isGroup
+            ? participants.find((p) => String(p?.id ?? '') !== currentUserId) ?? participants[0] ?? null
+            : null);
+        const dmName: string =
+          conv.displayName ||
+          displayUser?.fullName ||
+          displayUser?.username ||
+          'Unknown';
 
-        let name: string = conv.title ?? conv.name ?? '';
-        let avatar: string =
-          conv.cover_image ??
-          conv.avatar ??
-          '';
+        const name: string = isGroup
+          ? (conv.displayName || conv.title || 'Group')
+          : dmName;
 
-        let participantId: string | undefined;
+        const avatar: string =
+          conv.displayAvatar ||
+          displayUser?.profilePhoto ||
+          `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}`;
 
-        if (!isGroup) {
-          // DM: find the other participant (not the current user)
-          // Compare as strings to handle numeric/UUID mismatches
-          const currentId = String(currentUser.id ?? '');
-          const otherUser = participants.find(
-            (p: any) =>
-              String(p.id ?? p.user_id ?? '') !== currentId &&
-              String(p.id ?? p.user_id ?? '') !== '',
-          );
-          if (otherUser) {
-            name =
-              otherUser.full_name ||
-              otherUser.name ||
-              otherUser.username ||
-              otherUser.email ||
-              '';
-            avatar =
-              otherUser.profile_photo ||
-              otherUser.avatar ||
-              `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                otherUser.full_name || otherUser.username || otherUser.email || 'User',
-              )}`;
-            participantId = String(otherUser.id ?? otherUser.user_id ?? '');
+        const participantId: string | undefined = !isGroup
+          ? String(displayUser?.id ?? '') || undefined
+          : undefined;
+
+        // Issue 3: Handle lastMessage as MessageResponseDto object
+        let lastMessageText: string = '';
+        if (typeof conv.lastMessage === 'string') {
+          // Legacy string format (backward compatibility)
+          lastMessageText = conv.lastMessage;
+        } else if (conv.lastMessage && typeof conv.lastMessage === 'object') {
+          // New MessageResponseDto format
+          const lastMsg = conv.lastMessage as any;
+          if (lastMsg.isDeleted) {
+            lastMessageText = 'This message was deleted';
+          } else if (lastMsg.content && lastMsg.content.trim()) {
+            lastMessageText = lastMsg.content;
+          } else if (lastMsg.messageType === 'blog' && lastMsg.preview?.title) {
+            lastMessageText = lastMsg.preview.title;
+          } else if (lastMsg.messageType === 'post' && lastMsg.preview?.title) {
+            lastMessageText = lastMsg.preview.title;
+          } else if (lastMsg.attachments && lastMsg.attachments.length > 0) {
+            lastMessageText = '[Attachment]';
           } else {
-            // Fallback: couldn't determine other user
-            avatar =
-              avatar ||
-              `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}`;
+            lastMessageText = 'New message';
           }
-        } else {
-          // Group: use title, then participant names
-          name =
-            conv.title ||
-            conv.name ||
-            participants.map((p) => p.username || p.full_name).filter(Boolean).join(', ') ||
-            'Group';
-          avatar =
-            conv.cover_image ||
-            conv.avatar ||
-            `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}`;
         }
 
-        // ── Last message preview ─────────────────────────────────────────────
-        // API may return messages array (newest last) or last_message object
-        const lastMsgRaw =
-          conv.last_message ??
-          conv.lastMessage ??
-          (Array.isArray(conv.messages) ? conv.messages[conv.messages.length - 1] : null);
-
-        const lastMessageText: string =
-          lastMsgRaw?.content ?? lastMsgRaw?.text ?? '';
-        const lastMessageAt: number = lastMsgRaw
-          ? Number(lastMsgRaw.created_on ?? lastMsgRaw.createdAt ?? lastMsgRaw.created_at ?? 0)
+        const lastMessageAtRaw = Number(conv.lastMessageAt ?? 0);
+        const lastMessageAt: number = Number.isFinite(lastMessageAtRaw)
+          ? lastMessageAtRaw
           : 0;
 
-        // ── Unread count ──────────────────────────────────────────────────────
-        const unread: number =
-          Number(conv.unread_count ?? conv.unreadCount ?? c.unread_count ?? c.unreadCount ?? 0);
+        const unreadRaw = Number(conv.unreadCount ?? 0);
+        const unread: number = Number.isFinite(unreadRaw) ? unreadRaw : 0;
+
+        const participantsCountRaw = Number(conv.participantsCount ?? 0);
+        const participantsCount: number = Number.isFinite(participantsCountRaw)
+          ? participantsCountRaw
+          : 0;
 
         return {
           id: conv.id as string,
@@ -145,7 +144,7 @@ export const fetchConversations = createAsyncThunk(
           unread,
           online: false,
           isGroup,
-          members: participants.length || conv.member_count || 0,
+          members: participantsCount,
           participantId,
           muted: false,
           archived: false,
@@ -174,39 +173,15 @@ export const sendMessage = createAsyncThunk(
   ) => {
     try {
       const res = await apiClient.sendMessage(conversationId, content);
-      const m = res.data;
-      const user = parseCurrentUser();
-
-      // Normalize timestamp — server may return created_on (ms), created_at (ISO), etc.
-      const rawTs = m.created_on ?? m.createdAt ?? m.created_at ?? Date.now();
-      let createdAt: number;
-      if (typeof rawTs === 'number') {
-        createdAt = rawTs;
-      } else {
-        const parsed = Number(rawTs);
-        createdAt = Number.isFinite(parsed) && parsed > 1e10
-          ? parsed
-          : new Date(rawTs).getTime();
+      if (!isRawMessageContract(res.data)) {
+        return rejectWithValue({
+          tempId,
+          error: 'Invalid sendMessage payload contract',
+        });
       }
-      if (!Number.isFinite(createdAt) || createdAt === 0) createdAt = Date.now();
 
       const message: MessageEntity = {
-        id: (m.id ?? m.message_id ?? tempId) as string,
-        conversationId,
-        text: (m.content ?? m.text ?? content) as string,
-        sender: 'me',
-        timestamp: new Date(createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        createdAt,
-        senderId: String((user as any).id ?? ''),
-        senderName:
-          (user as any).full_name || (user as any).name || (user as any).username || 'Me',
-        senderAvatar:
-          (user as any).profile_photo ||
-          (user as any).avatar ||
-          `https://ui-avatars.com/api/?name=${encodeURIComponent(
-            (user as any).full_name || (user as any).username || 'Me',
-          )}`,
-        status: 'sent',
+        ...normalizeMessage(res.data),
         tempId,
       };
 
@@ -271,19 +246,26 @@ const chatSlice = createSlice({
     // This reducer ONLY updates conversation sidebar metadata: preview + unread count.
     wsMessageReceived(
       state,
-      action: PayloadAction<{ conversationId: string; message: MessageEntity }>,
+      action: PayloadAction<{
+        conversationId: string;
+        message: MessageEntity;
+        currentUserId: string;
+      }>,
     ) {
-      const { conversationId, message } = action.payload;
+      const { conversationId, message, currentUserId } = action.payload;
 
       const conv = state.conversations.byId[conversationId];
       if (conv) {
-        conv.lastMessage = message.isDeleted ? 'This message was deleted' : message.text;
+        conv.lastMessage = getConversationPreviewText(message);
         conv.lastMessageAt = message.createdAt;
         // Only increment unread if:
         //   • the conversation is not currently active, AND
         //   • it is not muted, AND
         //   • the message was sent by someone else (not the current user)
-        const isMine = message.sender === 'me';
+        const normalizedCurrentUserId = normalizeId(currentUserId);
+        const isMine =
+          !!normalizedCurrentUserId &&
+          normalizeId(message.senderId) === normalizedCurrentUserId;
         if (state.activeConversationId !== conversationId && !conv.muted && !isMine) {
           conv.unread += 1;
           if (!state.messages.byConversation[conversationId]) {
@@ -425,7 +407,7 @@ const chatSlice = createSlice({
         // Update conversation preview
         const conv = state.conversations.byId[conversationId];
         if (conv) {
-          conv.lastMessage = message.text;
+          conv.lastMessage = getConversationPreviewText(message);
           conv.lastMessageAt = message.createdAt;
         }
 

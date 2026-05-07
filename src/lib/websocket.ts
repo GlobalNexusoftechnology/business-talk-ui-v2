@@ -1,69 +1,92 @@
-import { io, Socket } from "socket.io-client"
+import { io, Socket } from 'socket.io-client';
+import { CHAT_EVENTS } from '@/lib/chat/events';
 
-type MessageHandler = (data: any) => void
+type MessageHandler = (data: unknown) => void;
+
+const CANONICAL_TO_BACKEND_EMIT: Record<string, string> = {
+  [CHAT_EVENTS.MESSAGE_SEND]: CHAT_EVENTS.MESSAGE_SEND,
+  [CHAT_EVENTS.TYPING_START]: CHAT_EVENTS.TYPING_START,
+  [CHAT_EVENTS.TYPING_STOP]: CHAT_EVENTS.TYPING_STOP,
+  [CHAT_EVENTS.MESSAGE_UPDATE]: 'message:update',
+  [CHAT_EVENTS.MESSAGE_DELETE]: 'message:delete',
+};
+
+const getSocketOrigin = (): string => {
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+  try {
+    return new URL(base).origin;
+  } catch {
+    return 'http://localhost:3000';
+  }
+};
 
 class WebSocketManager {
-  private socket: Socket | null = null
-  private handlers: { [key: string]: MessageHandler[] } = {}
+  private socket: Socket | null = null;
+  private handlers: Record<string, Set<MessageHandler>> = {};
 
-  connect(userId: string) {
-    if (!userId) {
-      console.warn('WebSocket: connect() called without a userId — skipping')
-      return
-    }
-    if (this.socket) return
+  connect() {
+    if (this.socket) return;
 
-    this.socket = io(
-      process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000",
-      {
-        transports: ["websocket"],
-        withCredentials: true,
-        query: { userId }, // 🔥 REQUIRED
-      }
-    )
+    this.socket = io(`${getSocketOrigin()}/v1/chat`, {
+      transports: ['websocket'],
+      withCredentials: true,
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 15000,
+      timeout: 20000,
+    });
 
-    this.socket.on("connect", () => {
-      console.log("✅ Socket.IO connected")
-      this.handlers['connect']?.forEach(h => h({}))
-    })
+    this.socket.on('connect', () => {
+      this.dispatch('connect', {});
+    });
 
-    this.socket.on("disconnect", (reason) => {
-      console.log("❌ Socket.IO disconnected:", reason)
-      this.handlers['disconnect']?.forEach(h => h({ reason }))
-    })
+    this.socket.on('disconnect', (reason) => {
+      this.dispatch('disconnect', { reason });
+    });
 
-    this.socket.on("connect_error", (err) => {
-      console.error("Socket.IO error:", err.message)
-      this.handlers['connect_error']?.forEach(h => h({ message: err.message }))
-    })
+    this.socket.on('connect_error', (err) => {
+      this.dispatch('connect_error', { message: err.message });
+    });
 
-    // 🔥 Generic event handler
+    this.socket.io.on('reconnect_attempt', (attempt) => {
+      this.dispatch('reconnect_attempt', { attempt, namespace: '/v1/chat' });
+    });
+
+    this.socket.io.on('reconnect', (attempt) => {
+      this.dispatch('reconnect', { attempt, namespace: '/v1/chat' });
+    });
+
     this.socket.onAny((event, data) => {
-      if (this.handlers[event]) {
-        this.handlers[event].forEach((h) => h(data))
-      }
-    })
+      this.dispatch(event, data);
+    });
   }
 
   disconnect() {
-    this.socket?.disconnect()
-    this.socket = null
+    this.socket?.removeAllListeners();
+    this.socket?.disconnect();
+    this.socket = null;
   }
 
   on(event: string, handler: MessageHandler) {
     if (!this.handlers[event]) {
-      this.handlers[event] = []
+      this.handlers[event] = new Set<MessageHandler>();
     }
-    this.handlers[event].push(handler)
+    this.handlers[event].add(handler);
 
     return () => {
-      this.handlers[event] = this.handlers[event].filter((h) => h !== handler)
-    }
+      this.handlers[event]?.delete(handler);
+    };
   }
 
-  emit(event: string, data: any) {
-    this.socket?.emit(event, data)
+  emit(event: string, data: unknown) {
+    const backendEvent = CANONICAL_TO_BACKEND_EMIT[event] ?? event;
+    this.socket?.emit(backendEvent, data);
+  }
+
+  private dispatch(event: string, payload: unknown) {
+    this.handlers[event]?.forEach((handler) => handler(payload));
   }
 }
 
-export default WebSocketManager
+export default WebSocketManager;

@@ -14,6 +14,7 @@
 
 import type { Middleware, MiddlewareAPI, Dispatch, AnyAction } from '@reduxjs/toolkit';
 import type WebSocketManager from '@/lib/websocket';
+import { CHAT_EVENTS } from '@/lib/chat/events';
 
 // ─── Module-level manager reference ───────────────────────────────────────────
 
@@ -63,13 +64,13 @@ export const websocketMiddleware = ((
     const a = action as AnyAction;
     // Outgoing typing indicator — fire-and-forget, stop here
     if (a.type === WS_EMIT_TYPING) {
-      _wsManager?.emit('typing', a.payload);
+      _wsManager?.emit(CHAT_EVENTS.TYPING_START, a.payload);
       return;
     }
 
     // Outgoing message emit — fire-and-forget, stop here
     if (a.type === WS_EMIT_MESSAGE) {
-      _wsManager?.emit('send_message', a.payload);
+      _wsManager?.emit(CHAT_EVENTS.MESSAGE_SEND, a.payload);
       return;
     }
 

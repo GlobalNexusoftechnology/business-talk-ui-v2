@@ -1,7 +1,36 @@
 // ─── Message & Conversation domain types for the normalized chat slice ────────
 
 export type MessageStatus = 'pending' | 'sent' | 'delivered' | 'seen' | 'failed';
-export type MessageSender = 'me' | 'other';
+
+export type MessageType =
+  | 'text'
+  | 'image'
+  | 'video'
+  | 'audio'
+  | 'voice'
+  | 'file'
+  | 'blog'
+  | 'post';
+
+export interface MessagePreview {
+  id?: string;
+  type: 'blog' | 'post';
+  title?: string;
+  subtitle?: string;
+  description?: string;
+  imageUrl?: string;
+  url?: string;
+}
+
+export interface MessageAttachment {
+  id: string;
+  type: MessageType;
+  url: string;
+  fileName?: string;
+  mimeType?: string;
+  size?: number;
+  thumbnailUrl?: string;
+}
 
 /** One cursor-paginated page of messages returned by the API / useInfiniteMessages. */
 export interface MessagePage {
@@ -44,10 +73,12 @@ export interface MessageEntity {
   senderId: string;
   senderName: string;
   senderAvatar: string;
-  sender: MessageSender;
-  timestamp: string;
   createdAt: number;
+  updatedAt?: number;
   status: MessageStatus;
+  messageType: MessageType;
+  attachments: MessageAttachment[];
+  preview?: MessagePreview | null;
   /** Temporary client-side ID used before the server confirms the message */
   tempId?: string;
   /** True when the backend has soft-deleted this message */

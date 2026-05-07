@@ -1,25 +1,24 @@
-import { useState, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useState, useEffect, useMemo } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/lib/api-client'
-
-function getCurrentUserId(): string {
-  if (typeof window === 'undefined') return ''
-  try {
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
-    return user?.id || ''
-  } catch { return '' }
-}
+import { useAppSelector } from '@/hooks/useRedux'
 
 export function useFollow(targetUserId: string) {
-  const currentUserId = getCurrentUserId()
+  const queryClient = useQueryClient()
+  const currentUserId = useAppSelector((state) => String(state.auth?.user?.id || ''))
   const [state, setState] = useState<'connect' | 'pending' | 'connected'>('connect')
   const [loading, setLoading] = useState(false)
+
+  const followingQueryKey = useMemo(
+    () => ['my-following', currentUserId],
+    [currentUserId],
+  )
 
   const isUUID = (id: string) => id?.length > 10
 
   // Fetch the current user's following list — shared React Query cache across all instances
   const { data: followingIds } = useQuery<string[]>({
-    queryKey: ['my-following', currentUserId],
+    queryKey: followingQueryKey,
     queryFn: async () => {
       if (!currentUserId) return []
       const res = await apiClient.getFollowing(currentUserId)
@@ -51,6 +50,14 @@ export function useFollow(targetUserId: string) {
       setLoading(true)
       setState('pending')
       await apiClient.followUserById(targetUserId)
+
+      // Keep connect buttons in sync across people/profile/feed cards.
+      queryClient.setQueryData<string[]>(followingQueryKey, (prev) => {
+        const next = Array.isArray(prev) ? prev.slice() : []
+        if (!next.includes(String(targetUserId))) next.push(String(targetUserId))
+        return next
+      })
+
       setState('connected')
     } catch (err) {
       console.error('Follow error:', err)
@@ -64,6 +71,11 @@ export function useFollow(targetUserId: string) {
     try {
       setLoading(true)
       await apiClient.unfollowUserById(targetUserId)
+
+      queryClient.setQueryData<string[]>(followingQueryKey, (prev) =>
+        (Array.isArray(prev) ? prev : []).filter((id) => id !== String(targetUserId)),
+      )
+
       setState('connect')
     } catch (err) {
       console.error('Unfollow error:', err)
@@ -77,5 +89,6 @@ export function useFollow(targetUserId: string) {
     loading,
     follow,
     unfollow,
+    isHydrated: followingIds !== undefined,
   }
 }

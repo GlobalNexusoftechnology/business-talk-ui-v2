@@ -4,18 +4,13 @@ import { useParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import apiClient from '@/lib/api-client'
 import { ProfileLayout } from '../components/ProfileLayout'
+import { useAppSelector } from '@/hooks/useRedux'
 
 export default function UserProfilePage() {
   const { id } = useParams()
   const [profile, setProfile] = useState<any>(null)
-  const [isOwnProfile, setIsOwnProfile] = useState(false)
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
-      setIsOwnProfile(currentUser?.id === id)
-    }
-  }, [id])
+  const currentUserId = useAppSelector((state) => String(state.auth?.user?.id || ''))
+  const isOwnProfile = currentUserId !== '' && currentUserId === String(id)
 
   useEffect(() => {
     apiClient.getUserById(id as string).then((res) => {

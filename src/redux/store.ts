@@ -1,7 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit'
 import authReducer from './slices/authSlice'
 import notificationsReducer from './slices/notificationsSlice'
-import messagesReducer from './slices/messagesSlice'
 import chatReducer from './slices/chatSlice'
 import pushReducer from './slices/pushSlice'
 import { websocketMiddleware } from './middleware/websocketMiddleware'
@@ -10,7 +9,6 @@ export const store = configureStore({
   reducer: {
     auth: authReducer,
     notifications: notificationsReducer,
-    messages: messagesReducer,
     chat: chatReducer,
     push: pushReducer,
   },

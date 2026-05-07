@@ -41,8 +41,6 @@ import {
 } from '@/redux/slices/chatSlice';
 import {
   emitTypingAction,
-  emitMessageAction,
-  type EmitMessagePayload,
 } from '@/redux/middleware/websocketMiddleware';
 import {
   selectNonArchivedConversations,
@@ -61,6 +59,10 @@ import {
   markMessageFailedInCache,
   messagesQueryKey,
 } from '@/hooks/useInfiniteMessages';
+import MessageBubble from '@/components/user/chat/MessageBubble';
+import { formatChatTimestamp } from '@/lib/chat/time';
+import { mergeUniqueMessages } from '@/lib/chat/messages';
+import { buildOptimisticMessage } from '@/lib/chat/optimistic';
 import type { ConversationEntity, MessageEntity } from '@/types/chat';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -93,77 +95,6 @@ const OlderMessagesSkeletons: React.FC = () => (
     <MessageSkeleton align="left" />
   </div>
 );
-
-// ─── MessageBubble ────────────────────────────────────────────────────────────
-
-interface MessageBubbleProps {
-  msg: MessageEntity;
-  isGroup: boolean;
-}
-
-const MessageBubble = React.memo<MessageBubbleProps>(({ msg, isGroup }) => {
-  const isMe = msg.sender === 'me';
-
-  if (msg.isDeleted) {
-    return (
-      <div className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-        <div className="px-3 py-2 rounded-2xl text-sm italic text-gray-400 bg-gray-100 border border-dashed border-gray-300">
-          This message was deleted
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-      {!isMe && isGroup && (
-        <img
-          src={
-            msg.senderAvatar ||
-            `https://ui-avatars.com/api/?name=${encodeURIComponent(msg.senderName || 'User')}`
-          }
-          alt={msg.senderName}
-          className="w-6 h-6 md:w-7 md:h-7 rounded-full mr-2 self-end shrink-0"
-        />
-      )}
-      <div className="max-w-[80%] md:max-w-[70%]">
-        {!isMe && isGroup && (
-          <p className="text-xs text-gray-500 ml-1 mb-1">{msg.senderName}</p>
-        )}
-        <div
-          className={`px-3 py-2 rounded-2xl text-sm ${
-            isMe
-              ? 'bg-[#DCF8C6] text-black rounded-br-sm'
-              : 'bg-gray-100 text-black rounded-bl-sm'
-          } ${msg.status === 'pending' ? 'opacity-60' : ''}`}
-        >
-          {msg.text}
-          <div className="flex items-center justify-end gap-1 mt-1">
-            <span className="text-[10px] text-gray-500">{msg.timestamp}</span>
-            {isMe && (
-              <span
-                className={`text-[10px] ${
-                  msg.status === 'seen'
-                    ? 'text-blue-500'
-                    : msg.status === 'failed'
-                    ? 'text-red-500'
-                    : 'text-gray-400'
-                }`}
-              >
-                {msg.status === 'failed'
-                  ? '✗'
-                  : msg.status === 'seen' || msg.status === 'delivered'
-                  ? '✓✓'
-                  : '✓'}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-});
-MessageBubble.displayName = 'MessageBubble';
 
 // ─── ConversationItem ─────────────────────────────────────────────────────────
 
@@ -351,9 +282,28 @@ const NEAR_BOTTOM_THRESHOLD = 120;
 const selectTypingUsersMap = (s: { chat: { typingUsers: Record<string, string> } }) =>
   s.chat.typingUsers;
 
+const normalizeId = (value: unknown): string => String(value ?? '').trim().toLowerCase();
+
 const MessagesClient = () => {
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
+  const authUser = useAppSelector((state) => state.auth?.user as any);
+  const currentUserId = useAppSelector((state) => {
+    const user = state.auth?.user as any;
+    return String(user?.id ?? user?.user_id ?? user?.userId ?? '');
+  });
+  const normalizedCurrentUserId = useMemo(
+    () => normalizeId(currentUserId),
+    [currentUserId],
+  );
+
+  // ── DEBUG: log auth user shape and first message senderId ─────────────────
+  useEffect(() => {
+    console.log('[isMine DEBUG] authUser (raw):', JSON.stringify(authUser));
+    console.log('[isMine DEBUG] currentUserId resolved:', currentUserId);
+    console.log('[isMine DEBUG] normalizedCurrentUserId:', normalizedCurrentUserId);
+  }, [authUser, currentUserId, normalizedCurrentUserId]);
+
   const searchParams = useSearchParams();
   const conversationIdFromURL = searchParams.get('conversationId');
   const userIdFromURL = searchParams.get('userId');
@@ -386,6 +336,7 @@ const MessagesClient = () => {
   const allTypingUsers = useAppSelector(selectTypingUsersMap);
   const selectedConversation = useAppSelector(selectActiveConversation);
   const activeConversationId = useAppSelector(selectActiveConversationId);
+  const conversationsReady = !conversationsLoading && conversations.length > 0;
 
   const optimisticSelector = useMemo(
     () => selectConversationMessages(activeConversationId ?? ''),
@@ -405,6 +356,8 @@ const MessagesClient = () => {
     hasNextPage,
     isFetchingNextPage,
     isLoading: isInitialLoading,
+    isError: isMessagesError,
+    error: messagesError,
   } = useInfiniteMessages(activeConversationId);
 
   // ── Merge: RQ historical + Redux optimistic (deduplicated) ────────────────
@@ -414,11 +367,7 @@ const MessagesClient = () => {
         .slice()
         .reverse()
         .flatMap((p) => p.messages) ?? [];
-    const rqIds = new Set(rqMessages.map((m) => m.id));
-    const uniqueOptimistic = optimisticMessages.filter((m) => !rqIds.has(m.id));
-    return [...rqMessages, ...uniqueOptimistic].sort(
-      (a, b) => a.createdAt - b.createdAt,
-    );
+    return mergeUniqueMessages([...rqMessages, ...optimisticMessages]);
   }, [rqData, optimisticMessages]);
 
   // ── Bootstrap ──────────────────────────────────────────────────────────────
@@ -426,16 +375,28 @@ const MessagesClient = () => {
     dispatch(fetchConversations());
   }, [dispatch]);
 
-  // Auto-select from URL param or first conversation
+  // Auto-select from URL param or first conversation after hydration.
+  // Guard against races where URL target exists but conversations are not yet ready.
   useEffect(() => {
-    if (conversations.length === 0) return;
+    if (!conversationsReady) return;
+
     if (conversationIdFromURL) {
       const found = conversations.find((c) => c.id === conversationIdFromURL);
-      dispatch(setActiveConversation(found?.id ?? conversations[0].id));
+      // Do not fallback to first conversation while routing from notifications.
+      if (!found) return;
+      if (activeConversationId !== found.id) {
+        dispatch(setActiveConversation(found.id));
+      }
     } else if (!activeConversationId) {
       dispatch(setActiveConversation(conversations[0].id));
     }
-  }, [conversations, conversationIdFromURL, activeConversationId, dispatch]);
+  }, [
+    conversationsReady,
+    conversations,
+    conversationIdFromURL,
+    activeConversationId,
+    dispatch,
+  ]);
 
   // Handle ?userId= — open existing DM or create new one (DM reuse)
   useEffect(() => {
@@ -565,33 +526,28 @@ const MessagesClient = () => {
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !activeConversationId) return;
 
-    const tempId = `temp_${Date.now()}`;
-    const user: any = (() => {
-      try {
-        return JSON.parse(localStorage.getItem('user') || '{}');
-      } catch {
-        return {};
-      }
-    })();
-
-    const pendingMessage: MessageEntity = {
-      id: tempId,
+    const pendingMessage: MessageEntity = buildOptimisticMessage({
       conversationId: activeConversationId,
       text: messageInput,
-      sender: 'me',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      createdAt: Date.now(),
-      senderId: String(user.id ?? ''),
-      senderName: user.full_name || user.name || user.username || 'Me',
-      senderAvatar:
-        user.profile_photo ||
-        user.avatar ||
-        `https://ui-avatars.com/api/?name=${encodeURIComponent(
-          user.full_name || user.username || 'Me',
-        )}`,
-      status: 'pending',
-      tempId,
-    };
+      currentUser: {
+        id: String(
+          authUser?.id ??
+          authUser?.user_id ??
+          authUser?.userId ??
+          '',
+        ),
+        full_name:
+          authUser?.full_name ||
+          authUser?.fullName ||
+          authUser?.name ||
+          authUser?.username,
+        profile_photo:
+          authUser?.profile_photo ||
+          authUser?.profilePhoto ||
+          authUser?.avatar,
+      },
+    });
+    const tempId = pendingMessage.id;
 
     const hasRqCache = !!queryClient.getQueryData(
       messagesQueryKey(activeConversationId),
@@ -619,7 +575,6 @@ const MessagesClient = () => {
           message,
         );
       }
-      dispatch(emitMessageAction(message as EmitMessagePayload));
     } else if (hasRqCache) {
       markMessageFailedInCache(queryClient, activeConversationId, tempId);
     }
@@ -711,7 +666,16 @@ const MessagesClient = () => {
     );
   }
 
-  if (!selectedConversation) return null;
+  if (!selectedConversation) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-[#F8F9FA]">
+        <div className="flex flex-col items-center gap-3 text-gray-500">
+          <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+          <p className="text-sm">Loading conversation...</p>
+        </div>
+      </div>
+    );
+  }
 
   const activeConvIsOnline =
     !selectedConversation.isGroup &&
@@ -868,13 +832,37 @@ const MessagesClient = () => {
               </div>
             )}
 
-            {allMessages.map((msg) => (
+            {isMessagesError && (
+              <div className="py-3">
+                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  {messagesError?.message || 'Failed to load messages. Please retry.'}
+                </p>
+              </div>
+            )}
+
+            {!isInitialLoading && !isMessagesError && allMessages.length === 0 && (
+              <div className="py-6 text-center text-sm text-gray-500">
+                No messages yet. Start the conversation.
+              </div>
+            )}
+
+            {allMessages.map((msg, i) => {
+              const isMineVal =
+                !!normalizedCurrentUserId &&
+                normalizeId(msg.senderId) === normalizedCurrentUserId;
+              if (i === 0) {
+                console.log('[isMine DEBUG] first msg senderId:', msg.senderId, '| normalizedSenderId:', normalizeId(msg.senderId), '| normalizedCurrentUserId:', normalizedCurrentUserId, '| isMine:', isMineVal);
+              }
+              return (
               <MessageBubble
                 key={msg.id}
-                msg={msg}
+                message={msg}
+                isMine={isMineVal}
                 isGroup={selectedConversation.isGroup}
+                displayTime={formatChatTimestamp(msg.createdAt)}
               />
-            ))}
+              );
+            })}
 
             <div ref={messagesEndRef} />
           </div>

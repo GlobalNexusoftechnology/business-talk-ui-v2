@@ -28,11 +28,20 @@ export const notificationsAdapter = createEntityAdapter<NotificationEntity>({
 // Handles both future format (embedded actor object) and legacy (actor_id only).
 // NO getUserById calls — if actor data isn't present, defaults to "Unknown".
 
-export const parseApiNotification = (n: any): NotificationEntity => {
-  // Prefer embedded actor, fall back to sender, then construct from actor_id fields
+export const parseApiNotification = (input: any): NotificationEntity => {
+  // API row may be wrapped: { notification, display_message, avatars, ... }
+  // WS payload may be direct: { id, type, message, ... }
+  const n = input?.notification ?? input ?? {};
+
+  const avatarActor = Array.isArray(input?.avatars) ? input.avatars[0] : null;
+  const snapshotActor = Array.isArray(n.actor_snapshots) ? n.actor_snapshots[0] : null;
+
+  // Prefer explicit actor object, then avatars/snapshots, then legacy flat actor fields.
   const actorRaw =
     n.actor ??
     n.sender ??
+    avatarActor ??
+    snapshotActor ??
     {
       id: n.actor_id ?? '',
       full_name: n.actor_name ?? '',
@@ -48,7 +57,7 @@ export const parseApiNotification = (n: any): NotificationEntity => {
   return {
     id: (n.id as string) ?? '',
     type: (n.type as string) ?? 'unknown',
-    message: (n.message as string) ?? '',
+    message: (input?.display_message as string) ?? (n.message as string) ?? '',
     createdAt: Number(n.created_on ?? n.createdAt ?? n.created_at ?? 0),
     isRead: n.is_read === true,
     actor: {
@@ -96,18 +105,35 @@ export const fetchNotifications = createAsyncThunk<
 
     try {
       const res = await apiClient.getMyNotifications();
-      const raw: any[] = res.data ?? [];
-      const entities = raw.map(parseApiNotification);
+      const body = res.data ?? {};
+
+      // Contract: { notifications: [{ notification, display_message, avatars, ... }], nextCursor }
+      // Keep array fallback only for websocket-like or legacy transport safety.
+      const rows: any[] = Array.isArray(body)
+        ? body
+        : Array.isArray(body.notifications)
+          ? body.notifications
+          : [];
+
+      const entities = rows
+        .map(parseApiNotification)
+        .filter((n) => typeof n.id === 'string' && n.id.length > 0);
       // Sort newest-first (adapter's sortComparer handles insert order, but
       // we also sort here so pagination page merges are predictable)
       entities.sort((a, b) => b.createdAt - a.createdAt);
 
+      const nextCursorRaw = Array.isArray(body) ? null : body.nextCursor;
+      const hasMore = typeof nextCursorRaw === 'string' && nextCursorRaw.length > 0;
+      const total =
+        typeof body.total === 'number'
+          ? body.total
+          : entities.length;
+
       return {
         entities,
         page,
-        // When the API adds pagination, replace these with actual values
-        hasMore: false,
-        total: entities.length,
+        hasMore,
+        total,
       };
     } catch (err: any) {
       return rejectWithValue(

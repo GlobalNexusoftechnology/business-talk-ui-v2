@@ -60,7 +60,7 @@ export const useAccountStatus = () => {
 
 /** @deprecated Use useChat() for the normalized chat state instead. */
 export const useMessages = () => {
-  const messages = useAppSelector((state) => state.messages)
+  const messages = useAppSelector((state) => state.chat.messages)
   const dispatch = useAppDispatch()
 
   return {

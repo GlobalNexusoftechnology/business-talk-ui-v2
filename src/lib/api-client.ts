@@ -507,7 +507,7 @@ class ApiClient {
 
   sendMessage(conversationId: string, content: string) {
     return this.client.post(`/chat/${conversationId}/message`, {
-      message_type: 'text',
+      messageType: 'text',
       content,
     })
   }
@@ -516,7 +516,7 @@ class ApiClient {
     conversationId: string,
     content: string,) {
     const formData = new FormData()
-    formData.append('message_type', 'text')
+    formData.append('messageType', 'text')
     formData.append('content', content)
 
     return this.client.post(`/chat/${conversationId}/message`, formData, {
@@ -542,7 +542,7 @@ class ApiClient {
     // 2. Look for an existing 1-on-1 conversation with the target user
     const existing = convList.find((c: any) => {
       const conv = c.conversation ?? c
-      if (conv.is_group) return false
+      if (conv.isGroup) return false
       return (conv.participants ?? []).some(
         (p: any) => String(p.user?.id ?? p.userId ?? '') === String(targetUserId)
       )
@@ -914,7 +914,7 @@ class ApiClient {
 
   sendRichMessage(
     conversationId: string,
-    data: { message_type: 'text' | 'blog' | 'post'; content?: string; blogId?: string; postId?: string }
+    data: { messageType: 'text' | 'blog' | 'post'; content?: string; blogId?: string; postId?: string }
   ) {
     return this.client.post(`/chat/${conversationId}/message`, data)
   }
