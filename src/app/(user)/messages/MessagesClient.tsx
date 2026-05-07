@@ -237,7 +237,7 @@ const ConversationItem = React.memo<ConversationItemProps>(({
         </button>
 
         {menuOpen && (
-          <div className="absolute right-0 bottom-7 z-50 bg-white border border-gray-100 rounded-xl shadow-lg min-w-[160px] py-1 overflow-hidden">
+          <div className="absolute right-0 bottom-7 z-60 bg-white border border-gray-100 rounded-xl shadow-lg min-w-[160px] py-1 overflow-hidden">
             <button
               className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2.5 transition-colors"
               onClick={handlePin}
