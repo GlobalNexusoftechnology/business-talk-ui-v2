@@ -41,15 +41,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
   // On mount: refresh the access-token then sync user state
   useEffect(() => {
     ;(async () => {
+      // Try to refresh the access token. If this fails (401 on mobile/cross-domain
+      // environments) we still attempt fetchCurrentUser — the session cookie may be
+      // valid even when the refresh-token endpoint is unreachable.
       try {
         await apiClient.refreshToken()
       } catch {
-        // Refresh failed - no valid session
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('user')
-        }
-        setSessionChecked(true)
-        return
+        // Refresh failed — fall through and try /auth/me anyway.
+        // If that also fails we'll clear localStorage below.
       }
 
       try {
@@ -60,6 +59,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           router.replace('/account-restricted')
         }
       } catch {
+        // Neither refresh nor session is valid — clear any stale cached user.
         if (typeof window !== 'undefined') {
           localStorage.removeItem('user')
         }

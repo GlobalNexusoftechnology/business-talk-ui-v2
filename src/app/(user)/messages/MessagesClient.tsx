@@ -297,13 +297,6 @@ const MessagesClient = () => {
     [currentUserId],
   );
 
-  // ── DEBUG: log auth user shape and first message senderId ─────────────────
-  useEffect(() => {
-    console.log('[isMine DEBUG] authUser (raw):', JSON.stringify(authUser));
-    console.log('[isMine DEBUG] currentUserId resolved:', currentUserId);
-    console.log('[isMine DEBUG] normalizedCurrentUserId:', normalizedCurrentUserId);
-  }, [authUser, currentUserId, normalizedCurrentUserId]);
-
   const searchParams = useSearchParams();
   const conversationIdFromURL = searchParams.get('conversationId');
   const userIdFromURL = searchParams.get('userId');
@@ -846,23 +839,18 @@ const MessagesClient = () => {
               </div>
             )}
 
-            {allMessages.map((msg, i) => {
-              const isMineVal =
-                !!normalizedCurrentUserId &&
-                normalizeId(msg.senderId) === normalizedCurrentUserId;
-              if (i === 0) {
-                console.log('[isMine DEBUG] first msg senderId:', msg.senderId, '| normalizedSenderId:', normalizeId(msg.senderId), '| normalizedCurrentUserId:', normalizedCurrentUserId, '| isMine:', isMineVal);
-              }
-              return (
+            {allMessages.map((msg) => (
               <MessageBubble
                 key={msg.id}
                 message={msg}
-                isMine={isMineVal}
+                isMine={
+                  !!normalizedCurrentUserId &&
+                  normalizeId(msg.senderId) === normalizedCurrentUserId
+                }
                 isGroup={selectedConversation.isGroup}
                 displayTime={formatChatTimestamp(msg.createdAt)}
               />
-              );
-            })}
+            ))}
 
             <div ref={messagesEndRef} />
           </div>
