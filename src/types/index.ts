@@ -13,7 +13,7 @@ export interface User {
   skills?: string[]
   experience?: string
   location?: string
-  role_id: 'USER' | 'ADMIN'
+  role_id: string
   is_banned?: boolean
   is_shadow_banned?: boolean
   created_at: string

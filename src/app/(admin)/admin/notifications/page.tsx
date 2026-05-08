@@ -129,24 +129,17 @@ export default function NotificationsPage() {
 
       try {
         const [notificationsRes, unreadRes] = await Promise.all([
-          apiClient.getMyNotifications(),
-          apiClient.getUnreadNotificationCount(),
+          apiClient.getAdminNotifications(page),
+          apiClient.getAdminUnreadNotificationCount(),
         ])
 
-        // Backend returns { notifications: [...], nextCursor } or { data: [...] }
-        const raw: any[] =
-          notificationsRes.data?.notifications ||
-          notificationsRes.data?.data ||
-          []
+        // Backend returns { data: [...], pagination: { total, page, limit, totalPages }, unread_in_page }
+        const raw: any[] = notificationsRes.data?.data ?? []
 
         const mapped: Notification[] = raw.map((n: any, index: number) => {
-          const actorRaw = n.actor ?? n.sender ?? {}
-          const actorName =
-            actorRaw?.full_name || actorRaw?.name || actorRaw?.username ||
-            n.actor_name || 'Unknown'
-          const actorAvatar =
-            actorRaw?.profile_photo || actorRaw?.avatar ||
-            n.actor_avatar || '/assets/images/default-avatar.png'
+          // Admin notifications only carry actor_id — no actor object is returned by the API
+          const actorName = 'System'
+          const actorAvatar = '/assets/images/default-avatar.png'
 
           const rawTimestamp = parseTimestampMs(n.created_on ?? n.created_at)
           const id = safeId(
@@ -171,7 +164,7 @@ export default function NotificationsPage() {
 
         setNotifications(normalized)
         setUnreadCount(Number(unreadRes.data?.unread || 0))
-        setTotalPages(1) // user endpoint is cursor-based; pagination handled by backend
+        setTotalPages(notificationsRes.data?.pagination?.totalPages ?? 1)
       } catch (e: any) {
         console.error('Notification fetch failed', e)
         setError('Failed to load notifications.')
@@ -247,7 +240,7 @@ export default function NotificationsPage() {
     }
 
     try {
-      await apiClient.markNotificationAsRead(id)
+      await apiClient.markAdminNotificationAsRead(id)
     } catch {
       if (target && !target.is_read) {
         setUnreadCount((prev) => prev + 1)
@@ -262,7 +255,7 @@ export default function NotificationsPage() {
     setUnreadCount(0)
 
     try {
-      await apiClient.markAllNotificationsRead()
+      await apiClient.markAllAdminNotificationsRead()
     } catch {
       const fallbackUnread = notifications.filter((n) => !n.is_read).length
       setUnreadCount(fallbackUnread)

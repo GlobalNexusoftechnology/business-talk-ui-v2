@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import adminApi from '@/lib/admin-api'
+import apiClient from '@/lib/api-client'
 import {
   Flag,
   User,
@@ -21,6 +22,68 @@ const TYPE_COLORS: Record<string, string> = {
   story: 'bg-pink-100 text-pink-700',
 }
 
+const POST_LIKE_TYPES = new Set(['post', 'question'])
+const BLOG_LIKE_TYPES = new Set(['blog', 'story'])
+
+function isNotFoundError(error: any) {
+  return Number(error?.response?.status) === 404
+}
+
+function asText(value: any, fallback = ''): string {
+  if (value === null || value === undefined) return fallback
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return String(value)
+  }
+  if (Array.isArray(value)) {
+    const joined = value
+      .map((item) => asText(item, ''))
+      .filter(Boolean)
+      .join(', ')
+    return joined || fallback
+  }
+  if (typeof value === 'object') {
+    const named = value.name || value.title || value.reason || value.label || value.value
+    if (named !== undefined && named !== null) return asText(named, fallback)
+    try {
+      return JSON.stringify(value)
+    } catch {
+      return fallback
+    }
+  }
+  return fallback
+}
+
+function getReportType(report: any) {
+  return String(report?.content_type || report?.type || '').toLowerCase()
+}
+
+function getReportContentId(report: any) {
+  return String(
+    report?.content_id ||
+      report?.reported_content_id ||
+      report?.post_id ||
+      report?.blog_id ||
+      report?.reported_content?.id ||
+      report?.content?.id ||
+      ''
+  )
+}
+
+function getReportedUserId(report: any) {
+  const value =
+    report?.reported_user_id ||
+    report?.reported_user?.id ||
+    report?.reported_user ||
+    report?.user_id ||
+    report?.content_owner_id ||
+    report?.reported_content?.user_id ||
+    report?.content?.user_id ||
+    report?.reported_content?.user?.id ||
+    report?.content?.user?.id
+
+  return typeof value === 'string' ? value : ''
+}
+
 function formatTime(ts: string | number) {
   if (!ts) return ''
   const ms = isNaN(Number(ts)) ? Date.parse(String(ts)) : Number(ts)
@@ -35,22 +98,28 @@ function formatTime(ts: string | number) {
 
 function ReportedContentPreview({ report }: { report: any }) {
   const c = report.reported_content || report.content || {}
-  const type: string = (report.content_type || '').toLowerCase()
+  const type: string = getReportType(report)
   const [playingVideo, setPlayingVideo] = useState<string | null>(null)
 
   const authorName =
-    c.user?.full_name || c.user?.username ||
-    c.author?.name || c.author?.full_name ||
-    report.reported_user?.full_name || report.reported_user?.username || 'Unknown'
+    c.user?.full_name ||
+    c.user?.username ||
+    c.author?.name ||
+    c.author?.full_name ||
+    report.reported_user?.full_name ||
+    report.reported_user?.username ||
+    'Unknown'
 
   const authorAvatar =
     c.user?.profile_photo || c.author?.avatar || report.reported_user?.profile_photo
 
-  const title = c.title || (type === 'question' ? c.content : undefined)
-  const content = c.description || (type === 'question' ? c.description : c.content)
+  const title = asText(c.title || (type === 'question' ? c.content : undefined), '')
+  const content = asText(c.description || (type === 'question' ? c.description : c.content), '')
   const coverImage = c.cover_image
   const media: Array<{ url: string; type?: string }> = c.media || []
-  const tags: string[] = c.tags || []
+  const tags: string[] = Array.isArray(c.tags)
+    ? c.tags.map((t: any) => asText(t, '')).filter(Boolean)
+    : []
   const likes = c.upvotes ?? c.likes ?? 0
   const commentsCount = c.comments_count ?? 0
   const views = c.views
@@ -73,7 +142,6 @@ function ReportedContentPreview({ report }: { report: any }) {
       className="rounded-xl p-3 sm:p-4 mt-3"
       style={{ backgroundColor: '#F8F9FA', border: '1px solid #E8E8E8' }}
     >
-      {/* Author */}
       <div className="flex items-start sm:items-center gap-2 mb-3">
         <img
           src={
@@ -95,32 +163,31 @@ function ReportedContentPreview({ report }: { report: any }) {
         </div>
       </div>
 
-      {/* Title */}
       {title && (
         <h4 className="font-semibold text-sm mb-1" style={{ color: '#212529' }}>
           {title}
         </h4>
       )}
 
-      {/* Content text */}
       {content && (
         <p className="text-sm mb-3 whitespace-pre-line" style={{ color: '#374151' }}>
           {content}
         </p>
       )}
 
-      {/* Tags */}
       {tags.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-3">
           {tags.map((t, i) => (
-            <span key={i} className="text-xs bg-white border border-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
+            <span
+              key={i}
+              className="text-xs bg-white border border-gray-200 text-gray-600 px-2 py-0.5 rounded-full"
+            >
               #{t}
             </span>
           ))}
         </div>
       )}
 
-      {/* Images */}
       {allImages.length > 0 && (
         <div
           className={`grid gap-2 mb-3 ${
@@ -144,7 +211,6 @@ function ReportedContentPreview({ report }: { report: any }) {
         </div>
       )}
 
-      {/* Videos */}
       {videos.map((v, i) => (
         <div key={i} className="rounded-lg overflow-hidden bg-black mb-3">
           {playingVideo === v.url ? (
@@ -163,7 +229,6 @@ function ReportedContentPreview({ report }: { report: any }) {
         </div>
       ))}
 
-      {/* Stats */}
       <div className="flex items-center gap-4 text-xs flex-wrap" style={{ color: '#5F6368' }}>
         <span className="flex items-center gap-1">
           <ThumbsUp className="w-3.5 h-3.5" /> {likes}
@@ -184,49 +249,189 @@ function ReportedContentPreview({ report }: { report: any }) {
 export default function AdminReportsPage() {
   const [reports, setReports] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [processingReportId, setProcessingReportId] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'pending' | 'resolved'>('pending')
 
-  useEffect(() => {
-    adminApi.getReports().then((res) => {
-      const data = res.data?.data ?? res.data ?? []
-      setReports(Array.isArray(data) ? data : [])
-    }).finally(() => setLoading(false))
+  const hydrateReportsContent = useCallback(async (list: any[]) => {
+    return Promise.all(
+      list.map(async (report) => {
+        const type = getReportType(report)
+        const contentId = getReportContentId(report)
+
+        if (!contentId) return report
+
+        try {
+          if (POST_LIKE_TYPES.has(type)) {
+            const res = await apiClient.getPostById(contentId)
+            const content = res.data?.data ?? res.data
+            return content ? { ...report, reported_content: content } : report
+          }
+
+          if (BLOG_LIKE_TYPES.has(type)) {
+            const res = await apiClient.getBlogById(contentId)
+            const content = res.data?.data ?? res.data
+            return content ? { ...report, reported_content: content } : report
+          }
+
+          return report
+        } catch (error) {
+          // Missing/deleted content can legitimately return 404 for old reports.
+          if (!isNotFoundError(error)) {
+            console.error('Failed to hydrate report content:', report?.id, error)
+          }
+          return report
+        }
+      })
+    )
   }, [])
 
-  const resolve = (id: string, action: string) => {
-    adminApi.resolveReport(id, action).then(() => {
-      setReports((prev) =>
-        prev.map((r) => r.id === id ? { ...r, status: 'resolved', _action: action } : r)
-      )
-    })
+  const fetchReports = useCallback(async () => {
+    setLoading(true)
+    setErrorMessage(null)
+
+    try {
+      const res = await adminApi.getReports()
+      const data = res.data?.data ?? res.data ?? []
+      const baseReports = Array.isArray(data) ? data : []
+      const hydratedReports = await hydrateReportsContent(baseReports)
+      setReports(hydratedReports)
+    } catch (error) {
+      console.error('Failed to fetch reports:', error)
+      setErrorMessage('Unable to load reports right now. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }, [hydrateReportsContent])
+
+  useEffect(() => {
+    fetchReports()
+  }, [fetchReports])
+
+  const resolve = async (id: string, action: string) => {
+    const response = await adminApi.resolveReport(id, action)
+    const updated = response?.data?.data ?? response?.data ?? null
+
+    setReports((prev) =>
+      prev.map((r) => {
+        if (r.id !== id) return r
+
+        return {
+          ...r,
+          ...(updated && typeof updated === 'object' ? updated : {}),
+          status: 'resolved',
+          resolution_action:
+            updated?.resolution_action ??
+            updated?.resolved_action ??
+            updated?.action_taken ??
+            updated?.action ??
+            action,
+        }
+      })
+    )
+  }
+
+  const handleRemoveContent = async (report: any) => {
+    const reportId = String(report?.id || '')
+    const type = getReportType(report)
+    const contentId = getReportContentId(report)
+
+    if (!reportId || !contentId) {
+      setErrorMessage('Missing report/content id. Cannot remove content.')
+      return
+    }
+
+    setProcessingReportId(reportId)
+    setErrorMessage(null)
+
+    try {
+      if (POST_LIKE_TYPES.has(type)) {
+        await adminApi.deletePost(contentId)
+      } else if (BLOG_LIKE_TYPES.has(type)) {
+        await adminApi.deleteBlog(contentId)
+      } else {
+        throw new Error(`Unsupported content type: ${type || 'unknown'}`)
+      }
+
+      await resolve(reportId, 'REMOVE_POST')
+    } catch (error) {
+      console.error('Failed to remove reported content:', error)
+      setErrorMessage('Unable to remove content. Please try again.')
+    } finally {
+      setProcessingReportId(null)
+    }
+  }
+
+  const handleWarnUser = async (report: any) => {
+    const reportId = String(report?.id || '')
+    const userId = getReportedUserId(report)
+
+    if (!reportId || !userId) {
+      setErrorMessage('Missing reported user id. Cannot warn this user.')
+      return
+    }
+
+    setProcessingReportId(reportId)
+    setErrorMessage(null)
+
+    try {
+      await adminApi.warnUser(userId)
+      await resolve(reportId, 'WARN_USER')
+    } catch (error) {
+      console.error('Failed to warn reported user:', error)
+      setErrorMessage('Unable to warn user. Please try again.')
+    } finally {
+      setProcessingReportId(null)
+    }
+  }
+
+  const handleBanUser = async (report: any) => {
+    const reportId = String(report?.id || '')
+    const userId = getReportedUserId(report)
+
+    if (!reportId || !userId) {
+      setErrorMessage('Missing reported user id. Cannot ban this user.')
+      return
+    }
+
+    setProcessingReportId(reportId)
+    setErrorMessage(null)
+
+    try {
+      await adminApi.banUser(userId)
+      await resolve(reportId, 'BAN_USER')
+    } catch (error) {
+      console.error('Failed to ban reported user:', error)
+      setErrorMessage('Unable to ban user. Please try again.')
+    } finally {
+      setProcessingReportId(null)
+    }
   }
 
   const visible = reports.filter((r) =>
-    activeTab === 'pending'
-      ? r.status !== 'resolved'
-      : r.status === 'resolved'
+    activeTab === 'pending' ? r.status !== 'resolved' : r.status === 'resolved'
   )
 
   return (
     <div className="p-3 sm:p-6 min-h-screen" style={{ backgroundColor: '#F8F9FA' }}>
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
           <div>
-            <h1 className="text-2xl font-bold" style={{ color: '#212529' }}>Reports</h1>
+            <h1 className="text-2xl font-bold" style={{ color: '#212529' }}>
+              Reports
+            </h1>
             <p className="text-sm mt-1" style={{ color: '#5F6368' }}>
-              {reports.filter(r => r.status !== 'resolved').length} pending ·{' '}
-              {reports.filter(r => r.status === 'resolved').length} resolved
+              {reports.filter((r) => r.status !== 'resolved').length} pending |{' '}
+              {reports.filter((r) => r.status === 'resolved').length} resolved
             </p>
+            {errorMessage && (
+              <p className="text-xs mt-2" style={{ color: '#B91C1C' }}>
+                {errorMessage}
+              </p>
+            )}
           </div>
           <button
-            onClick={() => {
-              setLoading(true)
-              adminApi.getReports().then((res) => {
-                const data = res.data?.data ?? res.data ?? []
-                setReports(Array.isArray(data) ? data : [])
-              }).finally(() => setLoading(false))
-            }}
+            onClick={fetchReports}
             className="w-full sm:w-auto justify-center sm:justify-start flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors"
             style={{ border: '1px solid #E8E8E8', backgroundColor: '#fff', color: '#5F6368' }}
           >
@@ -235,7 +440,6 @@ export default function AdminReportsPage() {
           </button>
         </div>
 
-        {/* Tabs */}
         <div className="grid grid-cols-2 gap-2 mb-6 sm:flex">
           {(['pending', 'resolved'] as const).map((tab) => (
             <button
@@ -268,12 +472,12 @@ export default function AdminReportsPage() {
         ) : (
           <div className="space-y-4">
             {visible.map((r) => {
-              const type: string = (r.content_type || '').toLowerCase()
-              const reporter =
-                r.reporter || r.reported_by || r.user || {}
-              const reporterName =
-                reporter.full_name || reporter.username || 'Anonymous'
+              const type: string = getReportType(r)
+              const reporter = r.reporter || r.reported_by || r.user || {}
+              const reporterName = reporter.full_name || reporter.username || 'Anonymous'
               const reporterAvatar = reporter.profile_photo
+              const isProcessing = processingReportId === r.id
+              const reasonText = asText(r.reason, 'No reason provided')
 
               return (
                 <div
@@ -281,7 +485,6 @@ export default function AdminReportsPage() {
                   className="bg-white rounded-2xl p-4 sm:p-5"
                   style={{ border: '1px solid #E8E8E8' }}
                 >
-                  {/* Report meta row */}
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                     <div className="flex items-start gap-3 min-w-0">
                       <div
@@ -308,17 +511,17 @@ export default function AdminReportsPage() {
                           )}
                         </div>
 
-                        {/* Reason */}
                         <p className="text-sm font-medium break-words" style={{ color: '#212529' }}>
-                          &ldquo;{r.reason}&rdquo;
+                          &ldquo;{reasonText}&rdquo;
                         </p>
 
-                        {/* Reporter */}
                         <div className="flex items-center gap-1.5 mt-1.5">
                           <img
                             src={
                               reporterAvatar ||
-                              `https://ui-avatars.com/api/?name=${encodeURIComponent(reporterName)}&size=20&background=E8E8E8&color=212529`
+                              `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                                reporterName
+                              )}&size=20&background=E8E8E8&color=212529`
                             }
                             alt={reporterName}
                             className="w-5 h-5 rounded-full object-cover"
@@ -329,7 +532,6 @@ export default function AdminReportsPage() {
                           </span>
                         </div>
 
-                        {/* Timestamp */}
                         {(r.created_on || r.createdAt) && (
                           <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
                             <Clock className="w-3 h-3" />
@@ -339,12 +541,12 @@ export default function AdminReportsPage() {
                       </div>
                     </div>
 
-                    {/* Actions */}
                     {r.status !== 'resolved' && (
                       <div className="grid grid-cols-1 sm:flex gap-2 w-full sm:w-auto shrink-0">
                         <button
-                          onClick={() => resolve(r.id, 'REMOVE_POST')}
-                          className="w-full sm:w-auto px-3 py-1.5 text-xs rounded-lg font-medium transition-colors"
+                          onClick={() => handleRemoveContent(r)}
+                          disabled={isProcessing}
+                          className="w-full sm:w-auto px-3 py-1.5 text-xs rounded-lg font-medium transition-colors disabled:opacity-60"
                           style={{
                             border: '1px solid #FCA5A5',
                             color: '#991B1B',
@@ -353,11 +555,12 @@ export default function AdminReportsPage() {
                           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#FEE2E2')}
                           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FEF2F2')}
                         >
-                          Remove Content
+                          {isProcessing ? 'Processing...' : 'Remove Content'}
                         </button>
                         <button
-                          onClick={() => resolve(r.id, 'WARN_USER')}
-                          className="w-full sm:w-auto px-3 py-1.5 text-xs rounded-lg font-medium transition-colors"
+                          onClick={() => handleWarnUser(r)}
+                          disabled={isProcessing}
+                          className="w-full sm:w-auto px-3 py-1.5 text-xs rounded-lg font-medium transition-colors disabled:opacity-60"
                           style={{
                             border: '1px solid #FCD34D',
                             color: '#92400E',
@@ -366,11 +569,12 @@ export default function AdminReportsPage() {
                           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#FEF3C7')}
                           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFFBEB')}
                         >
-                          Warn User
+                          {isProcessing ? 'Processing...' : 'Warn User'}
                         </button>
                         <button
-                          onClick={() => resolve(r.id, 'BAN_USER')}
-                          className="w-full sm:w-auto px-3 py-1.5 text-xs rounded-lg font-medium transition-colors"
+                          onClick={() => handleBanUser(r)}
+                          disabled={isProcessing}
+                          className="w-full sm:w-auto px-3 py-1.5 text-xs rounded-lg font-medium transition-colors disabled:opacity-60"
                           style={{
                             border: '1px solid #FDBA74',
                             color: '#9A3412',
@@ -379,13 +583,12 @@ export default function AdminReportsPage() {
                           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#FFEDD5')}
                           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFF7ED')}
                         >
-                          Ban User
+                          {isProcessing ? 'Processing...' : 'Ban User'}
                         </button>
                       </div>
                     )}
                   </div>
 
-                  {/* Reported content preview */}
                   <ReportedContentPreview report={r} />
                 </div>
               )
