@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios'
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000'
+  process.env.NEXT_PUBLIC_API_BASE_URL || 'https://business-talk-api-qlkw.onrender.com'
 
 // ──────────────────────────────────────────────────────────────────────────
 // PRODUCTION CREDENTIAL TRANSPORT VALIDATION
