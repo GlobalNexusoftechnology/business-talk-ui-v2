@@ -9,24 +9,27 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
         <div className="relative max-w-lg">
           {/* Logo / brand name */}
-          <p className="text-5xl font-bolder tracking-[0.2em] uppercase mb-6" style={{ color: '#5F6368' , fontWeight: 900}}>
-            Welcome to Businesstalk24
+          <p className="text-3xl font-bold tracking-widest uppercase" style={{ color: '#000000', letterSpacing: '1px' }}>
+            Welcome to
+          </p>
+          <p className="text-5xl font-bold tracking-widest uppercase mb-8" style={{ color: '#000000', lineHeight: '2.25rem' }}>
+            Businesstalk24
           </p>
 
           {/* Hero tagline — 3 large words */}
-          <div className="space-y-1 mb-8">
+          <div className="space-y-2 mb-8">
             {['Ask.', 'Share.', 'Contribute.'].map((word) => (
               <h1
                 key={word}
-                className="font-extrabold leading-none tracking-tight"
-                style={{ fontSize: 'clamp(2.5rem, 7vw, 4rem)', color: '#212529' }}
+                className="font-black leading-none tracking-tight"
+                style={{ fontSize: 'clamp(4rem, 7vw, 8.5rem)', color: '#000000', marginBottom: '0.5rem', marginTop: '-0.5rem' }}
               >
                 {word}
               </h1>
             ))}
           </div>
 
-          <p className="text-lg leading-relaxed" style={{ color: '#5F6368', maxWidth: '28rem' }}>
+          <p className="text-base leading-relaxed" style={{ color: '#5F6368', maxWidth: '27rem' , lineHeight: '1.25rem', marginTop: '-1rem' }}>
             Ask business questions, share your experiences, and contribute to meaningful professional discussions.
           </p>
         </div>
