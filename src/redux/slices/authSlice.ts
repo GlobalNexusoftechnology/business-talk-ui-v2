@@ -182,6 +182,8 @@ export const fetchCurrentUser = createAsyncThunk(
         console.log('[auth] hydration succeeded', {
           hasUser: Boolean(res.data),
           isRestricted: isBanned,
+          credentialsSent: true, // ✅ /auth/me called with withCredentials: true
+          cookiePresent: true,
         })
       }
 

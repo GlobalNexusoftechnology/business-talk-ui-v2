@@ -130,9 +130,19 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
           isAuthenticated,
           isRestricted,
           hasUserId: Boolean(userId),
+          note: 'Waiting for auth state to be ready before sending credentials',
         });
       }
       return;
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[chat-realtime] auth ready, connecting socket with credentials', {
+        authReady: true,
+        isAuthenticated: true,
+        userId: userId ? userId.substring(0, 8) : 'unknown',
+        credentialsReady: true, // ✅ withCredentials: true will be sent
+      });
     }
 
     const ws = new WebSocketManager();

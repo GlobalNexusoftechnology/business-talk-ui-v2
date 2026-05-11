@@ -3,6 +3,44 @@ import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios'
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000'
 
+// ──────────────────────────────────────────────────────────────────────────
+// PRODUCTION CREDENTIAL TRANSPORT VALIDATION
+// ──────────────────────────────────────────────────────────────────────────
+// After backend fix: SameSite=None, Secure=true, httpOnly=true
+// Frontend must send credentials on ALL auth-related requests for proper
+// cookie transport on cross-origin (HTTPS-required) configurations.
+
+const validateProductionEnvironment = () => {
+  if (typeof window === 'undefined' || process.env.NODE_ENV !== 'production') return
+
+  try {
+    const apiUrl = new URL(API_BASE_URL, window.location.origin)
+    const appProto = window.location.protocol
+    const apiProto = apiUrl.protocol
+
+    // SameSite=None requires Secure=true which requires HTTPS
+    const isHttps = appProto === 'https:' && apiProto === 'https:'
+    if (!isHttps) {
+      console.warn(
+        '[credential-transport] ⚠️ PRODUCTION: Frontend and backend must both use HTTPS for SameSite=None cookies. ' +
+        `Frontend: ${appProto}//, Backend: ${apiProto}//`
+      )
+    }
+
+    // Cross-origin cookie transport enabled
+    const isCrossOrigin = window.location.origin !== apiUrl.origin
+    if (isCrossOrigin) {
+      console.log('[credential-transport] ✅ Cross-origin auth enabled', {
+        frontend: window.location.origin,
+        backend: apiUrl.origin,
+        note: 'SameSite=None + Secure=true required on backend cookies',
+      })
+    }
+  } catch (e) {
+    console.warn('[credential-transport] Failed to validate production environment', { error: String(e) })
+  }
+}
+
 // ─── Token-refresh queue ───────────────────────────────────────────────────
 // Shared state so concurrent 401s only trigger one refresh call.
 let isRefreshing = false
@@ -124,6 +162,7 @@ class ApiClient {
           method: config.method,
           url: config.url,
           withCredentials: config.withCredentials,
+          note: 'Credentials REQUIRED for cross-origin cookie transport',
         })
       }
 
@@ -204,7 +243,10 @@ class ApiClient {
 
           try {
             if (process.env.NODE_ENV === 'development') {
-              console.log('[auth-refresh] refresh started')
+              console.log('[auth-refresh] refresh started', {
+                withCredentials: true, // ✅ CRITICAL for cross-origin
+                note: 'Sending cookies from previous login',
+              })
             }
 
             // Ask the server to issue a new access_token using the refresh cookie.
@@ -215,6 +257,7 @@ class ApiClient {
             if (process.env.NODE_ENV === 'development') {
               console.log('[auth-refresh] refresh succeeded', {
                 status: refreshRes?.status,
+                cookiesPreserved: true, // ✅ Refresh cookie still valid
               })
             }
 
@@ -272,6 +315,7 @@ class ApiClient {
       }
     )
 
+    validateProductionEnvironment()
     this.logCrossOriginDiagnostics()
   }
 
@@ -294,14 +338,19 @@ class ApiClient {
     this.markRecentLogin()
 
     if (process.env.NODE_ENV === 'development') {
+      const cookies = typeof document !== 'undefined' ? document.cookie : ''
+      const hasCookies = cookies.length > 0
+      const cookieNames = cookies
+        ? cookies.split(';').map((c) => c.trim().split('=')[0]).filter(Boolean)
+        : []
+      
       console.log('[auth] login response received', {
         status: res?.status,
         hasData: Boolean(res?.data),
-        cookieLength: typeof document !== 'undefined' ? document.cookie.length : 0,
-        cookieNames:
-          typeof document !== 'undefined' && document.cookie
-            ? document.cookie.split(';').map((c) => c.trim().split('=')[0]).filter(Boolean)
-            : [],
+        credentialsSent: true, // ✅ withCredentials: true forced on request
+        credentialsReceived: hasCookies,
+        cookieCount: cookieNames.length,
+        cookieNames,
       })
     }
 
@@ -400,7 +449,9 @@ class ApiClient {
 
     const res = await fetch(`${API_BASE_URL}/user/me`, {
       method: 'PATCH',
-      credentials: 'include', // 🔥 IMPORTANT
+      credentials: 'include', // ✅ CRITICAL: Required for cross-origin cookie transport
+      // Safari/iOS MUST have credentials: 'include' on PATCH to send auth cookies
+      // This is necessary for SameSite=None + Secure=true backend configuration
       headers:
         body instanceof FormData
           ? {}

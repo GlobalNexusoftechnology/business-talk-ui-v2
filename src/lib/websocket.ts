@@ -31,13 +31,14 @@ class WebSocketManager {
       console.log('[chat-realtime] socket connect init', {
         origin: `${getSocketOrigin()}/v1/chat`,
         transports: ['websocket', 'polling'],
-        withCredentials: true,
+        withCredentials: true, // ✅ CRITICAL for cross-origin cookie transport
+        note: 'Both websocket + polling fallback include credentials for Safari',
       });
     }
 
     this.socket = io(`${getSocketOrigin()}/v1/chat`, {
       transports: ['websocket', 'polling'],
-      withCredentials: true,
+      withCredentials: true, // ✅ Enables credentials on both transport types
       reconnection: true,
       reconnectionAttempts: 50,
       reconnectionDelay: 1000,
