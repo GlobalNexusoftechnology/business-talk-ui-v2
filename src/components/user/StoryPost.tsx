@@ -369,7 +369,7 @@ export function StoryPost({
                   }
                   disabled={isBanned}
                   placeholder="Write a reply..."
-                  className="flex-1 min-w-0 border border-gray-200 rounded-full px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  className="flex-1 min-w-0 border border-gray-200 rounded-full px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-black disabled:bg-gray-50 disabled:cursor-not-allowed"
                   autoFocus
                 />
                 <button
@@ -377,7 +377,7 @@ export function StoryPost({
                     handleAddReply(reply.id)
                   }
                   disabled={isBanned}
-                  className="shrink-0 text-blue-600 hover:text-blue-700 px-2 py-1 rounded-full text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="shrink-0 px-4 py-2 bg-black text-white rounded-full text-sm font-medium hover:bg-gray-400 disabled:bg-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Send
                 </button>
@@ -602,9 +602,9 @@ export function StoryPost({
                   }
                   disabled={isBanned}
                   placeholder={isBanned ? 'Your account is restricted' : 'Add a comment...'}
-                  className="flex-1 min-w-0 px-3 py-2 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  className="flex-1 min-w-0 px-3 py-2 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-black disabled:bg-gray-50 disabled:cursor-not-allowed"
                 />
-                <button onClick={handleAddComment} disabled={isBanned} className="shrink-0 px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <button onClick={handleAddComment} disabled={isBanned} className="shrink-0 px-4 py-2 bg-black text-white rounded-full text-sm font-medium hover:bg-gray-400 disabled:bg-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                   Post
                 </button>
               </div>
@@ -671,7 +671,7 @@ export function StoryPost({
                         }
                         disabled={isBanned}
                         placeholder="Write a reply..."
-                        className="flex-1 min-w-0 text-xs border border-gray-200 rounded-full px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
+                        className="flex-1 min-w-0 text-xs border border-gray-200 rounded-full px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-black disabled:bg-gray-50 disabled:cursor-not-allowed"
                         autoFocus
                       />
                       <button
@@ -679,7 +679,7 @@ export function StoryPost({
                           handleAddReply(c.id)
                         }
                         disabled={isBanned}
-                        className="shrink-0 text-blue-600 hover:text-blue-700 px-2 py-1 rounded-full text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="shrink-0 px-4 py-2 bg-black text-white rounded-full text-sm font-medium hover:bg-gray-400 disabled:bg-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Send
                       </button>

@@ -42,6 +42,12 @@ class ApiClient {
       headers: { 'Content-Type': 'application/json' },
     })
 
+    this.client.interceptors.request.use((config) => {
+      // Force credentialed requests for session-cookie auth across browsers.
+      config.withCredentials = true
+      return config
+    })
+
     this.client.interceptors.response.use(
       (res) => res,
       async (error) => {
@@ -94,8 +100,16 @@ class ApiClient {
           !isRefreshEndpoint &&
           !isPublicAuthEndpoint
         ) {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[auth-refresh] 401 intercepted', {
+              requestUrl,
+              isRefreshing,
+            })
+          }
+
           // If a refresh is already in-flight, queue this request and wait.
           if (isRefreshing) {
+            originalRequest._retry = true
             return new Promise((resolve, reject) => {
               failedRequestQueue.push({ resolve, reject })
             })
@@ -107,12 +121,25 @@ class ApiClient {
           isRefreshing = true
 
           try {
+            if (process.env.NODE_ENV === 'development') {
+              console.log('[auth-refresh] refresh started')
+            }
+
             // Ask the server to issue a new access_token using the refresh cookie.
             await this.client.post('/auth/refresh-token')
+
+            if (process.env.NODE_ENV === 'development') {
+              console.log('[auth-refresh] refresh succeeded')
+            }
+
             processQueue(null)
             // Retry the original request with the new access_token cookie.
             return this.client(originalRequest)
           } catch (refreshError) {
+            if (process.env.NODE_ENV === 'development') {
+              console.log('[auth-refresh] refresh failed')
+            }
+
             processQueue(refreshError)
             // Refresh failed → session is truly expired → force logout.
             if (typeof window !== 'undefined') {

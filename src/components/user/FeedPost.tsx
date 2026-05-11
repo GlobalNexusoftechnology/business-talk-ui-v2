@@ -138,7 +138,7 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
                       onClick={() => setReplyingTo(replyingTo === `reply-${nestedReply.id}` ? null : `reply-${nestedReply.id}`)}
                       className="flex items-center gap-1 
                         transition-all duration-200
-                        hover:scale-110 active:scale-90">
+                        hover:scale-110 active:scale-90 hover:text-blue-600">
                       Reply
                     </button>
                     {currentUser.id && currentUser.id === nestedReply.authorId && (
@@ -156,7 +156,7 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
 
               {/* Reply to Nested Reply Input */}
               {replyingTo === `reply-${nestedReply.id}` && (
-                <div className="flex gap-2 mt-2 ml-8 items-center">
+                <div className="flex gap-2 mt-2 ml-8 items-center pb-3">
                   <img
                     src={nestedReply.author?.profile_photo || `https://ui-avatars.com/api/name=${encodeURIComponent(nestedReply.author?.name)}`}
                     className="w-6 h-6 rounded-full object-cover shrink-0"
@@ -168,12 +168,12 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
                     value={replyInput}
                     onChange={(e) => setReplyInput(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleAddReply(parentId, nestedReply.id)}
-                    className="flex-1 min-w-0 text-xs border border-gray-200 rounded-full px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 min-w-0 text-xs border border-gray-200 rounded-full px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-black"
                     autoFocus
                   />
                   <button
                     onClick={() => handleAddReply(parentId, nestedReply.id)}
-                    className="shrink-0 text-blue-600 hover:text-blue-700 px-2 py-1 rounded-full text-xs font-medium"
+                    className="shrink-0 px-4 py-2 bg-black text-white rounded-full text-sm font-medium hover:bg-gray-400 disabled:bg-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Send
                   </button>
@@ -651,12 +651,12 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
                   value={commentInput}
                   onChange={(e) => setCommentInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleAddComment()}
-                  className="flex-1 min-w-0 px-3 py-2 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  className="flex-1 min-w-0 px-3 py-2 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-black disabled:bg-gray-50 disabled:cursor-not-allowed"
                 />
                 <button
                   onClick={handleAddComment}
                   disabled={isBanned}
-                  className="shrink-0 px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="shrink-0 px-4 py-2 bg-black text-white rounded-full text-sm font-medium hover:bg-gray-400 disabled:bg-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Post
                 </button>
@@ -689,7 +689,7 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
                             }`}
                           /> {comment.likes}
                         </button>
-                        <button onClick={() => setReplyingTo(replyingTo === `comment-${comment.id}` ? null : `comment-${comment.id}`)} className="hover:text-blue-600">
+                        <button onClick={() => setReplyingTo(replyingTo === `comment-${comment.id}` ? null : `comment-${comment.id}`)} className="flex items-center gap-1 transition-all duration-200 hover:scale-110 active:scale-90 hover:text-blue-600">
                           Reply
                         </button>
                         {currentUser.id && currentUser.id === comment.authorId && (
@@ -717,12 +717,12 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
                             value={replyInput}
                             onChange={(e) => setReplyInput(e.target.value)}
                             onKeyPress={(e) => e.key === 'Enter' && handleAddReply(comment.id)}
-                            className="flex-1 min-w-0 text-xs border border-gray-200 rounded-full px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="flex-1 min-w-0 text-xs border border-gray-200 rounded-full px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-black"
                             autoFocus
                           />
                           <button
                             onClick={() => handleAddReply(comment.id)}
-                            className="shrink-0 text-blue-600 hover:text-blue-700 px-2 py-1 rounded-full text-xs font-medium"
+                            className="shrink-0 px-4 py-2 bg-black text-white rounded-full text-sm font-medium hover:bg-gray-400 disabled:bg-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             Reply
                           </button>

@@ -22,17 +22,19 @@ const initialState: AuthState = {
   isRestricted: false,
 }
 
-// ✅ Load user from localStorage (cookie handles auth, not token)
+// Optional UI cache preload only. Authenticated state is determined by
+// successful login/signup response or fetchCurrentUser.
 if (typeof window !== 'undefined') {
-  const storedUser = localStorage.getItem('user')
-
-  if (storedUser) {
-    const u = JSON.parse(storedUser)
-    initialState.user = u
-    const banned = isRestrictedUser(u)
-    initialState.isRestricted = banned
-    // Restricted users are stored but NOT marked as authenticated
-    initialState.isAuthenticated = !banned
+  try {
+    const storedUser = localStorage.getItem('user')
+    if (storedUser) {
+      const u = JSON.parse(storedUser)
+      initialState.user = u
+      initialState.isRestricted = isRestrictedUser(u)
+      initialState.isAuthenticated = false
+    }
+  } catch {
+    // Ignore malformed cache and keep defaults.
   }
 }
 
@@ -44,24 +46,34 @@ export const login = createAsyncThunk(
   'auth/login',
   async (credentials: LoginRequest, { rejectWithValue }) => {
     try {
-      // 1. Login (sets cookies)
-      await apiClient.login(credentials.email, credentials.password)
+      // Login response is canonical user source for Safari-safe cookie flow.
+      const loginRes = await apiClient.login(credentials.email, credentials.password)
+      const loginPayload = loginRes?.data
+      const user =
+        loginPayload?.user ||
+        loginPayload?.data?.user ||
+        loginPayload?.data ||
+        loginPayload?.profile ||
+        null
 
-      // 2. Fetch user using cookie session
-      const userRes = await apiClient.getMyProfileinfo()
-
-      if (!userRes?.data) {
-        throw new Error('Failed to fetch user')
+      if (!user || typeof user !== 'object') {
+        throw new Error('Login succeeded but user payload was missing')
       }
 
-      const isBanned = Boolean(userRes.data?.is_banned || userRes.data?.isBanned)
+      const isBanned = Boolean((user as any)?.is_banned || (user as any)?.isBanned)
 
-      // 3. Always store user — restricted users see their info on the restricted page
       if (typeof window !== 'undefined') {
-        localStorage.setItem('user', JSON.stringify(userRes.data))
+        localStorage.setItem('user', JSON.stringify(user))
       }
 
-      return { user: userRes.data, isRestricted: isBanned }
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[auth] login completed', {
+          hasUser: Boolean(user),
+          isRestricted: isBanned,
+        })
+      }
+
+      return { user, isRestricted: isBanned }
     } catch (error: any) {
       return rejectWithValue(error?.response?.data?.message || error.message)
     }
@@ -146,11 +158,28 @@ export const fetchCurrentUser = createAsyncThunk(
 
       const isBanned = Boolean(res.data?.is_banned || res.data?.isBanned)
 
-      localStorage.setItem('user', JSON.stringify(res.data))
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(res.data))
+      }
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[auth] hydration succeeded', {
+          hasUser: Boolean(res.data),
+          isRestricted: isBanned,
+        })
+      }
+
       // Return both user data and restriction status
       return { user: res.data, isRestricted: isBanned }
     } catch (err) {
-      localStorage.removeItem('user')
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('user')
+      }
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[auth] hydration failed')
+      }
+
       return rejectWithValue('Session expired')
     }
   }
@@ -169,8 +198,7 @@ const authSlice = createSlice({
       const banned = Boolean(u?.is_banned || u?.isBanned)
       state.user = action.payload
       state.isRestricted = banned
-      // Restricted users are stored but not treated as normally authenticated
-      state.isAuthenticated = !banned
+      state.isAuthenticated = Boolean(action.payload) && !banned
     },
     clearError: (state: AuthState) => {
       state.error = null
@@ -233,6 +261,7 @@ const authSlice = createSlice({
       })
 
       .addCase(fetchCurrentUser.fulfilled, (state, action) => {
+        state.isLoading = false
         state.user = action.payload.user
         state.isRestricted = action.payload.isRestricted ?? false
         state.isAuthenticated = !(action.payload.isRestricted ?? false) && Boolean(action.payload.user)
@@ -240,7 +269,12 @@ const authSlice = createSlice({
 
       // The interceptor already retried the request after a token refresh.
       // If we still reach .rejected, the session is truly invalid.
+      .addCase(fetchCurrentUser.pending, (state) => {
+        state.isLoading = true
+        state.error = null
+      })
       .addCase(fetchCurrentUser.rejected, (state) => {
+        state.isLoading = false
         state.user = null
         state.isAuthenticated = false
       })

@@ -29,6 +29,7 @@ import {
   wsNotificationReceived,
   parseApiNotification,
 } from '@/redux/slices/notificationsSlice';
+import { useAppSelector } from '@/hooks/useRedux';
 
 interface WebSocketContextValue {
   wsManager: WebSocketManager | null;
@@ -55,6 +56,16 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isConnected, setIsConnected] = useState(false);
   // React Query client — available because WebSocketProvider is inside QueryClientProvider
   const queryClient = useQueryClient();
+  const authUser = useAppSelector((state) => state.auth.user as any);
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+  const isRestricted = useAppSelector((state) => state.auth.isRestricted);
+  const authLoading = useAppSelector((state) => state.auth.isLoading);
+
+  const userId = String(
+    authUser?.id ?? authUser?.user_id ?? authUser?.userId ?? '',
+  );
+  const authReady = !authLoading;
+  const canConnect = authReady && isAuthenticated && !isRestricted && !!userId;
 
   const purgeExpiredMessageKeys = () => {
     const now = Date.now();
@@ -112,32 +123,15 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    let userStr: string | null = null;
-    try {
-      userStr = localStorage.getItem('user');
-    } catch {
-      return;
-    }
-
-    if (!userStr) return;
-
-    let user: any;
-    try {
-      user = JSON.parse(userStr);
-    } catch {
-      return;
-    }
-
-    const userId = String(
-      user?.id ??
-      user?.user_id ??
-      user?.userId ??
-      '',
-    );
-    if (!userId) {
-      console.warn(
-        'WebSocketProvider: no userId found in localStorage user — skipping connection',
-      );
+    if (!canConnect) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[chat-realtime] socket waiting for auth', {
+          authReady,
+          isAuthenticated,
+          isRestricted,
+          hasUserId: Boolean(userId),
+        });
+      }
       return;
     }
 
@@ -182,6 +176,34 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (process.env.NODE_ENV === 'development') {
         console.log('[chat-realtime] socket disconnected');
+      }
+    }));
+
+    unsubscribers.push(ws.on('reconnect_attempt', (data: any) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[chat-realtime] reconnect_attempt', {
+          attempt: data?.attempt,
+          namespace: data?.namespace,
+          canConnect,
+        });
+      }
+    }));
+
+    unsubscribers.push(ws.on('reconnect', (data: any) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[chat-realtime] reconnect success', {
+          attempt: data?.attempt,
+          namespace: data?.namespace,
+        });
+      }
+    }));
+
+    unsubscribers.push(ws.on('connect_error', (data: any) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[chat-realtime] connect_error', {
+          message: data?.message,
+          canConnect,
+        });
       }
     }));
 
@@ -389,22 +411,18 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
       store.dispatch(wsNotificationReceived(notification));
     }));
 
-    // Delay connection slightly so auth cookies/session are fully established
-    const timer = setTimeout(() => {
-      ws.connect();
-    }, 1500);
+    ws.connect();
 
     wsManagerRef.current = ws;
 
     return () => {
-      clearTimeout(timer);
       unsubscribers.forEach((unsubscribe) => unsubscribe());
       ws.disconnect();
       registerWsManager(null);
       setIsConnected(false);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queryClient]);
+  }, [queryClient, canConnect, authReady, isAuthenticated, isRestricted, userId]);
 
   return (
     <WebSocketContext.Provider

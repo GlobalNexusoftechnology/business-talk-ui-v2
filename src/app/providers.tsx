@@ -7,9 +7,8 @@ import { WebSocketProvider } from '@/providers/WebSocketProvider'
 import { PushNotificationProvider } from '@/providers/PushNotificationProvider'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fetchCurrentUser } from '@/redux/slices/authSlice'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import apiClient from '@/lib/api-client'
 
 const PUBLIC_AUTH_ROUTES = [
   '/login',
@@ -29,6 +28,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [sessionChecked, setSessionChecked] = useState(false)
   const [forbiddenToast, setForbiddenToast] = useState(false)
   const [restrictedToast, setRestrictedToast] = useState(false)
+  const hydrationStartedRef = useRef(false)
   const router = useRouter()
 
   // Listen for regular 403 "Action not allowed" events
@@ -51,33 +51,44 @@ export function Providers({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('account-restricted', handler)
   }, [])
 
-  // On mount: refresh the access-token then sync user state
+  // On app boot: hydrate auth state exactly once for protected surfaces.
   useEffect(() => {
     if (isPublicAuthRoute) {
       setSessionChecked(true)
       return
     }
 
+    if (hydrationStartedRef.current) {
+      setSessionChecked(true)
+      return
+    }
+
+    hydrationStartedRef.current = true
+    setSessionChecked(false)
+
     ;(async () => {
-      // Try to refresh the access token. If this fails (401 on mobile/cross-domain
-      // environments) we still attempt fetchCurrentUser — the session cookie may be
-      // valid even when the refresh-token endpoint is unreachable.
-      try {
-        await apiClient.refreshToken()
-      } catch {
-        // Refresh failed — fall through and try /auth/me anyway.
-        // If that also fails we'll clear localStorage below.
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[auth] hydration started')
       }
 
       try {
         // fetchCurrentUser returns { user, isRestricted }
         const result = await (store.dispatch(fetchCurrentUser()) as any).unwrap()
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[auth] hydration completed', {
+            hasUser: Boolean(result?.user),
+            isRestricted: Boolean(result?.isRestricted),
+          })
+        }
         if (result?.isRestricted) {
           // Restricted users see the restricted page but keep their user data
           router.replace('/account-restricted')
         }
       } catch {
-        // Neither refresh nor session is valid — clear any stale cached user.
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[auth] hydration completed with no active session')
+        }
+
         if (typeof window !== 'undefined') {
           localStorage.removeItem('user')
         }

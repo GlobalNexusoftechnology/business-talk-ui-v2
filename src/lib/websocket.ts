@@ -28,12 +28,13 @@ class WebSocketManager {
     if (this.socket) return;
 
     this.socket = io(`${getSocketOrigin()}/v1/chat`, {
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'],
       withCredentials: true,
       reconnection: true,
-      reconnectionAttempts: Infinity,
+      reconnectionAttempts: 50,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 15000,
+      randomizationFactor: 0.5,
       timeout: 20000,
     });
 

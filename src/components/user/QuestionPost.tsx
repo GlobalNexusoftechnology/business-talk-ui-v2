@@ -432,8 +432,11 @@ export function QuestionPost({
                 <div className="flex gap-3 text-xs mt-1">
                   <button
                     onClick={() => handleVoteAnswer(reply.id, 'up')}
-                    className="flex items-center gap-1 transition-colors"
-                    style={{ color: likedAnswers.has(reply.id) ? '#1d9bf0' : '#5F6368' }}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-all duration-200 active:scale-90 hover:scale-105 ${
+                      likedAnswers.has(reply.id)
+                        ? 'bg-blue-50 text-blue-600 scale-105'
+                        : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600'
+                    }`}
                   >
                     <ThumbsUp
                       className={`inline w-4 h-4 transition-all duration-200 ${
@@ -478,10 +481,10 @@ export function QuestionPost({
                   onChange={(e) => setReplyInput(e.target.value)}
                   disabled={isBanned}
                   placeholder="Write a reply..."
-                  className="flex-1 min-w-0 border border-gray-200 rounded-full px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  className="flex-1 min-w-0 border border-gray-200 rounded-full px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-black disabled:bg-gray-50 disabled:cursor-not-allowed"
                   autoFocus
                 />
-                <button onClick={() => handleAddReply(parentId, reply.id)} disabled={isBanned} className="shrink-0 text-blue-600 hover:text-blue-700 px-2 py-1 rounded-full text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                <button onClick={() => handleAddReply(parentId, reply.id)} disabled={isBanned} className="shrink-0 px-4 py-2 bg-black text-white rounded-full text-sm font-medium hover:bg-gray-400 disabled:bg-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                   Send
                 </button>
               </div>
@@ -737,8 +740,11 @@ export function QuestionPost({
                 <div className="flex gap-3 mt-2 text-sm">
                   <button
                     onClick={() => handleVoteAnswer(answer.id, 'up')}
-                    className="flex items-center gap-1 transition-colors"
-                    style={{ color: likedAnswers.has(answer.id) ? '#1d9bf0' : '#5F6368' }}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-all duration-200 active:scale-90 hover:scale-105 ${
+                      likedAnswers.has(answer.id)
+                        ? 'bg-blue-50 text-blue-600 scale-105'
+                        : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600'
+                    }`}
                   >
                     <ThumbsUp
                       className={`inline w-4 h-4 transition-all duration-200 ${
@@ -781,10 +787,10 @@ export function QuestionPost({
                       onChange={(e) => setReplyInput(e.target.value)}
                       disabled={isBanned}
                       placeholder="Write a reply..."
-                      className="flex-1 min-w-0 border border-gray-200 rounded-full px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
+                      className="flex-1 min-w-0 border border-gray-200 rounded-full px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-black disabled:bg-gray-50 disabled:cursor-not-allowed"
                       autoFocus
                     />
-                    <button onClick={() => handleAddReply(answer.id)} disabled={isBanned} className="shrink-0 text-blue-600 hover:text-blue-700 px-2 py-1 rounded-full text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button onClick={() => handleAddReply(answer.id)} disabled={isBanned} className="shrink-0 px-4 py-2 bg-black text-white rounded-full text-sm font-medium hover:bg-gray-400 disabled:bg-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                       Send
                     </button>
                   </div>

@@ -279,7 +279,7 @@ export const UserNavbar = ({ onMenuClick, children }: UserNavbarProps) => {
           {/* Mobile Menu Button */}
           <button
             onClick={handleMenuClick}
-            className="md:hidden p-2 hover:bg-gray-100 rounded-lg"
+            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
           >
             {isSidebarOpen ? (
               <X className="h-6 w-6 text-gray-600" />
@@ -291,14 +291,18 @@ export const UserNavbar = ({ onMenuClick, children }: UserNavbarProps) => {
           {/* Logo for mobile */}
           <div className="lg:hidden flex-shrink-0">
             <Link href="/dashboard" aria-label="Go to home feed" className="hover:opacity-80 transition-opacity">
-              <h1 className="text-lg font-semibold text-[#212529]">
-                BusinessTalk<span>24</span>
-              </h1>
+              <img 
+                src="/assets/logos/BUSINESSTALK24_LOGO_png.png" 
+                alt="BusinessTalk24 Logo" 
+                width={160}
+                height={100}
+                className="mb-2"
+              />
             </Link>
           </div>
 
           {/* Search */}
-          <div className="hidden md:flex flex-1 mx-4">
+          <div className="hidden lg:flex flex-1 mx-4">
             <SearchBar />
           </div>
 

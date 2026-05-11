@@ -9,7 +9,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
         <div className="relative max-w-lg">
           {/* Logo / brand name */}
-          <p className="text-sm font-semibold tracking-[0.2em] uppercase mb-6" style={{ color: '#5F6368' }}>
+          <p className="text-5xl font-bolder tracking-[0.2em] uppercase mb-6" style={{ color: '#5F6368' , fontWeight: 900}}>
             Welcome to Businesstalk24
           </p>
 
@@ -19,7 +19,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
               <h1
                 key={word}
                 className="font-extrabold leading-none tracking-tight"
-                style={{ fontSize: 'clamp(4rem, 7vw, 6.5rem)', color: '#212529' }}
+                style={{ fontSize: 'clamp(2.5rem, 7vw, 4rem)', color: '#212529' }}
               >
                 {word}
               </h1>
