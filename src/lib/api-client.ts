@@ -19,6 +19,33 @@ const PUBLIC_AUTH_PATHS = [
   '/google-success',
 ]
 
+const LAST_LOGIN_AT_KEY = 'auth:last_login_at'
+const AUTH_STABILIZATION_MS = 12_000
+
+let authHydratingInProgress = false
+
+const getLastLoginAt = (): number => {
+  if (typeof window === 'undefined') return 0
+  const value = Number(localStorage.getItem(LAST_LOGIN_AT_KEY) || '0')
+  return Number.isFinite(value) ? value : 0
+}
+
+const isWithinRecentLoginWindow = (): boolean => {
+  const lastLoginAt = getLastLoginAt()
+  return lastLoginAt > 0 && Date.now() - lastLoginAt <= AUTH_STABILIZATION_MS
+}
+
+const shouldTraceAuthRequest = (url?: string): boolean => {
+  const path = String(url || '')
+  return (
+    path.includes('/auth/login') ||
+    path.includes('/auth/signup') ||
+    path.includes('/auth/me') ||
+    path.includes('/auth/refresh-token') ||
+    path.includes('/auth/logout')
+  )
+}
+
 const processQueue = (error: unknown) => {
   failedRequestQueue.forEach(({ resolve, reject }) => {
     error ? reject(error) : resolve(null)
@@ -35,6 +62,52 @@ interface RetryableRequestConfig extends InternalAxiosRequestConfig {
 class ApiClient {
   private client: AxiosInstance
 
+  setAuthHydrating(isHydrating: boolean) {
+    authHydratingInProgress = isHydrating
+  }
+
+  markRecentLogin() {
+    if (typeof window === 'undefined') return
+    localStorage.setItem(LAST_LOGIN_AT_KEY, String(Date.now()))
+  }
+
+  getRecentLoginTimestamp() {
+    return getLastLoginAt()
+  }
+
+  private logCrossOriginDiagnostics() {
+    if (typeof window === 'undefined' || process.env.NODE_ENV !== 'development') return
+    try {
+      const appOrigin = window.location.origin
+      const apiOrigin = new URL(API_BASE_URL, appOrigin).origin
+      const appUrl = new URL(appOrigin)
+      const apiUrl = new URL(apiOrigin)
+      const sameOrigin = appOrigin === apiOrigin
+      const sameHost = appUrl.hostname === apiUrl.hostname
+      const protocolMismatch = appUrl.protocol !== apiUrl.protocol
+      const localHostMismatch =
+        (appUrl.hostname === 'localhost' && apiUrl.hostname !== 'localhost') ||
+        (appUrl.hostname !== 'localhost' && apiUrl.hostname === 'localhost')
+
+      console.log('[auth-cookie] origin diagnostics', {
+        appOrigin,
+        apiOrigin,
+        sameOrigin,
+        sameHost,
+        protocolMismatch,
+        localHostMismatch,
+        note:
+          !sameOrigin
+            ? 'Cross-origin cookie auth requires backend cookie SameSite=None and Secure on HTTPS.'
+            : 'Same-origin cookie auth path.',
+      })
+    } catch {
+      console.log('[auth-cookie] origin diagnostics failed to parse API base URL', {
+        API_BASE_URL,
+      })
+    }
+  }
+
   constructor() {
     this.client = axios.create({
       baseURL: API_BASE_URL,
@@ -45,6 +118,15 @@ class ApiClient {
     this.client.interceptors.request.use((config) => {
       // Force credentialed requests for session-cookie auth across browsers.
       config.withCredentials = true
+
+      if (process.env.NODE_ENV === 'development' && shouldTraceAuthRequest(config.url)) {
+        console.log('[auth-request] start', {
+          method: config.method,
+          url: config.url,
+          withCredentials: config.withCredentials,
+        })
+      }
+
       return config
     })
 
@@ -126,10 +208,14 @@ class ApiClient {
             }
 
             // Ask the server to issue a new access_token using the refresh cookie.
-            await this.client.post('/auth/refresh-token')
+            const refreshRes = await this.client.post('/auth/refresh-token', undefined, {
+              withCredentials: true,
+            })
 
             if (process.env.NODE_ENV === 'development') {
-              console.log('[auth-refresh] refresh succeeded')
+              console.log('[auth-refresh] refresh succeeded', {
+                status: refreshRes?.status,
+              })
             }
 
             processQueue(null)
@@ -137,10 +223,25 @@ class ApiClient {
             return this.client(originalRequest)
           } catch (refreshError) {
             if (process.env.NODE_ENV === 'development') {
-              console.log('[auth-refresh] refresh failed')
+              console.log('[auth-refresh] refresh failed', {
+                authHydratingInProgress,
+                withinRecentLoginWindow: isWithinRecentLoginWindow(),
+              })
             }
 
             processQueue(refreshError)
+
+            const shouldDeferForcedLogout =
+              authHydratingInProgress ||
+              isWithinRecentLoginWindow()
+
+            if (shouldDeferForcedLogout) {
+              if (process.env.NODE_ENV === 'development') {
+                console.log('[auth-refresh] defer forced logout during auth stabilization')
+              }
+              return Promise.reject(refreshError)
+            }
+
             // Refresh failed → session is truly expired → force logout.
             if (typeof window !== 'undefined') {
               const isOnPublicAuthPage = PUBLIC_AUTH_PATHS.some(
@@ -148,6 +249,13 @@ class ApiClient {
                   window.location.pathname === path ||
                   window.location.pathname.startsWith(`${path}/`)
               )
+
+              if (process.env.NODE_ENV === 'development') {
+                console.log('[auth-refresh] forcing redirect to login after refresh exhaustion', {
+                  requestUrl,
+                  pathname: window.location.pathname,
+                })
+              }
 
               localStorage.removeItem('user')
               if (!isOnPublicAuthPage && window.location.pathname !== '/login') {
@@ -163,6 +271,8 @@ class ApiClient {
         return Promise.reject(error)
       }
     )
+
+    this.logCrossOriginDiagnostics()
   }
 
   // =========================
@@ -170,10 +280,30 @@ class ApiClient {
   // =========================
 
   async login(email: string, password: string) {
-    const res = await this.client.post('/auth/login', {
-      email,
-      password,
-    })
+    const res = await this.client.post(
+      '/auth/login',
+      {
+        email,
+        password,
+      },
+      {
+        withCredentials: true,
+      }
+    )
+
+    this.markRecentLogin()
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[auth] login response received', {
+        status: res?.status,
+        hasData: Boolean(res?.data),
+        cookieLength: typeof document !== 'undefined' ? document.cookie.length : 0,
+        cookieNames:
+          typeof document !== 'undefined' && document.cookie
+            ? document.cookie.split(';').map((c) => c.trim().split('=')[0]).filter(Boolean)
+            : [],
+      })
+    }
 
     return res
   }
@@ -184,16 +314,22 @@ class ApiClient {
     password: string,
     phone_number?: string
   ) {
-    const createRes = await this.client.post('/auth/signup', {
-      email,
-      username,
-      password,
-      phone_number,
-      created_by: '73f52c44-1746-49e6-ab08-8f86a8d8967f',
-      modified_by: '73f52c44-1746-49e6-ab08-8f86a8d8967f',
-      role_id: 'e360b4ab-a828-4a4f-8792-701e785f89c0',
-      // role_id: '73f52c44-1746-49e6-ab08-8f86a8d8967f',
-    })
+    const createRes = await this.client.post(
+      '/auth/signup',
+      {
+        email,
+        username,
+        password,
+        phone_number,
+        created_by: '73f52c44-1746-49e6-ab08-8f86a8d8967f',
+        modified_by: '73f52c44-1746-49e6-ab08-8f86a8d8967f',
+        role_id: 'e360b4ab-a828-4a4f-8792-701e785f89c0',
+        // role_id: '73f52c44-1746-49e6-ab08-8f86a8d8967f',
+      },
+      {
+        withCredentials: true,
+      }
+    )
 
     if (createRes.data.UserExist) {
       throw new Error('User already exists')
@@ -203,7 +339,7 @@ class ApiClient {
   }
 
   async logout() {
-    await this.client.post('/auth/logout')
+    await this.client.post('/auth/logout', undefined, { withCredentials: true })
 
     if (typeof window !== 'undefined') {
       localStorage.removeItem('user')
@@ -220,7 +356,7 @@ class ApiClient {
   }
 
   getMyProfile() {
-    return this.client.get('/auth/me')
+    return this.client.get('/auth/me', { withCredentials: true })
   }
 
   getDashboardStats() {
@@ -879,7 +1015,7 @@ class ApiClient {
   // =========================
 
   refreshToken() {
-    return this.client.post('/auth/refresh-token')
+    return this.client.post('/auth/refresh-token', undefined, { withCredentials: true })
   }
 
   changePassword(data: { userId?: string; password: string }) {

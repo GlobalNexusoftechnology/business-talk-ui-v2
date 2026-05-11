@@ -9,6 +9,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fetchCurrentUser } from '@/redux/slices/authSlice'
 import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import apiClient from '@/lib/api-client'
 
 const PUBLIC_AUTH_ROUTES = [
   '/login',
@@ -17,6 +18,11 @@ const PUBLIC_AUTH_ROUTES = [
   '/reset-password',
   '/google-success',
 ]
+
+const AUTH_STABILIZATION_MS = 12_000
+const LAST_LOGIN_AT_KEY = 'auth:last_login_at'
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -29,6 +35,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [forbiddenToast, setForbiddenToast] = useState(false)
   const [restrictedToast, setRestrictedToast] = useState(false)
   const hydrationStartedRef = useRef(false)
+  const authHydratingRef = useRef(false)
+  const lastLoginTimestampRef = useRef(0)
   const router = useRouter()
 
   // Listen for regular 403 "Action not allowed" events
@@ -54,6 +62,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
   // On app boot: hydrate auth state exactly once for protected surfaces.
   useEffect(() => {
     if (isPublicAuthRoute) {
+      apiClient.setAuthHydrating(false)
+      authHydratingRef.current = false
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[auth] hydration skipped on public auth route', { pathname })
+      }
       setSessionChecked(true)
       return
     }
@@ -65,10 +78,39 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
     hydrationStartedRef.current = true
     setSessionChecked(false)
+    authHydratingRef.current = true
+
+    if (typeof window !== 'undefined') {
+      lastLoginTimestampRef.current = Number(localStorage.getItem(LAST_LOGIN_AT_KEY) || '0')
+    }
+
+    apiClient.setAuthHydrating(true)
 
     ;(async () => {
       if (process.env.NODE_ENV === 'development') {
-        console.log('[auth] hydration started')
+        console.log('[auth] hydration started', {
+          pathname,
+          lastLoginTimestamp: lastLoginTimestampRef.current || null,
+        })
+      }
+
+      const lastLoginAt = lastLoginTimestampRef.current
+      const withinRecentLoginWindow =
+        Number.isFinite(lastLoginAt) &&
+        lastLoginAt > 0 &&
+        Date.now() - lastLoginAt <= AUTH_STABILIZATION_MS
+
+      if (withinRecentLoginWindow) {
+        const elapsed = Date.now() - lastLoginAt
+        const delayMs = Math.max(0, Math.min(1500, AUTH_STABILIZATION_MS - elapsed))
+        if (delayMs > 0) {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[auth] delaying fetchCurrentUser for stabilization window', {
+              delayMs,
+            })
+          }
+          await sleep(delayMs)
+        }
       }
 
       try {
@@ -82,17 +124,34 @@ export function Providers({ children }: { children: React.ReactNode }) {
         }
         if (result?.isRestricted) {
           // Restricted users see the restricted page but keep their user data
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[auth] redirect', {
+              reason: 'restricted-account-from-hydration',
+              target: '/account-restricted',
+            })
+          }
           router.replace('/account-restricted')
         }
       } catch {
         if (process.env.NODE_ENV === 'development') {
-          console.log('[auth] hydration completed with no active session')
+          console.log('[auth] hydration completed with no active session', {
+            withinRecentLoginWindow,
+          })
         }
 
-        if (typeof window !== 'undefined') {
+        // Do not clear cache immediately after a successful login; Safari can
+        // transiently reject /auth/me before cookies are fully visible.
+        if (typeof window !== 'undefined' && !withinRecentLoginWindow) {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[auth] clearing cached user', {
+              reason: 'hydration-failed-outside-stabilization-window',
+            })
+          }
           localStorage.removeItem('user')
         }
       } finally {
+        authHydratingRef.current = false
+        apiClient.setAuthHydrating(false)
         setSessionChecked(true)
       }
     })()

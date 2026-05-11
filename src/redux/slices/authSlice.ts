@@ -14,6 +14,18 @@ import apiClient from '@/lib/api-client'
 const isRestrictedUser = (user: any) =>
   Boolean(user?.is_banned || user?.isBanned)
 
+const LAST_LOGIN_AT_KEY = 'auth:last_login_at'
+const AUTH_STABILIZATION_MS = 12_000
+
+const isWithinRecentLoginWindow = (): boolean => {
+  if (typeof window === 'undefined') return false
+  const last = Number(localStorage.getItem(LAST_LOGIN_AT_KEY) || '0')
+  if (!Number.isFinite(last) || last <= 0) return false
+  return Date.now() - last <= AUTH_STABILIZATION_MS
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
 const initialState: AuthState = {
   user: null,
   isLoading: false,
@@ -154,6 +166,10 @@ export const fetchCurrentUser = createAsyncThunk(
   'auth/fetchCurrentUser',
   async (_, { rejectWithValue }: any) => {
     try {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[auth] fetchCurrentUser started')
+      }
+
       const res = await apiClient.getMyProfile()
 
       const isBanned = Boolean(res.data?.is_banned || res.data?.isBanned)
@@ -171,13 +187,52 @@ export const fetchCurrentUser = createAsyncThunk(
 
       // Return both user data and restriction status
       return { user: res.data, isRestricted: isBanned }
-    } catch (err) {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('user')
+    } catch (err: any) {
+      const withinRecentLoginWindow = isWithinRecentLoginWindow()
+
+      // Safari/cross-domain cookie propagation can lag right after login.
+      // Retry /auth/me once with a short delay in the stabilization window.
+      if (withinRecentLoginWindow) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[auth] fetchCurrentUser retry scheduled', {
+            reason: 'recent-login-window',
+            delayMs: 450,
+          })
+        }
+
+        try {
+          await sleep(450)
+          const retryRes = await apiClient.getMyProfile()
+          const retryBanned = Boolean(retryRes.data?.is_banned || retryRes.data?.isBanned)
+
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('user', JSON.stringify(retryRes.data))
+          }
+
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[auth] fetchCurrentUser retry succeeded', {
+              hasUser: Boolean(retryRes.data),
+              isRestricted: retryBanned,
+            })
+          }
+
+          return { user: retryRes.data, isRestricted: retryBanned }
+        } catch (retryErr) {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[auth] fetchCurrentUser retry failed')
+          }
+        }
       }
 
       if (process.env.NODE_ENV === 'development') {
-        console.log('[auth] hydration failed')
+        console.log('[auth] hydration failed', {
+          withinRecentLoginWindow,
+          status: Number(err?.response?.status || 0) || undefined,
+        })
+      }
+
+      if (typeof window !== 'undefined' && !withinRecentLoginWindow) {
+        localStorage.removeItem('user')
       }
 
       return rejectWithValue('Session expired')
@@ -217,6 +272,10 @@ const authSlice = createSlice({
         state.isRestricted = action.payload.isRestricted ?? false
         // Restricted users can login but are NOT treated as authenticated
         state.isAuthenticated = !(action.payload.isRestricted ?? false)
+
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(LAST_LOGIN_AT_KEY, String(Date.now()))
+        }
       })
       .addCase(login.rejected, (state, action: PayloadAction<any>) => {
         state.isLoading = false
@@ -233,6 +292,10 @@ const authSlice = createSlice({
         state.user = action.payload.user
         // Only mark authenticated if the backend actually returned a user
         state.isAuthenticated = Boolean(action.payload.user)
+
+        if (state.isAuthenticated && typeof window !== 'undefined') {
+          localStorage.setItem(LAST_LOGIN_AT_KEY, String(Date.now()))
+        }
       })
       .addCase(signup.rejected, (state, action: PayloadAction<any>) => {
         state.isLoading = false
@@ -275,6 +338,24 @@ const authSlice = createSlice({
       })
       .addCase(fetchCurrentUser.rejected, (state) => {
         state.isLoading = false
+        const shouldKeepSession =
+          Boolean(state.user) &&
+          state.isAuthenticated &&
+          isWithinRecentLoginWindow()
+
+        if (shouldKeepSession) {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[auth] fetchCurrentUser rejected during stabilization window; preserving session')
+          }
+          return
+        }
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[auth] clearing auth state after fetchCurrentUser rejection', {
+            reason: shouldKeepSession ? 'none' : 'session-invalid-after-retry',
+          })
+        }
+
         state.user = null
         state.isAuthenticated = false
       })

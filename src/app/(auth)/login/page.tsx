@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -10,7 +10,7 @@ import { LoginSchema, type LoginInput } from '@/lib/validations'
 import { Input, PasswordInput } from '@/components/shared/Input'
 import { Button } from '@/components/shared/Button'
 import { Card } from '@/components/shared/Card'
-import { useAppDispatch } from '@/hooks/useRedux'
+import { useAppDispatch, useAppSelector } from '@/hooks/useRedux'
 import { login } from '@/redux/slices/authSlice'
 import { isAdmin } from '@/lib/roles'
 import { mapAuthError } from '@/lib/auth-errors'
@@ -18,8 +18,27 @@ import { mapAuthError } from '@/lib/auth-errors'
 export default function LoginPage() {
   const router = useRouter()
   const dispatch = useAppDispatch()
+  const authUser = useAppSelector((state) => state.auth.user as any)
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated)
+  const authLoading = useAppSelector((state) => state.auth.isLoading)
   const [error, setError] = useState<string | null>(null)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [pendingRedirect, setPendingRedirect] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!pendingRedirect) return
+    if (authLoading || !isAuthenticated || !authUser) return
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[auth] login redirect', {
+        reason: 'redux-auth-ready',
+        target: pendingRedirect,
+      })
+    }
+
+    router.push(pendingRedirect)
+    setPendingRedirect(null)
+  }, [pendingRedirect, authLoading, isAuthenticated, authUser, router])
 
   const {
     register,
@@ -35,8 +54,22 @@ export default function LoginPage() {
     try {
       const result = await dispatch(login(data))
       if (login.fulfilled.match(result)) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[auth] login page received fulfilled action', {
+            isRestricted: Boolean(result.payload?.isRestricted),
+            hasUser: Boolean(result.payload?.user),
+            cookieLength: typeof document !== 'undefined' ? document.cookie.length : 0,
+          })
+        }
+
         // 🚫 Restricted user — redirect to restriction page (do not logout)
         if (result.payload.isRestricted) {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[auth] login redirect', {
+              reason: 'restricted-user',
+              target: '/account-restricted',
+            })
+          }
           router.push('/account-restricted')
           return
         }
@@ -48,9 +81,9 @@ export default function LoginPage() {
         localStorage.setItem('user', JSON.stringify(result.payload.user))
 
         if (isAdmin(roleId)) {
-          router.push('/admin/dashboard')
+          setPendingRedirect('/admin/dashboard')
         } else {
-          router.push('/dashboard')
+          setPendingRedirect('/dashboard')
         }
       } else if (login.rejected.match(result)) {
         setError(mapAuthError(result.payload, 'login'))

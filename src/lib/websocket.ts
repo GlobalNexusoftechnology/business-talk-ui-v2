@@ -27,6 +27,14 @@ class WebSocketManager {
   connect() {
     if (this.socket) return;
 
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[chat-realtime] socket connect init', {
+        origin: `${getSocketOrigin()}/v1/chat`,
+        transports: ['websocket', 'polling'],
+        withCredentials: true,
+      });
+    }
+
     this.socket = io(`${getSocketOrigin()}/v1/chat`, {
       transports: ['websocket', 'polling'],
       withCredentials: true,
