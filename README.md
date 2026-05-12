@@ -45,43 +45,64 @@ A production-ready SaaS platform UI for professional networking, built with Next
 ```
 src/
 ├── app/
-│   ├── (auth)/              # Authentication routes
+│   ├── (auth)/
 │   │   ├── login/
 │   │   ├── signup/
-│   │   └── complete-profile/
-│   ├── (user)/              # User dashboard routes
+│   │   ├── complete-profile/
+│   │   ├── forgot-password/
+│   │   ├── reset-password/
+│   │   ├── google-success/
+│   │   └── layout.tsx
+│   ├── (user)/
 │   │   ├── dashboard/
 │   │   ├── profile/
+│   │   │   ├── components/
+│   │   │   └── [id]/
 │   │   ├── messages/
 │   │   ├── people/
 │   │   ├── groups/
 │   │   ├── blogs/
+│   │   ├── posts/
+│   │   ├── stories/
+│   │   ├── questions/
+│   │   ├── drafts/
+│   │   ├── feedback-support/
 │   │   ├── notifications/
 │   │   └── settings/
-│   ├── (admin)/             # Admin dashboard routes
+│   ├── (admin)/
 │   │   └── admin/
 │   │       ├── dashboard/
 │   │       ├── users/
 │   │       ├── posts/
-│   │       ├── moderation/
 │   │       ├── stories/
 │   │       ├── blogs/
 │   │       ├── reports/
-│   │       ├── email-marketing/
 │   │       ├── notifications/
-│   │       ├── advertisements/
 │   │       ├── analytics/
-│   │       ├── revenue/
 │   │       ├── roles/
+│   │       ├── revenue/
+│   │       ├── feedback/
+│   │       ├── profile/
+│   │       ├── questions/
 │   │       └── settings/
-│   ├── (legal)/             # Legal pages
+│   ├── (legal)/
+│   │   ├── about/
+│   │   ├── community-guidelines/
+│   │   ├── disclaimer/
 │   │   ├── privacy-policy/
-│   │   └── user-agreement/
+│   │   ├── terms-of-service/
+│   │   ├── user-agreement/
+│   │   └── layout.tsx
+│   ├── account-restricted/
+│   ├── invite/
 │   ├── globals.css
+│   ├── globals.css.d.ts
 │   ├── layout.tsx
-│   └── page.tsx
+│   ├── page.tsx
+│   └── providers.tsx
 ├── components/
-│   ├── shared/              # Reusable components
+│   ├── shared/
+│   │   ├── viewer-cards/
 │   │   ├── Button.tsx
 │   │   ├── Input.tsx
 │   │   ├── Card.tsx
@@ -90,27 +111,81 @@ src/
 │   │   ├── UserLayoutWrapper.tsx
 │   │   ├── AdminSidebar.tsx
 │   │   ├── AdminNavbar.tsx
-│   │   └── AdminLayoutWrapper.tsx
-│   ├── auth/                # Authentication components
-│   ├── dashboard/           # User dashboard components
-│   ├── admin/               # Admin components
-│   ├── tables/              # Table components
-│   └── charts/              # Chart components (Recharts)
+│   │   ├── AdminLayoutWrapper.tsx
+│   │   ├── MediaGrid.tsx
+│   │   ├── MergedMobileSidebarContent.tsx
+│   │   ├── MobileSidebar.tsx
+│   │   ├── ReportModal.tsx
+│   │   ├── ShareModal.tsx
+│   │   └── TagsPopup.tsx
+│   ├── auth/
+│   ├── dashboard/
+│   ├── admin/
+│   ├── tables/
+│   ├── charts/
+│   ├── notifications/
+│   └── user/
 ├── redux/
-│   ├── store.ts             # Redux store configuration
+│   ├── store.ts
+│   ├── middleware/
+│   ├── selectors/
 │   └── slices/
-│       ├── authSlice.ts     # Auth state management
-│       ├── postsSlice.ts
+│       ├── authSlice.ts
+│       ├── chatSlice.ts
 │       ├── notificationsSlice.ts
-│       └── messagesSlice.ts
+│       └── pushSlice.ts
 ├── hooks/
-│   └── useRedux.ts          # Custom Redux hooks
+│   ├── useAdminBlogs.ts
+│   ├── useAdminPosts.ts
+│   ├── useAdminQuestions.ts
+│   ├── useAdminStories.ts
+│   ├── useContentViewer.ts
+│   ├── useConversations.ts
+│   ├── useFeedPosts.ts
+│   ├── useFollow.ts
+│   ├── useGroups.ts
+│   ├── useInfiniteMessages.ts
+│   ├── useNotifications.ts
+│   ├── useOpenContent.ts
+│   ├── usePosts.ts
+│   ├── useProfile.ts
+│   ├── useRedux.ts
+│   ├── useSavedStatus.ts
+│   ├── useStoriesFeed.ts
+│   ├── useStoryComments.ts
+│   ├── useStoryLike.ts
+│   └── useUsers.ts
 ├── lib/
-│   ├── api-client.ts        # HTTP client with axios
-│   ├── websocket.ts         # WebSocket manager
-│   └── validations.ts       # Zod validation schemas
+│   ├── admin-api.ts
+│   ├── api-client.ts
+│   ├── auth-errors.ts
+│   ├── fcm.ts
+│   ├── firebase.ts
+│   ├── mockData.ts
+│   ├── notificationRegistry.tsx
+│   ├── roles.ts
+│   ├── utils.ts
+│   ├── validations.ts
+│   ├── websocket.ts
+│   └── chat/
+├── providers/
+│   ├── ContentViewerProvider.tsx
+│   ├── PushNotificationProvider.tsx
+│   └── WebSocketProvider.tsx
+├── docs/
+│   ├── ARCHITECTURE.md
+│   ├── IMPLEMENTATION_CHECKLIST.md
+│   ├── INDEX.md
+│   ├── INTEGRATION_EXAMPLES.tsx
+│   ├── QUICK_START.md
+│   ├── ROUTING_STRUCTURE.ts
+│   ├── SYSTEM_SUMMARY.md
+│   └── UNIVERSAL_VIEWER_README.md
 └── types/
-    └── index.ts             # TypeScript type definitions
+  ├── chat.ts
+  ├── index.ts
+  ├── notification.ts
+  └── profile.ts
 ```
 
 ## 🛠️ Tech Stack
