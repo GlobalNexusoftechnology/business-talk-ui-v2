@@ -33,10 +33,10 @@ COPY --from=builder /app/src ./src
 
 # Set environment
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=4001
 
 # Expose port
-EXPOSE 3000
+EXPOSE 4001
 
 # Start application
 CMD ["npm", "start"]
