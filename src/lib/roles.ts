@@ -3,6 +3,10 @@ export const ROLES = {
   SUPER_ADMIN: '63765d88-d6de-4fd3-8528-a9de0107ba4d',
   ADMIN_LIVE: '261af5ac-b7e1-40a9-b36a-efb23b837871',
   SUPER_ADMIN_LIVE: '133af800-4c6f-4006-9f0c-6ccb8ad35376',
+  ADMIN_ENV: process.env.NEXT_PUBLIC_ROLE_ADMIN || '',
+  SUPER_ADMIN_ENV: process.env.NEXT_PUBLIC_ROLE_SUPER_ADMIN || '',
+  ADMIN_LIVE_ENV: process.env.NEXT_PUBLIC_ROLE_ADMIN_LIVE || '',
+  SUPER_ADMIN_LIVE_ENV: process.env.NEXT_PUBLIC_ROLE_SUPER_ADMIN_LIVE || '',
 }
 
 export const isAdmin = (roleId?: string) => {
