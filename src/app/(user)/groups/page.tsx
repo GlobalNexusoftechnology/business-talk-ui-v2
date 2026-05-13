@@ -355,83 +355,117 @@ export default function GroupsPage() {
           </div>
         )}
 
-        {/* Groups Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          {filteredGroups.map((group) => (
-            <div
-              key={group.id}
-              onClick={() => handleGroupClick(group)}
-              className="bg-white rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-              style={{ border: '1px solid #E8E8E8' }}
-            >
-              <img src={group.image} alt={group.name} className="w-full h-40 object-cover" />
-              <div className="p-5">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <h3 className="font-semibold mb-1" style={{ color: '#212529' }}>
-                      {group.name}
-                    </h3>
-                    <div className="flex items-center gap-2 text-sm mb-2" style={{ color: '#5F6368' }}>
-                      {group.type === 'public' ? (
-                        <Globe className="w-4 h-4" />
-                      ) : (
-                        <Lock className="w-4 h-4" />
-                      )}
-                      <span className="capitalize">{group.type} Group</span>
-                      <span>•</span>
-                      <span>{group.category}</span>
+
+
+        {/* Groups Grid or Empty State for all tabs */}
+        {filteredGroups.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center text-gray-500">
+            {activeTab === 'all' || activeTab === 'my-groups' ? (
+              <>
+                <h2 className="text-2xl font-semibold mb-2 text-gray-800">No Groups Yet</h2>
+                <p className="mb-2">Looks like there are no groups available currently.</p>
+                <p className="mb-6">Create a group and start building your community.</p>
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-black text-white font-medium hover:bg-gray-800 transition"
+                >
+                  <Plus className="w-5 h-5" />
+                  Create Group
+                </button>
+              </>
+            ) : activeTab === 'requested' ? (
+              <>
+                <h2 className="text-2xl font-semibold mb-2 text-gray-800">No Requested Groups</h2>
+                <p className="mb-2">You have not requested to join any groups yet.</p>
+                <p className="mb-6">Discover and request to join groups to grow your network.</p>
+                <button
+                  onClick={() => setActiveTab('all')}
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-black text-white font-medium hover:bg-gray-800 transition"
+                >
+                  <Users className="w-5 h-5" />
+                  Discover Groups
+                </button>
+              </>
+            ) : null}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            {filteredGroups.map((group) => (
+              <div
+                key={group.id}
+                onClick={() => handleGroupClick(group)}
+                className="bg-white rounded-2xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+                style={{ border: '1px solid #E8E8E8' }}
+              >
+                <img src={group.image} alt={group.name} className="w-full h-40 object-cover" />
+                <div className="p-5">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-semibold mb-1" style={{ color: '#212529' }}>
+                        {group.name}
+                      </h3>
+                      <div className="flex items-center gap-2 text-sm mb-2" style={{ color: '#5F6368' }}>
+                        {group.type === 'public' ? (
+                          <Globe className="w-4 h-4" />
+                        ) : (
+                          <Lock className="w-4 h-4" />
+                        )}
+                        <span className="capitalize">{group.type} Group</span>
+                        <span>•</span>
+                        <span>{group.category}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <p className="text-sm mb-4 line-clamp-2" style={{ color: '#5F6368' }}>
-                  {group.description}
-                </p>
+                  <p className="text-sm mb-4 line-clamp-2" style={{ color: '#5F6368' }}>
+                    {group.description}
+                  </p>
 
-                <div className="flex items-center gap-4 mb-4 text-sm" style={{ color: '#5F6368' }}>
-                  <div className="flex items-center gap-1">
-                    <Users className="w-4 h-4" />
-                    <span>{group.members.toLocaleString()} members</span>
+                  <div className="flex items-center gap-4 mb-4 text-sm" style={{ color: '#5F6368' }}>
+                    <div className="flex items-center gap-1">
+                      <Users className="w-4 h-4" />
+                      <span>{group.members.toLocaleString()} members</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <TrendingUp className="w-4 h-4" />
+                      <span>{group.posts.toLocaleString()} posts</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <TrendingUp className="w-4 h-4" />
-                    <span>{group.posts.toLocaleString()} posts</span>
-                  </div>
-                </div>
 
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleJoinToggle(group.id) }}
-                  disabled={group.requested && !group.joined}
-                  className={`w-full py-2.5 rounded-lg font-medium border transition-all active:scale-95 ${group.requested && !group.joined ? 'cursor-not-allowed opacity-70' : ''}`}
-                  style={{
-                    backgroundColor: 'transparent',
-                    color: group.joined ? '#DC2626' : group.requested ? '#5F6368' : '#212529',
-                    borderColor: group.joined ? '#DC2626' : group.requested ? '#9CA3AF' : '#212529',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (group.joined) {
-                      e.currentTarget.style.backgroundColor = '#DC2626'
-                      e.currentTarget.style.color = '#FFFFFF'
-                    } else if (!group.requested) {
-                      e.currentTarget.style.backgroundColor = '#212529'
-                      e.currentTarget.style.color = '#FFFFFF'
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (group.joined) {
-                      e.currentTarget.style.backgroundColor = 'transparent'
-                      e.currentTarget.style.color = '#DC2626'
-                    } else if (!group.requested) {
-                      e.currentTarget.style.backgroundColor = 'transparent'
-                      e.currentTarget.style.color = '#212529'
-                    }
-                  }}
-                >
-                  {group.joined ? 'Leave Group' : group.requested ? 'Requested' : group.requiresApproval ? 'Request to Join' : 'Join Group'}
-                </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleJoinToggle(group.id) }}
+                    disabled={group.requested && !group.joined}
+                    className={`w-full py-2.5 rounded-lg font-medium border transition-all active:scale-95 ${group.requested && !group.joined ? 'cursor-not-allowed opacity-70' : ''}`}
+                    style={{
+                      backgroundColor: 'transparent',
+                      color: group.joined ? '#DC2626' : group.requested ? '#5F6368' : '#212529',
+                      borderColor: group.joined ? '#DC2626' : group.requested ? '#9CA3AF' : '#212529',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (group.joined) {
+                        e.currentTarget.style.backgroundColor = '#DC2626'
+                        e.currentTarget.style.color = '#FFFFFF'
+                      } else if (!group.requested) {
+                        e.currentTarget.style.backgroundColor = '#212529'
+                        e.currentTarget.style.color = '#FFFFFF'
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (group.joined) {
+                        e.currentTarget.style.backgroundColor = 'transparent'
+                        e.currentTarget.style.color = '#DC2626'
+                      } else if (!group.requested) {
+                        e.currentTarget.style.backgroundColor = 'transparent'
+                        e.currentTarget.style.color = '#212529'
+                      }
+                    }}
+                  >
+                    {group.joined ? 'Leave Group' : group.requested ? 'Requested' : group.requiresApproval ? 'Request to Join' : 'Join Group'}
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {showCreateModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-3">

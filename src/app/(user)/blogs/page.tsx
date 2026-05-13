@@ -187,70 +187,83 @@ export default function BlogsPage() {
           </div>
         </div>
 
-        {/* Featured Article */}
-        <div
-          className="bg-white rounded-2xl shadow-sm border overflow-hidden mb-6 hover:shadow-md transition-shadow cursor-pointer"
-          style={{ border: '1px solid #E8E8E8' }}
-          onClick={() => blogs[0] && handleBlogClick(blogs[0])}
-        >
-          <div className="grid md:grid-cols-2 gap-6">
-            <img src={blogs[0]?.image} alt={blogs[0]?.title} className="w-full h-full object-cover" />
-            <div className="p-6 flex flex-col justify-center">
-              <div className="flex items-center gap-3 mb-3">
-                <span className="px-3 py-1 text-sm font-medium rounded-full" style={{ backgroundColor: '#E3F2FD', color: '#1976D2' }}>
-                  Featured
-                </span>
-                <span className="px-3 py-1 text-sm font-medium rounded-full" style={{ backgroundColor: '#F8F9FA', color: '#5F6368' }}>
-                  {blogs[0]?.category}
-                </span>
-              </div>
-              <h2 className="text-2xl font-semibold mb-3" style={{ color: '#212529' }}>
-                {blogs[0]?.title}
-              </h2>
-              <p className="mb-4 line-clamp-3" style={{ color: '#5F6368' }}>
-                {blogs[0]?.excerpt}
-              </p>
-              <div
-                className="flex items-center gap-3 mb-4 cursor-pointer"
-                onClick={e => { e.stopPropagation(); blogs[0]?.authorId && router.push(`/profile/${blogs[0].authorId}`) }}
-              >
-                <img
-                  src={blogs[0]?.author?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(blogs[0]?.author?.name || 'User')}&background=E8E8E8&color=212529&size=40`}
-                  alt={blogs[0]?.author?.name}
-                  className="w-10 h-10 rounded-full object-cover"
-                />
-                <div>
-                  <p className="font-medium hover:underline" style={{ color: '#212529' }}>
-                    {blogs[0]?.author?.name}
-                  </p>
-                  <p className="text-sm" style={{ color: '#5F6368' }}>
-                    {blogs[0]?.author?.title}
-                  </p>
+
+        {/* Featured Article or Empty State */}
+        {blogs.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center text-gray-500">
+            <h2 className="text-2xl font-semibold mb-2 text-gray-800">No Blogs Available</h2>
+            <p className="mb-2">Looks like we currently don't have blogs available.</p>
+            <p className="mb-6">Hang on tight, blogs will be added soon!</p>
+          </div>
+        ) : (
+          <div
+            className="bg-white rounded-2xl shadow-sm border overflow-hidden mb-6 hover:shadow-md transition-shadow cursor-pointer"
+            style={{ border: '1px solid #E8E8E8' }}
+            onClick={() => blogs[0] && handleBlogClick(blogs[0])}
+          >
+            <div className="grid md:grid-cols-2 gap-6">
+              <img src={blogs[0]?.image} alt={blogs[0]?.title} className="w-full h-full object-cover" />
+              <div className="p-6 flex flex-col justify-center">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="px-3 py-1 text-sm font-medium rounded-full" style={{ backgroundColor: '#E3F2FD', color: '#1976D2' }}>
+                    Featured
+                  </span>
+                  <span className="px-3 py-1 text-sm font-medium rounded-full" style={{ backgroundColor: '#F8F9FA', color: '#5F6368' }}>
+                    {Array.isArray(blogs[0]?.category)
+                      ? blogs[0].category.map((cat: string) =>
+                          cat.replace(/['",]/g, '').trim()
+                        ).join(', ')
+                      : (blogs[0]?.category || '').replace(/['",]/g, '').trim()}
+                  </span>
                 </div>
-              </div>
-              <div className="flex items-center gap-4 text-sm" style={{ color: '#5F6368' }}>
-                <span className="flex items-center gap-1">
-                  <Clock className="w-4 h-4" />
-                  {blogs[0]?.readTime}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Eye className="w-4 h-4" />
-                  {blogs[0]?.views.toLocaleString()} views
-                </span>
-                {currentUserId && currentUserId === String(blogs[0]?.authorId) && (
-                  <button
-                    onClick={(e) => blogs[0] && handleDeleteBlog(blogs[0].id, e)}
-                    className="flex items-center gap-1 text-red-500 hover:text-red-700 transition-colors ml-2"
-                    title="Delete blog"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    <span className="text-xs">Delete</span>
-                  </button>
-                )}
+                <h2 className="text-2xl font-semibold mb-3" style={{ color: '#212529' }}>
+                  {blogs[0]?.title}
+                </h2>
+                <p className="mb-4 line-clamp-3" style={{ color: '#5F6368' }}>
+                  {blogs[0]?.excerpt}
+                </p>
+                <div
+                  className="flex items-center gap-3 mb-4 cursor-pointer"
+                  onClick={e => { e.stopPropagation(); blogs[0]?.authorId && router.push(`/profile/${blogs[0].authorId}`) }}
+                >
+                  <img
+                    src={blogs[0]?.author?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(blogs[0]?.author?.name || 'User')}&background=E8E8E8&color=212529&size=40`}
+                    alt={blogs[0]?.author?.name}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                  <div>
+                    <p className="font-medium hover:underline" style={{ color: '#212529' }}>
+                      {blogs[0]?.author?.name}
+                    </p>
+                    <p className="text-sm" style={{ color: '#5F6368' }}>
+                      {blogs[0]?.author?.title}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 text-sm" style={{ color: '#5F6368' }}>
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-4 h-4" />
+                    {blogs[0]?.readTime}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Eye className="w-4 h-4" />
+                    {blogs[0]?.views.toLocaleString()} views
+                  </span>
+                  {currentUserId && currentUserId === String(blogs[0]?.authorId) && (
+                    <button
+                      onClick={(e) => blogs[0] && handleDeleteBlog(blogs[0].id, e)}
+                      className="flex items-center gap-1 text-red-500 hover:text-red-700 transition-colors ml-2"
+                      title="Delete blog"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span className="text-xs">Delete</span>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Articles Grid */}
         <div className="space-y-6">
@@ -266,7 +279,11 @@ export default function BlogsPage() {
                 <div className="md:col-span-2">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="px-3 py-1 text-sm font-medium rounded-full" style={{ backgroundColor: '#F8F9FA', color: '#5F6368' }}>
-                      {blog.category}
+                      {Array.isArray(blog.category)
+                        ? blog.category.map((cat: string) =>
+                            cat.replace(/['",]/g, '').trim()
+                          ).join(', ')
+                        : (blog.category || '').replace(/['",]/g, '').trim()}
                     </span>
                     <span style={{ color: '#BDBDBD' }}>•</span>
                     <span className="text-sm" style={{ color: '#5F6368' }}>

@@ -16,12 +16,8 @@ import { useAppSelector } from '@/hooks/useRedux'
 
 const categories = [
   'All',
-  'Entrepreneurs',
-  'Investors',
-  'Marketing',
-  'Technology',
-  'Finance',
-  'Consulting',
+  'Mutual',
+  'In Your Industry',
 ]
 
 function PeopleCard({ user }: { user: any }) {
@@ -79,6 +75,18 @@ function PeopleCard({ user }: { user: any }) {
           <p className="text-sm text-gray-500">
             {user.profession || 'Professional'}
           </p>
+
+          {Number(user.mutual_count || 0) > 0 && (
+            <div className="mt-2 text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-600">
+              {user.mutual_count} mutual connection{user.mutual_count > 1 ? 's' : ''}
+            </div>
+          )}
+
+          {user.same_industry && (
+            <div className="mt-2 text-xs px-2 py-1 rounded-full bg-purple-50 text-purple-600">
+              In your industry
+            </div>
+          )}
 
           <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
             <MapPin className="w-3 h-3" />
@@ -154,11 +162,23 @@ export default function PeoplePage() {
   const [selectedCategory, setSelectedCategory] = useState('All')
 
   // 🔥 Filter users
-  const filteredUsers = users.filter((u) =>
-    `${u.full_name || ''} ${u.profession || ''} ${u.company || ''}`
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase())
-  )
+  const filteredUsers = users.filter((u) => {
+    const matchesSearch =
+      `${u.full_name || ''} ${u.profession || ''} ${u.company || ''}`
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+
+    const matchesCategory =
+      selectedCategory === 'All'
+        ? true
+        : selectedCategory === 'Mutual'
+        ? Number(u.mutual_count || 0) > 0
+        : selectedCategory === 'In Your Industry'
+        ? u.same_industry === true
+        : true;
+
+    return matchesSearch && matchesCategory;
+  });
 
   if (loading) return <div className="p-6">Loading users...</div>
 
@@ -222,7 +242,7 @@ export default function PeoplePage() {
           <div className="bg-white p-4 rounded-xl border flex gap-4">
             <Users className="w-6 h-6" />
             <div>
-              <p className="text-xl font-semibold">{users.length}</p>
+              <p className="text-xl font-semibold">{filteredUsers.length}</p>
               <p className="text-sm text-gray-500">People to discover</p>
             </div>
           </div>
@@ -230,7 +250,13 @@ export default function PeoplePage() {
           <div className="bg-white p-4 rounded-xl border flex gap-4">
             <TrendingUp className="w-6 h-6 text-green-600" />
             <div>
-              <p className="text-xl font-semibold">--</p>
+              <p className="text-xl font-semibold">
+                {
+                  filteredUsers.filter(
+                    (u) => Number(u.mutual_count || 0) > 0
+                  ).length
+                }
+              </p>
               <p className="text-sm text-gray-500">Mutual connections</p>
             </div>
           </div>
@@ -238,7 +264,13 @@ export default function PeoplePage() {
           <div className="bg-white p-4 rounded-xl border flex gap-4">
             <Briefcase className="w-6 h-6 text-purple-600" />
             <div>
-              <p className="text-xl font-semibold">--</p>
+              <p className="text-xl font-semibold">
+                {
+                  filteredUsers.filter(
+                    (u) => u.same_industry === true
+                  ).length
+                }
+              </p>
               <p className="text-sm text-gray-500">In your industry</p>
             </div>
           </div>

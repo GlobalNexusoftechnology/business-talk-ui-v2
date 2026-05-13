@@ -1,3 +1,4 @@
+import type { Group } from '@/types/group'
 'use client'
 
 import {
@@ -22,9 +23,11 @@ import { PostQuestionBox } from './PostQuestionBox'
 import { ShareStoryBox } from './ShareStoryBox'
 
 import { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useFeedPosts } from '../../hooks/useFeedPosts'
 import { useStoriesFeed } from '../../hooks/useStoriesFeed'
 import apiClient from '../../lib/api-client'
+import PeopleCard from '@/components/user/PeopleCard'
 
 // ── highlight matching text ────────────────────────────────────────
 function Highlight({ text, query }: { text: string; query: string }) {
@@ -47,6 +50,7 @@ function Highlight({ text, query }: { text: string; query: string }) {
 }
 
 export default function MainFeed() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'home' | 'qa' | 'stories'>('home')
 
   const { data: posts, isLoading: postsLoading } = useFeedPosts('NORMAL')
@@ -65,6 +69,8 @@ export default function MainFeed() {
   const [searchResults, setSearchResults] = useState<any | null>(null)
   const [searchLoading, setSearchLoading] = useState(false)
   const [isSearchMode, setIsSearchMode] = useState(false)
+
+    const [groups, setGroups] = useState<Group[]>([])
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const searchBarRef = useRef<HTMLDivElement>(null)
@@ -124,6 +130,31 @@ export default function MainFeed() {
       setSearchResults(null)
     } finally {
       setSearchLoading(false)
+    }
+  }
+
+  const handleJoinToggle = async (groupId: string) => {
+    const group = groups.find(g => g.id === groupId)
+    if (!group) return
+
+    try {
+      if (group.joined) {
+        await apiClient.leaveGroup(groupId)
+        setGroups(prev => prev.map(g => g.id === groupId ? { ...g, joined: false } : g))
+      } else if (group.requested) {
+        // request already pending — no cancel endpoint; do nothing
+        return
+      } else if (group.requiresApproval) {
+        await apiClient.requestToJoinGroup(groupId)
+        const updated = { ...group, requested: true }
+        setGroups(prev => prev.map(g => g.id === groupId ? updated : g))
+      } else {
+        await apiClient.joinGroup(groupId)
+        const updated = { ...group, joined: true }
+        setGroups(prev => prev.map(g => g.id === groupId ? updated : g))
+      }
+    } catch (err) {
+      console.error('Join/Leave error', err)
     }
   }
 
@@ -412,26 +443,15 @@ export default function MainFeed() {
                       </span>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {searchResults.users.map((u: any) => (
-                        <div
-                          key={u.id}
-                          className="bg-white rounded-2xl border p-4 hover:border-gray-300 transition flex items-center gap-3"
-                        >
-                          <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-                            <User className="w-5 h-5 text-gray-400" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-medium text-sm truncate">
-                              <Highlight text={u.full_name || u.username} query={searchQuery} />
-                            </p>
-                            <p className="text-xs text-gray-400">
-                              @<Highlight text={u.username} query={searchQuery} />
-                            </p>
-                            {u.profession && (
-                              <p className="text-xs text-gray-400 truncate">{u.profession}</p>
-                            )}
-                          </div>
-                        </div>
+                      {(Array.isArray(searchResults.users)
+                        ? searchResults.users
+                        : Array.isArray(searchResults.users?.entities)
+                          ? searchResults.users.entities
+                          : Array.isArray(searchResults.users?.users)
+                            ? searchResults.users.users
+                            : []
+                      ).map((u: any) => (
+                        <PeopleCard key={u.id} user={u} />
                       ))}
                     </div>
                   </section>
@@ -448,15 +468,65 @@ export default function MainFeed() {
                       </span>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {searchResults.groups.map((g: any) => (
+                      {searchResults.groups?.map((g: any) => (
                         <div
                           key={g.id}
-                          className="bg-white rounded-2xl border p-4 hover:border-gray-300 transition"
+                          className="bg-white rounded-2xl border p-4 hover:border-gray-300 transition cursor-pointer"
+                          onClick={() => router.push(`/groups/${g.id}`)}
                         >
-                          <p className="font-medium text-sm">
-                            <Highlight text={g.name} query={searchQuery} />
-                          </p>
-                          <p className="text-xs text-gray-400 mt-1">{g.memberCount} members</p>
+                          <div className="flex items-center gap-3 mb-2">
+                            <img
+                              src={g.cover_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(g.name || 'Group')}`}
+                              alt={g.name}
+                              className="w-12 h-12 rounded object-cover bg-gray-100"
+                            />
+                            <div>
+                              <p className="font-medium text-sm">{g.name}</p>
+                              <span className="text-xs text-gray-400">{g.memberCount} members</span>
+                              <span className="ml-2 text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">{g.visibility}</span>
+                              {g.requiresApproval && (
+                                <span className="ml-2 text-xs px-2 py-0.5 rounded bg-yellow-100 text-yellow-700">Approval Required</span>
+                              )}
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-500 mb-2">{g.description}</p>
+                          {g.rules?.length > 0 && (
+                            <ul className="list-disc list-inside text-xs text-gray-500 mb-2">
+                              {g.rules.map((rule: string, idx: number) => (
+                                <li key={idx}>{rule}</li>
+                              ))}
+                            </ul>
+                          )}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleJoinToggle(g.id) }}
+                            disabled={g.requested && !g.joined}
+                            className={`w-full py-2.5 rounded-lg font-medium border transition-all active:scale-95 ${g.requested && !g.joined ? 'cursor-not-allowed opacity-70' : ''}`}
+                            style={{
+                              backgroundColor: 'transparent',
+                              color: g.joined ? '#DC2626' : g.requested ? '#5F6368' : '#212529',
+                              borderColor: g.joined ? '#DC2626' : g.requested ? '#9CA3AF' : '#212529',
+                            }}
+                            onMouseEnter={(e) => {
+                              if (g.joined) {
+                                e.currentTarget.style.backgroundColor = '#DC2626'
+                                e.currentTarget.style.color = '#FFFFFF'
+                              } else if (!g.requested) {
+                                e.currentTarget.style.backgroundColor = '#212529'
+                                e.currentTarget.style.color = '#FFFFFF'
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (g.joined) {
+                                e.currentTarget.style.backgroundColor = 'transparent'
+                                e.currentTarget.style.color = '#DC2626'
+                              } else if (!g.requested) {
+                                e.currentTarget.style.backgroundColor = 'transparent'
+                                e.currentTarget.style.color = '#212529'
+                              }
+                            }}
+                          >
+                            {g.joined ? 'Leave Group' : g.requested ? 'Requested' : g.requiresApproval ? 'Request to Join' : 'Join Group'}
+                          </button>
                         </div>
                       ))}
                     </div>

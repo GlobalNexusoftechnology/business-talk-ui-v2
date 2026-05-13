@@ -7,7 +7,7 @@ export default function PrivacyPolicyPage() {
         <div className="bg-white rounded-2xl shadow-sm border p-8" style={{ border: '1px solid #E8E8E8' }}>
           <div>
             <h1 className="text-3xl font-bold mb-2" style={{ color: '#212529' }}>Privacy Policy</h1>
-            <p className="mb-8 text-sm" style={{ color: '#5F6368' }}>Effective Date: 2nd May, 2026</p>
+            <p className="mb-8 text-sm" style={{ color: '#5F6368' }}>Effective Date: 13th May, 2026</p>
             <p className="mb-8" style={{ color: '#5F6368' }}>
               Businesstalk24 is committed to protecting user privacy.
             </p>

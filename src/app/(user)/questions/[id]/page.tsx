@@ -37,7 +37,7 @@ interface Answer {
   id: string
   comment: string
   created_on: string
-  user: { id: string; username: string; profile_photo?: string }
+  user: { id: string; full_name?: string; username: string; profile_photo?: string }
   replies?: Answer[]
 }
 
@@ -83,13 +83,13 @@ function AnswerItem({
     <div>
       <div className="flex gap-3">
         <img
-          src={answer.user.profile_photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(answer.user.username)}&background=E8E8E8&color=212529&size=40`}
-          alt={answer.user.username}
+          src={answer.user.profile_photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(answer.user.full_name || answer.user.username)}&background=E8E8E8&color=212529&size=40`}
+          alt={answer.user.full_name || answer.user.username}
           className="w-9 h-9 rounded-full object-cover shrink-0"
         />
         <div className="flex-1">
           <div className="rounded-2xl px-4 py-3" style={{ backgroundColor: '#F8F9FA', border: '1px solid #E8E8E8' }}>
-            <p className="text-sm font-semibold" style={{ color: '#212529' }}>{answer.user.username}</p>
+            <p className="text-sm font-semibold" style={{ color: '#212529' }}>{answer.user.full_name || answer.user.username}</p>
             <p className="text-sm mt-1 leading-relaxed" style={{ color: '#3D3D3D' }}>{answer.comment}</p>
           </div>
           <div className="flex items-center gap-4 mt-1 px-2">
@@ -171,7 +171,7 @@ export default function QuestionDetailPage() {
           content: d.description || d.content || '',
           author: {
             id: d.user?.id || '',
-            name: d.user?.username || 'Unknown',
+            name: d.user?.full_name || d.user?.username ,
             avatar: d.user?.profile_photo || '',
             profession: d.user?.profession || '',
           },

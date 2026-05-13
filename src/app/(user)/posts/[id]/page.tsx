@@ -39,7 +39,7 @@ interface Comment {
   id: string
   comment: string
   created_on: string
-  user: { id: string; username: string; profile_photo?: string }
+  user: { id: string; full_name?: string; username: string; profile_photo?: string }
   replies?: Comment[]
 }
 
@@ -88,13 +88,13 @@ function CommentItem({
     <div>
       <div className="flex gap-3">
         <img
-          src={comment.user.profile_photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.user.username)}&background=E8E8E8&color=212529&size=40`}
-          alt={comment.user.username}
+          src={comment.user.profile_photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.user.full_name || comment.user.username)}&background=E8E8E8&color=212529&size=40`}
+          alt={comment.user.full_name || comment.user.username}
           className="w-9 h-9 rounded-full object-cover shrink-0"
         />
         <div className="flex-1">
           <div className="bg-gray-50 rounded-2xl px-4 py-3" style={{ border: '1px solid #E8E8E8' }}>
-            <p className="text-sm font-semibold" style={{ color: '#212529' }}>{comment.user.username}</p>
+            <p className="text-sm font-semibold" style={{ color: '#212529' }}>{comment.user.full_name || comment.user.username}</p>
             <p className="text-sm mt-0.5" style={{ color: '#3D3D3D' }}>{comment.comment}</p>
           </div>
           <div className="flex items-center gap-4 mt-1 px-2">
@@ -186,7 +186,7 @@ export default function PostDetailPage() {
           media: (d.media || []).map((m: any) => ({ url: m.url, type: m.type as 'image' | 'video' })),
           author: {
             id: d.user?.id || '',
-            name: d.user?.username || 'Unknown',
+            name: d.user?.full_name || d.user?.username ,
             avatar: d.user?.profile_photo || '',
             profession: d.user?.profession || '',
           },

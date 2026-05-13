@@ -428,11 +428,24 @@ export function RightSidebar() {
           {/* Questions */}
           <div className="mb-6">
             <h3 className="font-semibold mb-3" style={{ color: '#212529' }}>Questions</h3>
-            <div className="space-y-3">
-              {questions.map(item => (
-                <TrendingItem key={item.id} item={item} type="questions" onClick={handleTrendingClick('questions')} />
-              ))}
-            </div>
+            {questions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <span className="text-sm text-gray-600 mb-2">Looks like the questions in the application are not that interesting yet.</span>
+                <span className="text-xs text-gray-500 mb-3">Publish your own question and see if your content comes up here!</span>
+                <button
+                  className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-[#212529] text-white hover:bg-[#3D3D3D] transition-all duration-200"
+                  onClick={() => router.push('/ask')}
+                >
+                  Ask a Question
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {questions.map(item => (
+                  <TrendingItem key={item.id} item={item} type="questions" onClick={handleTrendingClick('questions')} />
+                ))}
+              </div>
+            )}
           </div>
         </div>
         {/* Divider */}
@@ -440,11 +453,24 @@ export function RightSidebar() {
         {/* Trending Stories */}
         <div>
           <h2 className="font-semibold mb-4" style={{ color: '#212529' }}>Stories</h2>
-          <div className="space-y-3">
-            {stories.map(item => (
-              <TrendingItem key={item.id} item={item} type="stories" onClick={handleTrendingClick('stories')} />
-            ))}
-          </div>
+          {stories.length === 0 ? (
+            <div className="flex flex-col items-center justify-center text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <span className="text-sm text-gray-600 mb-2">Looks like the stories in the application are not that interesting yet.</span>
+              <span className="text-xs text-gray-500 mb-3">Publish your own story and see if your content comes up here!</span>
+              <button
+                className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-[#212529] text-white hover:bg-[#3D3D3D] transition-all duration-200"
+                onClick={() => router.push('/stories/create')}
+              >
+                Share a Story
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {stories.map(item => (
+                <TrendingItem key={item.id} item={item} type="stories" onClick={handleTrendingClick('stories')} />
+              ))}
+            </div>
+          )}
         </div>
         {/* Divider */}
         <div className="border-t border-gray-200"></div>

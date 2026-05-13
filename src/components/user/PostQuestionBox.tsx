@@ -17,10 +17,16 @@ export function PostQuestionBox() {
   const [draftToast, setDraftToast] = useState<string | null>(null)
   const queryClient = useQueryClient()
 
-  const showDraftToast = (msg: string) => {
+  const showDraftToast = (msg: string, showMediaWarning = false) => {
     setDraftToast(msg)
+    if (showMediaWarning) {
+      setShowMediaWarning(true)
+      setTimeout(() => setShowMediaWarning(false), 4000)
+    }
     setTimeout(() => setDraftToast(null), 3000)
   }
+
+  const [showMediaWarning, setShowMediaWarning] = useState(false)
 
   const handleSaveDraft = async () => {
     if (!questionText.trim()) return
@@ -33,10 +39,10 @@ export function PostQuestionBox() {
       })
       setQuestionText('')
       setTags([])
-      showDraftToast('Question saved to drafts!')
+      showDraftToast('Question saved to drafts!', false)
     } catch (err) {
       console.error('Save draft failed:', err)
-      showDraftToast('Failed to save draft.')
+      showDraftToast('Failed to save draft.', false)
     } finally {
       setSavingDraft(false)
     }
@@ -139,6 +145,11 @@ export function PostQuestionBox() {
     {draftToast && (
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white text-sm font-medium px-5 py-3 rounded-full shadow-xl">
         {draftToast}
+      </div>
+    )}
+    {showMediaWarning && (
+      <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 bg-yellow-400 text-black text-sm font-medium px-5 py-3 rounded-full shadow-xl border border-yellow-600">
+        <span className="font-bold">Note:</span> Images/media files are <b>not saved</b> in the draft.
       </div>
     )}
   </>

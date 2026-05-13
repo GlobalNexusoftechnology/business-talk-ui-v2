@@ -7,7 +7,7 @@ export default function UserAgreementPage() {
         <div className="bg-white rounded-2xl shadow-sm border p-8" style={{ border: '1px solid #E8E8E8' }}>
           <div>
             <h1 className="text-3xl font-bold mb-6" style={{ color: '#212529' }}>Terms of Service & User Agreement</h1>
-            <p className="mb-6" style={{ color: '#5F6368' }}>Last updated: 2nd May, 2026</p>
+            <p className="mb-6" style={{ color: '#5F6368' }}>Last updated: 13th May, 2026</p>
 
             <div className="space-y-6" style={{ color: '#212529' }}>
               <section>

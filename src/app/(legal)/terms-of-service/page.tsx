@@ -2,7 +2,7 @@ export default function TermsOfServicePage() {
   return (
     <main className="max-w-3xl mx-auto py-8 px-4">
       <h1 className="text-2xl font-bold mb-4">Terms and Conditions – Businesstalk24</h1>
-      <p className="mb-2 font-semibold">Effective Date: 2nd May, 2026</p>
+      <p className="mb-2 font-semibold">Effective Date: 13th May, 2026</p>
       <p className="mb-2">Welcome to Businesstalk24. By accessing or using this platform, you agree to comply with these Terms and Conditions.</p>
       <ol className="list-decimal ml-6 mb-2 space-y-2">
         <li><b>Platform Nature:</b> Businesstalk24 is a business knowledge sharing platform where users can ask questions, share ideas, post experiences, and contribute insights. All content on this platform is user-generated and is intended for informational purposes only.</li>
