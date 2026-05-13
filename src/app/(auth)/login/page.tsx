@@ -18,7 +18,7 @@ import { mapAuthError } from '@/lib/auth-errors'
 export default function LoginPage() {
   const router = useRouter()
   const dispatch = useAppDispatch()
-  const authUser = useAppSelector((state) => state.auth.user as any)
+  const authUser = useAppSelector((state) => state.auth.user)
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated)
   const authLoading = useAppSelector((state) => state.auth.isLoading)
   const [error, setError] = useState<string | null>(null)
@@ -80,7 +80,8 @@ export default function LoginPage() {
         // 🔥 Save user properly (IMPORTANT for layout)
         localStorage.setItem('user', JSON.stringify(result.payload.user))
 
-        if (isAdmin(roleId)) {
+        // Await isAdmin (async)
+        if (await isAdmin(roleId)) {
           setPendingRedirect('/admin/dashboard')
         } else {
           setPendingRedirect('/dashboard')

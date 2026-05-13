@@ -22,7 +22,7 @@ export default function GoogleSuccessPage() {
         dispatch(setUser(user))
         localStorage.setItem('user', JSON.stringify(user))
 
-        if (isAdmin(user.role_id)) {
+        if (await isAdmin(user.role_id)) {
           router.replace('/admin/dashboard')
         } else {
           router.replace('/dashboard')

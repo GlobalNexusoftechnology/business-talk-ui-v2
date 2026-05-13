@@ -99,6 +99,29 @@ interface RetryableRequestConfig extends InternalAxiosRequestConfig {
 
 class ApiClient {
   private client: AxiosInstance
+  private rolesCache: any[] | null = null
+
+  /**
+   * Fetches all roles from the backend and caches them for this instance.
+   */
+  async fetchRoles(forceRefresh = false): Promise<any[]> {
+    if (!this.rolesCache || forceRefresh) {
+      const res = await this.getRoles()
+      this.rolesCache = Array.isArray(res.data) ? res.data : []
+    }
+    return this.rolesCache
+  }
+
+  /**
+   * Finds a role by name (case-insensitive) from the cached or fetched roles.
+   */
+  async getRoleIdByName(roleName: string): Promise<string | undefined> {
+    const roles = await this.fetchRoles()
+    const found = roles.find((r: any) =>
+      typeof r.name === 'string' && r.name.toLowerCase() === roleName.toLowerCase()
+    )
+    return found?.id
+  }
 
   setAuthHydrating(isHydrating: boolean) {
     authHydratingInProgress = isHydrating
@@ -363,6 +386,11 @@ class ApiClient {
     password: string,
     phone_number?: string
   ) {
+    // Dynamically fetch the role_id for the 'user' role
+    const userRoleId = await this.getRoleIdByName('user')
+    if (!userRoleId) {
+      throw new Error('User role not found in roles list')
+    }
     const createRes = await this.client.post(
       '/auth/signup',
       {
@@ -370,10 +398,7 @@ class ApiClient {
         username,
         password,
         phone_number,
-        created_by: '73f52c44-1746-49e6-ab08-8f86a8d8967f',
-        modified_by: '73f52c44-1746-49e6-ab08-8f86a8d8967f',
-        role_id: process.env.NEXT_PUBLIC_ROLE_USER || 'e360b4ab-a828-4a4f-8792-701e785f89c0',
-        // role_id: '73f52c44-1746-49e6-ab08-8f86a8d8967f',
+        role_id: userRoleId,
       },
       {
         withCredentials: true,
