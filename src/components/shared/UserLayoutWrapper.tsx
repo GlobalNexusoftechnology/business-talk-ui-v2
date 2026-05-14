@@ -4,6 +4,7 @@ import { UserSidebar } from '@/components/shared/UserSidebar'
 import { UserNavbar } from '@/components/shared/UserNavbar'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { profileHref } from '@/lib/profile-link'
 import apiClient from '@/lib/api-client'
 import { MergedMobileSidebarContent } from '@/components/shared/MergedMobileSidebarContent'
 import { useAppSelector } from '@/hooks/useRedux'
@@ -75,7 +76,7 @@ export const UserLayoutWrapper = ({ children }: UserLayoutWrapperProps) => {
             questions={questions}
             groups={groups}
             loading={loading}
-            onProfileClick={(person: any) => router.push(`/profile/${person.id}`)}
+            onProfileClick={(person: any) => router.push(profileHref(person.id, person.full_name))}
             onFollow={async (id: string) => {
               try {
                 await apiClient.followUserById(id)

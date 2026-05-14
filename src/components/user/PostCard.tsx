@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { ThumbsUp, MessageCircle, Send, Trash2 } from 'lucide-react'
 import Link from 'next/link'
+import { profileHref } from '@/lib/profile-link'
 import { ShareModal } from '@/components/shared/ShareModal'
 import apiClient from '@/lib/api-client'
 
@@ -133,7 +134,7 @@ export default function PostCard({ post }: any) {
         {/* Header */}
         <div className="flex items-start justify-between mb-3">
           <div className="flex gap-3">
-            <Link href={postAuthorId ? `/profile/${postAuthorId}` : '#'} className="shrink-0">
+            <Link href={postAuthorId ? profileHref(postAuthorId, post.author?.name) : '#'} className="shrink-0">
               <img
                 src={post.author?.avatar || '/avatar.png'}
                 className="w-10 h-10 rounded-full object-cover hover:opacity-80 transition-opacity"
@@ -141,7 +142,7 @@ export default function PostCard({ post }: any) {
               />
             </Link>
             <div>
-              <Link href={postAuthorId ? `/profile/${postAuthorId}` : '#'} className="font-semibold text-[#212529] text-sm hover:underline">
+              <Link href={postAuthorId ? profileHref(postAuthorId, post.author?.name) : '#'} className="font-semibold text-[#212529] text-sm hover:underline">
                 {post.author?.name}
               </Link>
               <p className="text-xs text-gray-500">

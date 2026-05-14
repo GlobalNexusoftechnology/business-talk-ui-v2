@@ -86,8 +86,10 @@ export const CATEGORY_META: CategoryMeta[] = [
 // Drives all user-facing notification click routing.
 // SYNC: public/firebase-messaging-sw.js → buildDeepLink() must mirror this map.
 
+import { profileHref } from './profile-link'
+
 const USER_ENTITY_ROUTES: Record<string, (entityId: string, notifType: string) => string> = {
-  user:         (id)    => `/profile/${id}`,
+  user:         (id)    => profileHref(id),
   post:         (id, t) => t.toUpperCase() === 'QUESTION' ? `/questions/${id}` : `/posts/${id}`,
   blog:         (id, t) => t.toUpperCase() === 'STORY'    ? `/stories/${id}`   : `/blogs/${id}`,
   comment:      (id)    => `/posts/${id}?highlight=comment`,

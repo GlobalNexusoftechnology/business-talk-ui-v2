@@ -55,7 +55,7 @@ function PeopleCard({ user }: { user: any }) {
 
   return (
     <Link
-      href={`/profile/${user.id}`}
+      href={profileHref(user.id, user.full_name)}
       className="block group"
     >
       <div className="bg-white rounded-2xl border p-6 transition hover:shadow-md hover:scale-[1.02]">

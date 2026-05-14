@@ -1,6 +1,7 @@
 'use client'
 
 import { useParams, useRouter } from 'next/navigation'
+import { profileHref } from '@/lib/profile-link'
 import { ArrowLeft, Check, X, Users, Clock, UserPlus, MessageCircle } from 'lucide-react'
 import {
   useGroupJoinRequests,
@@ -51,7 +52,7 @@ function RequestCard({ req, approveMutation, rejectMutation, router }: {
         <img
           src={avatarUrl}
           alt={displayName}
-          onClick={() => userId && router.push(`/profile/${userId}`)}
+          onClick={() => userId && router.push(profileHref(userId, displayName))}
           className="w-14 h-14 rounded-full object-cover flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
         />
 
@@ -59,7 +60,7 @@ function RequestCard({ req, approveMutation, rejectMutation, router }: {
           <p
             className="font-semibold cursor-pointer hover:underline"
             style={{ color: '#212529' }}
-            onClick={() => userId && router.push(`/profile/${userId}`)}
+            onClick={() => userId && router.push(profileHref(userId, displayName))}
           >
             {displayName}
           </p>

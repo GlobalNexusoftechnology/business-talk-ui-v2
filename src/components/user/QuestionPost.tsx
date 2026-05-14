@@ -17,6 +17,7 @@ import {
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { profileHref } from '@/lib/profile-link'
 import { ShareModal } from '@/components/shared/ShareModal'
 import { useOpenContent } from '@/hooks/useOpenContent'
 import apiClient from '@/lib/api-client'
@@ -540,7 +541,7 @@ export function QuestionPost({
         <div className="flex gap-3 mb-4 justify-between items-start">
           <div
             className="flex items-center gap-3 cursor-pointer"
-            onClick={() => authorId && router.push(`/profile/${authorId}`)}
+            onClick={() => authorId && router.push(profileHref(authorId, author.name))}
           >
           <img src={author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(author.name)}&background=E8E8E8&color=212529&size=48`} alt={author.name} className="w-12 h-12 rounded-full" />
           <div>

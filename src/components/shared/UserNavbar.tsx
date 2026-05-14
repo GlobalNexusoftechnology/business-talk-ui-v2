@@ -2,6 +2,7 @@
 
 import { Bell, Search, Menu, X, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { profileHref } from '@/lib/profile-link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useDispatch } from 'react-redux'
 import type { AppDispatch } from '@/redux/store'
@@ -44,7 +45,7 @@ function mapSearchResults(data: any): SearchResult[] {
       label: u.full_name || u.username || 'Unknown',
       sublabel: u.profession || u.email,
       type: 'user',
-      href: `/profile/${u.id}`,
+      href: profileHref(u.id, u.full_name),
       avatar: u.profile_photo,
     })
   })

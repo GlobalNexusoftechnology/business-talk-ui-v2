@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { useEffect } from 'react'
 import apiClient from '@/lib/api-client'
 import { useRouter } from 'next/navigation'
+import { profileHref } from '@/lib/profile-link'
 import { ShareModal } from '@/components/shared/ShareModal'
 import { useAppSelector } from '@/hooks/useRedux'
 
@@ -224,7 +225,7 @@ export default function BlogsPage() {
                 </p>
                 <div
                   className="flex items-center gap-3 mb-4 cursor-pointer"
-                  onClick={e => { e.stopPropagation(); blogs[0]?.authorId && router.push(`/profile/${blogs[0].authorId}`) }}
+                  onClick={e => { e.stopPropagation(); blogs[0]?.authorId && router.push(profileHref(blogs[0].authorId, blogs[0]?.author?.name)) }}
                 >
                   <img
                     src={blogs[0]?.author?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(blogs[0]?.author?.name || 'User')}&background=E8E8E8&color=212529&size=40`}
@@ -300,7 +301,7 @@ export default function BlogsPage() {
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div
                       className="flex items-center gap-3 cursor-pointer"
-                      onClick={e => { e.stopPropagation(); blog.authorId && router.push(`/profile/${blog.authorId}`) }}
+                      onClick={e => { e.stopPropagation(); blog.authorId && router.push(profileHref(blog.authorId, blog.author?.name)) }}
                     >
                       <img src={blog.author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(blog.author.name)}&background=E8E8E8&color=212529&size=32`} alt={blog.author.name} className="w-8 h-8 rounded-full object-cover" />
                       <div>

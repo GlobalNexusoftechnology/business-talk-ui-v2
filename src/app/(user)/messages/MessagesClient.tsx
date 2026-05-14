@@ -532,7 +532,7 @@ const MessagesClient = () => {
 
   const handleHeaderAvatarClick = useCallback(() => {
     if (selectedConversation?.isGroup || !selectedConversation?.participantId) return;
-    router.push(`/profile/${selectedConversation.participantId}`);
+    router.push(profileHref(selectedConversation.participantId));
   }, [router, selectedConversation]);
 
   const handleSendMessage = async () => {

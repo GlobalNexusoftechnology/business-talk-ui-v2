@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { profileHref } from '@/lib/profile-link'
 import { ThumbsUp, MessageCircle, Send, MoreVertical, Bookmark, Flag, UserCheck, UserMinus, UserPlus, Trash2 } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { ShareModal } from '@/components/shared/ShareModal'
@@ -481,7 +482,7 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
         <div className="flex items-start justify-between mb-4">
           <div
             className="flex items-center gap-3 cursor-pointer"
-            onClick={() => authorId && router.push(`/profile/${authorId}`)}
+            onClick={() => authorId && router.push(profileHref(authorId, author.name))}
           >
             <img
               src={author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(author.name)}&background=E8E8E8&color=212529&size=48`}

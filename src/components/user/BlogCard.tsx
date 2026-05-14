@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import { profileHref } from '@/lib/profile-link'
 
 interface BlogCardProps {
   blog: {
@@ -21,7 +22,7 @@ const BlogCard: React.FC<BlogCardProps> = ({ blog }) => {
     <div className="bg-white rounded-lg shadow p-4 border border-gray-100">
       <div className="flex items-center mb-2">
         {blog.author?.avatar && (
-          <Link href={blog.author?.id ? `/profile/${blog.author.id}` : '#'} className="shrink-0 mr-2">
+          <Link href={blog.author?.id ? profileHref(blog.author.id, blog.author.name) : '#'} className="shrink-0 mr-2">
             <img
               src={blog.author.avatar}
               alt={blog.author.name || 'Author'}
@@ -35,10 +36,10 @@ const BlogCard: React.FC<BlogCardProps> = ({ blog }) => {
             <p className="text-xs text-gray-500">
               By{' '}
               {blog.author?.id ? (
-                <Link href={`/profile/${blog.author.id}`} className="hover:underline">{blog.author.name}</Link>
-              ) : (
-                blog.author.name
-              )}
+                    <Link href={profileHref(blog.author.id, blog.author.name)} className="hover:underline">{blog.author.name}</Link>
+                  ) : (
+                    blog.author.name
+                  )}
             </p>
           )}
           {blog.created_at && (

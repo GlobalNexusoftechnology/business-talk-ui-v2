@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { profileHref } from '@/lib/profile-link'
 import { Mail, Phone, Users, Newspaper, MessageSquare, TrendingUp, X, Loader2 } from 'lucide-react'
 import apiClient from '@/lib/api-client'
 
@@ -222,13 +223,13 @@ export function ProfileSidebar({
               <div className="divide-y" style={{ borderColor: '#F0F0F0' }}>
                 {listUsers.map(u => (
                   <Link
-                    key={u.id}
-                    href={`/profile/${u.id}`}
-                    className="flex items-center gap-3 px-5 py-3 transition-colors"
-                    style={{ color: 'inherit' }}
-                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#F8F9FA')}
-                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-                  >
+                      key={u.id}
+                      href={profileHref(u.id, u.full_name || u.username)}
+                      className="flex items-center gap-3 px-5 py-3 transition-colors"
+                      style={{ color: 'inherit' }}
+                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#F8F9FA')}
+                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    >
                     <img
                       src={u.profile_photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.username)}&background=E8E8E8&color=212529&size=40`}
                       alt={u.username}

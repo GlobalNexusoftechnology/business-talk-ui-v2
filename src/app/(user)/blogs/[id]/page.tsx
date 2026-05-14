@@ -2,6 +2,7 @@
 
 import { useRouter, useParams } from 'next/navigation'
 import { ArrowLeft, Trash2 } from 'lucide-react'
+import { profileHref } from '@/lib/profile-link'
 import { useState, useEffect } from 'react'
 import { ShareModal } from '@/components/shared/ShareModal'
 import apiClient from '@/lib/api-client'
@@ -344,7 +345,7 @@ export default function BlogDetailsPage() {
         {/* AUTHOR */}
         <div
           className="flex items-center gap-3 mb-8 cursor-pointer"
-          onClick={() => blog.authorId && router.push(`/profile/${blog.authorId}`)}
+          onClick={() => blog.authorId && router.push(profileHref(blog.authorId, blog.author?.name))}
         >
           <img
             src={blog.author.avatar || `https://ui-avatars.com/api/name=${encodeURIComponent(blog.author.name)}`}

@@ -4,6 +4,7 @@ import { TrendingUp, Users } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useContentViewerContext } from '@/providers/ContentViewerProvider'
 import { useState, useEffect } from 'react'
+import { profileHref } from '@/lib/profile-link'
 import apiClient from '@/lib/api-client'
 
 interface SuggestedGroup {
@@ -342,7 +343,7 @@ export function RightSidebar() {
   };
 
   const handleProfileClick = (person: any) => {
-    router.push(`/profile/${person.id}`);
+    router.push(profileHref(person.id, person.name));
   };
 
   const handleConnectClick = (person: any, state: 'connect' | 'pending' | 'connected') => {
