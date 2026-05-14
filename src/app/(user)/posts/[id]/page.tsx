@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 import {
   ArrowLeft,
   ThumbsUp,
-  ThumbsDown,
+  // ThumbsDown,
   MessageCircle,
   Send,
 //   CornerDownRight,
@@ -156,10 +156,10 @@ export default function PostDetailPage() {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
 
-  const [upvoted, setUpvoted] = useState(false)
-  const [downvoted, setDownvoted] = useState(false)
-  const [upvotes, setUpvotes] = useState(0)
-  const [downvotes, setDownvotes] = useState(0)
+  // const [downvoted, setDownvoted] = useState(false)
+  const [isLiked, setIsLiked] = useState(false)
+  const [likeCount, setLikeCount] = useState(0)
+  // const [downvotes, setDownvotes] = useState(0)
 
   const [comments, setComments] = useState<Comment[]>([])
   const [commentText, setCommentText] = useState('')
@@ -196,8 +196,14 @@ export default function PostDetailPage() {
           tags: (d.tags || []).map((t: any) => (typeof t === 'string' ? t : t.name)),
         }
         setPost(formatted)
-        setUpvotes(formatted.upvotes)
-        setDownvotes(formatted.downvotes)
+        setLikeCount(formatted.upvotes)
+        if (d.myVote !== undefined && d.myVote !== null) {
+          if (typeof d.myVote === 'string') setIsLiked(d.myVote.toLowerCase() === 'up')
+          else setIsLiked(Boolean(d.liked))
+        } else if (typeof d.liked !== 'undefined') {
+          setIsLiked(Boolean(d.liked))
+        }
+        // setDownvotes(formatted.downvotes)
       } catch (err: any) {
         if (err?.response?.status === 404) setNotFound(true)
       } finally {
@@ -220,18 +226,21 @@ export default function PostDetailPage() {
   const handleVote = async (dir: 'up' | 'down') => {
     if (!post) return
     try {
-      await apiClient.votePost(post.id, dir)
-      if (dir === 'up') {
-        setUpvoted(v => !v)
-        setUpvotes(c => upvoted ? c - 1 : c + 1)
-        if (downvoted) { setDownvoted(false); setDownvotes(c => c - 1) }
-      } else {
-        setDownvoted(v => !v)
-        setDownvotes(c => downvoted ? c - 1 : c + 1)
-        if (upvoted) { setUpvoted(false); setUpvotes(c => c - 1) }
+      const res = await apiClient.votePost(post.id, dir)
+      const data: any = res?.data ?? res
+      if (data?.upvotes !== undefined) {
+        setLikeCount(data.upvotes)
       }
-    } catch { /* silent */ }
-  }
+      if (data?.myVote === null || data?.myVote === undefined) setIsLiked(false)
+      else if (typeof data.myVote === 'string') setIsLiked(data.myVote.toLowerCase() === 'up')
+      else setIsLiked(Boolean(data?.liked))
+    } catch {
+      if (dir === 'up') {
+        setIsLiked(v => !v)
+        setLikeCount(c => isLiked ? Math.max(0, c - 1) : c + 1)
+      }
+    }
+    }
 
   const handleAddComment = async () => {
     if (!commentText.trim() || !post) return
@@ -335,17 +344,17 @@ export default function PostDetailPage() {
             <button
               onClick={() => handleVote('up')}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all"
-              style={{ backgroundColor: upvoted ? '#E3F2FD' : '#F8F9FA', color: upvoted ? '#1976D2' : '#5F6368' }}
+              style={{ backgroundColor: isLiked ? '#E3F2FD' : '#F8F9FA', color: isLiked ? '#1976D2' : '#5F6368' }}
             >
-              <ThumbsUp className="w-4 h-4" /> {upvotes}
+              <ThumbsUp className="w-4 h-4" /> {likeCount}
             </button>
-            <button
+            {/* <button
               onClick={() => handleVote('down')}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all"
               style={{ backgroundColor: downvoted ? '#FFF3E0' : '#F8F9FA', color: downvoted ? '#E65100' : '#5F6368' }}
             >
               <ThumbsDown className="w-4 h-4" /> {downvotes}
-            </button>
+            </button> */}
             <div className="flex items-center gap-2 px-4 py-2 text-sm" style={{ color: '#5F6368' }}>
               <MessageCircle className="w-4 h-4" /> {comments.length}
             </div>

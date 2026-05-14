@@ -1,6 +1,6 @@
 'use client'
 
-import { ImageIcon, Video, X } from 'lucide-react'
+import { ImagePlay, Video, X } from 'lucide-react'
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/lib/api-client'
@@ -61,7 +61,7 @@ export function CreatePostBox() {
   }
 
   const handleCreatePost = async () => {
-    if (!postContent.trim()) return
+    if (!postContent.trim() && selectedFiles.length === 0) return
 
     try {
       setLoading(true)
@@ -141,7 +141,7 @@ export function CreatePostBox() {
           className="hidden"
         />
         <label htmlFor="media-upload" className="cursor-pointer flex gap-2">
-          <ImageIcon /> <Video />
+          <ImagePlay />
         </label>
 
         <div className="flex items-center gap-2">
@@ -156,7 +156,7 @@ export function CreatePostBox() {
           <button
             type="button"
             onClick={handleCreatePost}
-            disabled={loading || !postContent.trim() || isBanned}
+            disabled={loading || (!postContent.trim() && selectedFiles.length === 0) || isBanned}
             className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-400 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             {loading ? 'Posting...' : 'Create Post'}

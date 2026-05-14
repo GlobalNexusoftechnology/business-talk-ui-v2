@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios'
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'https://business-talk-api-qlkw.onrender.com'
+  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000'
 
 // ──────────────────────────────────────────────────────────────────────────
 // PRODUCTION CREDENTIAL TRANSPORT VALIDATION
@@ -1415,16 +1415,86 @@ class ApiClient {
    * Register a push token with the backend (req 7).
    * The server should store the token per-user for sending pushes.
    */
-  registerPushToken(token: string) {
-    return this.client.post('/push/register', { token, platform: 'web' })
+  // Devices
+  registerOrUpdateDevice(payload: {
+    token: string
+    platform: 'android' | 'ios' | 'web'
+    device_name?: string
+    app_version?: string
+  }) {
+    return this.client.post('/push/devices', payload)
   }
 
-  /** Unregister (revoke) a push token — called on logout or permission revoke. */
+  listMyDevices() {
+    return this.client.get('/push/devices')
+  }
+
+  patchDevice(deviceId: string, data: { is_muted?: boolean }) {
+    return this.client.patch(`/push/devices/${deviceId}`, data)
+  }
+
+  deactivateDevice(deviceId: string) {
+    return this.client.delete(`/push/devices/${deviceId}`)
+  }
+
+  deactivateAllDevices() {
+    return this.client.delete('/push/devices')
+  }
+
+  // Topics
+  subscribeDeviceToTopics(deviceId: string, topics: string[]) {
+    return this.client.post(`/push/devices/${deviceId}/topics`, { topics })
+  }
+
+  unsubscribeDeviceFromTopics(deviceId: string, topics: string[]) {
+    return this.client.delete(`/push/devices/${deviceId}/topics`, { data: { topics } })
+  }
+
+  // Scheduled pushes
+  createScheduledPush(payload: {
+    title: string
+    body: string
+    deep_link?: string | null
+    collapse_key?: string | null
+    data?: Record<string, unknown>
+    send_at: number
+  }) {
+    return this.client.post('/push/scheduled', payload)
+  }
+
+  listScheduledPushes() {
+    return this.client.get('/push/scheduled')
+  }
+
+  cancelScheduledPush(id: string) {
+    return this.client.delete(`/push/scheduled/${id}`)
+  }
+
+  // Analytics / admin
+  getPushAnalytics(days = 7) {
+    return this.client.get('/push/analytics', { params: { days } })
+  }
+
+  // Cron/admin: prune stale tokens
+  cleanupPushTokens() {
+    return this.client.post('/push/cleanup')
+  }
+
+  // Convenience / backwards-compatible wrappers
+  registerPushToken(token: string, platform: 'android' | 'ios' | 'web' = 'web') {
+    return this.registerOrUpdateDevice({ token, platform })
+  }
+
   unregisterPushToken(token: string) {
-    return this.client.post('/push/unregister', { token })
+    // Keep previous behavior if backend still supports /push/unregister
+    try {
+      return this.client.post('/push/unregister', { token })
+    } catch (e) {
+      // Fallback: attempt to find and deactivate matching device(s) server-side via /push/devices
+      return this.client.delete('/push/devices', { data: { token } })
+    }
   }
 
-  /** Persist push preference booleans server-side. */
   updatePushPreferences(preferences: Record<string, boolean>) {
     return this.client.patch('/push/preferences', preferences)
   }

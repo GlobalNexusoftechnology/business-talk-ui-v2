@@ -402,7 +402,7 @@ export function StoryPost({
         <span className="text-sm text-gray-500 mb-4">Please share a story to get started!</span>
         <button
           className="px-4 py-2 text-xs font-semibold rounded-lg bg-[#212529] text-white hover:bg-[#3D3D3D] transition-all duration-200"
-          onClick={() => window.location.href = '/stories/create'}
+          onClick={() => router.push('/?tab=stories&compose=1')}
         >
           Share a Story
         </button>

@@ -12,11 +12,11 @@ const CANONICAL_TO_BACKEND_EMIT: Record<string, string> = {
 };
 
 const getSocketOrigin = (): string => {
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://business-talk-api-qlkw.onrender.com';
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://localhost:4000';
   try {
     return new URL(base).origin;
   } catch {
-    return 'https://business-talk-api-qlkw.onrender.com';
+    return 'https://localhost:4000';
   }
 };
 

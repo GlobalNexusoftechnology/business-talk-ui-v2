@@ -509,7 +509,7 @@ export function QuestionPost({
         <span className="text-sm text-gray-500 mb-4">Please ask a question to get started!</span>
         <button
           className="px-4 py-2 text-xs font-semibold rounded-lg bg-[#212529] text-white hover:bg-[#3D3D3D] transition-all duration-200"
-          onClick={() => window.location.href = '/ask'}
+          onClick={() => router.push('/?tab=qa&compose=1')}
         >
           Ask a Question
         </button>

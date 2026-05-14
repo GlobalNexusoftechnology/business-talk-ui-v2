@@ -45,7 +45,7 @@ export default function SignupPage() {
   const handleGoogleSignup = () => {
     if (googleLoading || isSubmitting) return
     setGoogleLoading(true)
-    window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://business-talk-api-qlkw.onrender.com'}/auth/google`
+    window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'https://localhost:4000'}/auth/google`
   }
 
   return (

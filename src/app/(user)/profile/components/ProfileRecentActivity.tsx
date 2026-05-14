@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import apiClient from '@/lib/api-client'
 import {
   MessageSquare,
-  Heart,
+  ThumbsUp,
   Share2,
   FileQuestion,
   BookOpen,
@@ -75,7 +75,7 @@ function PostCard({ post, onNavigate }: { post: any; onNavigate: (path: string) 
         return null
       })()}
       <div className="flex items-center gap-4 mt-1">
-        <StatPill icon={<Heart className="w-3 h-3" />} count={post.upvotes ?? post.likes_count ?? post.likes} />
+        <StatPill icon={<ThumbsUp className="w-3 h-3" />} count={post.upvotes ?? post.likes_count ?? post.likes} />
         <StatPill icon={<MessageSquare className="w-3 h-3" />} count={post.comments_count ?? post.comments} />
         <StatPill icon={<Share2 className="w-3 h-3" />} count={post.shares_count ?? post.shares} />
         <span className="ml-auto text-xs text-gray-400">
@@ -100,7 +100,7 @@ function QuestionCard({ item, onNavigate }: { item: any; onNavigate: (path: stri
         <p className="text-xs text-gray-500 ml-6 line-clamp-2 mb-2">{item.description}</p>
       )}
       <div className="flex items-center gap-4 ml-6">
-        <StatPill icon={<Heart className="w-3 h-3" />} count={item.upvotes ?? item.likes_count ?? item.likes} />
+        <StatPill icon={<ThumbsUp className="w-3 h-3" />} count={item.upvotes ?? item.likes_count ?? item.likes} />
         <StatPill icon={<MessageSquare className="w-3 h-3" />} count={item.comments_count ?? item.comments} />
         <span className="ml-auto text-xs text-gray-400">{timeAgo(item.created_on ?? item.created_at)}</span>
       </div>
@@ -130,7 +130,7 @@ function StoryCard({ item, onNavigate }: { item: any; onNavigate: (path: string)
           </p>
           <p className="text-xs text-gray-500 line-clamp-2">{item.content || item.excerpt}</p>
           <div className="flex items-center gap-3 mt-2">
-            <StatPill icon={<Heart className="w-3 h-3" />} count={item.likes_count ?? item.likes} />
+            <StatPill icon={<ThumbsUp className="w-3 h-3" />} count={item.likes_count ?? item.likes} />
             <StatPill icon={<MessageSquare className="w-3 h-3" />} count={item.comments_count ?? item.comments} />
             <span className="ml-auto text-xs text-gray-400">{timeAgo(item.created_at)}</span>
           </div>

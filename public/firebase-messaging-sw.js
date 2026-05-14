@@ -58,6 +58,10 @@ function handleBackgroundMessage(payload) {
     return;
   }
 
+  // Respect per-device mute flag when provided by backend in payload (is_muted)
+  // If the backend includes `is_muted: 'true'` or boolean true, set notification to silent.
+  const isMutedFlag = data.is_muted === 'true' || data.is_muted === true || data.isMuted === true || data.isMuted === 'true';
+
   const notificationTitle =
     payload.notification?.title || data.title || 'Businesstalk24';
 
@@ -72,6 +76,7 @@ function handleBackgroundMessage(payload) {
     badge: '/assets/icons/BUSINESSTALK24_LOGO_Icon_png.png',
     tag,                   // req 10: collapses notifications with same tag
     renotify: true,        // re-alert even if same tag exists
+    silent: !!isMutedFlag, // suppress sound when device is muted
     data: {
       url: data.url || '/',
       entityType: data.entityType,
@@ -79,7 +84,7 @@ function handleBackgroundMessage(payload) {
       notifType: data.notifType || payload.notification?.type,
       badge: Number(data.badge || 0),
     },
-    vibrate: [200, 100, 200],
+    vibrate: isMutedFlag ? undefined : [200, 100, 200],
     requireInteraction: false,
   };
 
@@ -138,12 +143,14 @@ self.addEventListener('push', (event) => {
   }
 
   const title = payload.notification?.title || payload.data?.title || 'Businesstalk24';
+  const isMutedFlag = payload.data?.is_muted === 'true' || payload.data?.is_muted === true || payload.data?.isMuted === true || payload.data?.isMuted === 'true';
   const options = {
     body: payload.notification?.body || payload.data?.body || '',
     icon: '/assets/icons/BUSINESSTALK24_LOGO_Icon_png.png',
     badge: '/assets/icons/BUSINESSTALK24_LOGO_Icon_png.png',
     tag: payload.data?.group || payload.data?.entityType || 'default',
     renotify: true,
+    silent: !!isMutedFlag,
     data: {
       url: payload.data?.url || '/',
       entityType: payload.data?.entityType,
@@ -151,7 +158,7 @@ self.addEventListener('push', (event) => {
       notifType: payload.data?.notifType,
       badge: Number(payload.data?.badge || 0),
     },
-    vibrate: [200, 100, 200],
+    vibrate: isMutedFlag ? undefined : [200, 100, 200],
   };
 
   updateBadge(Number(payload.data?.badge || 0));

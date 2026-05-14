@@ -114,6 +114,32 @@ export const PushNotificationProvider: React.FC<{
   const foregroundUnsubRef = useRef<(() => void) | null>(null);
   const tokenRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const playNotificationSound = () => {
+    try {
+      const audio = new Audio('/assets/sounds/notification.mp3');
+      audio.volume = 0.8;
+      audio.play().catch(() => {
+        try {
+          const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
+          if (!Ctx) return;
+          const ctx = new Ctx();
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.type = 'sine';
+          o.frequency.value = 880;
+          g.gain.value = 0.03;
+          o.connect(g);
+          g.connect(ctx.destination);
+          o.start();
+          setTimeout(() => {
+            o.stop();
+            try { ctx.close(); } catch {}
+          }, 180);
+        } catch {}
+      });
+    } catch {}
+  };
+
   // ── Badge sync (req 9) ───────────────────────────────────────────────────
   useEffect(() => {
     syncBadge(unreadCount);
@@ -199,6 +225,11 @@ export const PushNotificationProvider: React.FC<{
         );
 
         const id = `fg-${Date.now()}`;
+        const d: any = data;
+        const isMutedFlag = d.is_muted === 'true' || d.is_muted === true || d.isMuted === true || d.isMuted === 'true';
+        if (!isMutedFlag) {
+          try { playNotificationSound(); } catch {}
+        }
         setToasts((prev) => [
           ...prev,
           { id, title, body, icon: data.icon, url },

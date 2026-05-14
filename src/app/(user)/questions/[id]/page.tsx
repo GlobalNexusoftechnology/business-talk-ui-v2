@@ -149,9 +149,9 @@ export default function QuestionDetailPage() {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
 
-  const [upvoted, setUpvoted] = useState(false)
   const [downvoted, setDownvoted] = useState(false)
-  const [upvotes, setUpvotes] = useState(0)
+  const [isLiked, setIsLiked] = useState(false)
+  const [likeCount, setLikeCount] = useState(0)
   const [downvotes, setDownvotes] = useState(0)
 
   const [answers, setAnswers] = useState<Answer[]>([])
@@ -182,8 +182,14 @@ export default function QuestionDetailPage() {
           tags: (d.tags || []).map((t: any) => (typeof t === 'string' ? t : t.name)),
         }
         setQuestion(formatted)
-        setUpvotes(formatted.upvotes)
+        setLikeCount(formatted.upvotes)
         setDownvotes(formatted.downvotes)
+        if (d.myVote !== undefined && d.myVote !== null) {
+          if (typeof d.myVote === 'string') setIsLiked(d.myVote.toLowerCase() === 'up')
+          else setIsLiked(Boolean(d.liked))
+        } else if (typeof d.liked !== 'undefined') {
+          setIsLiked(Boolean(d.liked))
+        }
       } catch (err: any) {
         if (err?.response?.status === 404) setNotFound(true)
       } finally {
@@ -208,15 +214,23 @@ export default function QuestionDetailPage() {
   const handleVote = async (dir: 'up' | 'down') => {
     if (!question) return
     try {
-      await apiClient.votePost(question.id, dir)
+      const res = await apiClient.votePost(question.id, dir)
+      const data: any = res?.data ?? res
+      if (data?.upvotes !== undefined) setLikeCount(data.upvotes)
+      if (data?.downvotes !== undefined) setDownvotes(data.downvotes)
+      if (data?.myVote === null || data?.myVote === undefined) setIsLiked(false)
+      else if (typeof data.myVote === 'string') setIsLiked(data.myVote.toLowerCase() === 'up')
+      else setIsLiked(Boolean(data?.liked))
+      if (dir === 'down') setDownvoted(false)
+    } catch {
       if (dir === 'up') {
-        setUpvoted(v => !v); setUpvotes(c => upvoted ? c - 1 : c + 1)
-        if (downvoted) { setDownvoted(false); setDownvotes(c => c - 1) }
+        setIsLiked(v => !v)
+        setLikeCount(c => isLiked ? Math.max(0, c - 1) : c + 1)
       } else {
-        setDownvoted(v => !v); setDownvotes(c => downvoted ? c - 1 : c + 1)
-        if (upvoted) { setUpvoted(false); setUpvotes(c => c - 1) }
+        setDownvoted(v => !v)
+        setDownvotes(c => downvoted ? Math.max(0, c - 1) : c + 1)
       }
-    } catch { /* silent */ }
+    }
   }
 
   const handlePostAnswer = async () => {
@@ -317,9 +331,9 @@ export default function QuestionDetailPage() {
             <button
               onClick={() => handleVote('up')}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all"
-              style={{ backgroundColor: upvoted ? '#E3F2FD' : '#F8F9FA', color: upvoted ? '#1976D2' : '#5F6368' }}
+              style={{ backgroundColor: isLiked ? '#E3F2FD' : '#F8F9FA', color: isLiked ? '#1976D2' : '#5F6368' }}
             >
-              <ThumbsUp className="w-4 h-4" /> {upvotes}
+              <ThumbsUp className="w-4 h-4" /> {likeCount}
             </button>
             <button
               onClick={() => handleVote('down')}

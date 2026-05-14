@@ -23,7 +23,7 @@ import { PostQuestionBox } from './PostQuestionBox'
 import { ShareStoryBox } from './ShareStoryBox'
 
 import { useState, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useFeedPosts } from '../../hooks/useFeedPosts'
 import { useStoriesFeed } from '../../hooks/useStoriesFeed'
 import apiClient from '../../lib/api-client'
@@ -51,7 +51,31 @@ function Highlight({ text, query }: { text: string; query: string }) {
 
 export default function MainFeed() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'home' | 'qa' | 'stories'>('home')
+
+  // Allow external links to open a specific tab and focus the composer
+  useEffect(() => {
+    try {
+      const tab = searchParams?.get?.('tab')
+      const compose = searchParams?.get?.('compose')
+      if (tab === 'home' || tab === 'qa' || tab === 'stories') {
+        setActiveTab(tab)
+      }
+      if (compose === '1') {
+        setTimeout(() => {
+          const root = document.querySelector('.create-box') as HTMLElement | null
+          if (root) {
+            const input = root.querySelector('textarea, input') as HTMLElement | null
+            input?.focus()
+            root.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          } else {
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+          }
+        }, 50)
+      }
+    } catch {}
+  }, [searchParams])
 
   const { data: posts, isLoading: postsLoading } = useFeedPosts('NORMAL')
   const { data: questions, isLoading: questionsLoading } = useFeedPosts('QUESTION')
@@ -585,7 +609,9 @@ export default function MainFeed() {
             {/* 🏠 HOME FEED */}
             {activeTab === 'home' && (
               <>
-                <CreatePostBox />
+                <div className="create-box">
+                  <CreatePostBox />
+                </div>
                 <div>
                   {postsLoading ? (
                     <div>Loading...</div>
@@ -601,7 +627,9 @@ export default function MainFeed() {
             {/* ❓ Q&A */}
             {activeTab === 'qa' && (
               <>
-                <PostQuestionBox />
+                <div className="create-box">
+                  <PostQuestionBox />
+                </div>
                 <div>
                   {questionsLoading ? (
                     <div>Loading...</div>
@@ -617,7 +645,9 @@ export default function MainFeed() {
             {/* 📖 STORIES */}
             {activeTab === 'stories' && (
               <>
-                <ShareStoryBox />
+                <div className="create-box">
+                  <ShareStoryBox />
+                </div>
                 <div>
                   {storiesLoading ? (
                     <div>Loading...</div>

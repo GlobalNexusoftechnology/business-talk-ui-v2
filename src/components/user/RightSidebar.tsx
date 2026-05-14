@@ -434,7 +434,7 @@ export function RightSidebar() {
                 <span className="text-xs text-gray-500 mb-3">Publish your own question and see if your content comes up here!</span>
                 <button
                   className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-[#212529] text-white hover:bg-[#3D3D3D] transition-all duration-200"
-                  onClick={() => router.push('/ask')}
+                  onClick={() => router.push('/?tab=qa&compose=1')}
                 >
                   Ask a Question
                 </button>
@@ -459,7 +459,7 @@ export function RightSidebar() {
               <span className="text-xs text-gray-500 mb-3">Publish your own story and see if your content comes up here!</span>
               <button
                 className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-[#212529] text-white hover:bg-[#3D3D3D] transition-all duration-200"
-                onClick={() => router.push('/stories/create')}
+                onClick={() => router.push('/?tab=stories&compose=1')}
               >
                 Share a Story
               </button>

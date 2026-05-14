@@ -105,14 +105,14 @@ export function TagsPopup({
               <p className="text-sm font-medium mb-3" style={{ color: '#5F6368' }}>
                 Selected Tags ({displayedTags.length})
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-nowrap gap-2 overflow-y-auto mt-2 pb-1">
                 {displayedTags.map((tag) => (
                   <div
                     key={tag}
                     className="flex items-center gap-2 px-3 py-2 rounded-full transition-all"
                     style={{ backgroundColor: '#212529' }}
                   >
-                    <span className="text-sm text-white">{tag}</span>
+                    <span className="text-sm text-white items-center whitespace-nowrap">{tag}</span>
                     <button
                       onClick={() => handleRemoveTag(tag)}
                       className="text-white hover:text-gray-300 transition"

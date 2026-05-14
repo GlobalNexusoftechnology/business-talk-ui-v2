@@ -4,7 +4,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import {
   ArrowLeft,
-  Heart,
+  ThumbsUp,
   MessageCircle,
   Send,
   Clock,
@@ -155,8 +155,8 @@ export default function StoryDetailPage() {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
 
-  const [liked, setLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(0)
+  const [isLiked, setIsLiked] = useState(false)
 
   const [comments, setComments] = useState<Comment[]>([])
   const [commentText, setCommentText] = useState('')
@@ -189,6 +189,12 @@ export default function StoryDetailPage() {
         }
         setStory(formatted)
         setLikeCount(formatted.likes)
+        if (d.myVote !== undefined && d.myVote !== null) {
+          if (typeof d.myVote === 'string') setIsLiked(d.myVote.toLowerCase() === 'up')
+          else setIsLiked(Boolean(d.liked))
+        } else if (typeof d.liked !== 'undefined') {
+          setIsLiked(Boolean(d.liked))
+        }
       } catch (err: any) {
         if (err?.response?.status === 404) setNotFound(true)
       } finally {
@@ -213,10 +219,16 @@ export default function StoryDetailPage() {
   const handleLike = async () => {
     if (!story) return
     try {
-      await apiClient.likeBlog(story.id)
-      setLiked(v => !v)
-      setLikeCount(c => liked ? c - 1 : c + 1)
-    } catch { /* silent */ }
+      const res = await apiClient.likeBlog(story.id)
+      const data: any = res?.data ?? res
+      if (data?.likes !== undefined) setLikeCount(data.likes)
+      if (data?.myVote === null || data?.myVote === undefined) setIsLiked(false)
+      else if (typeof data.myVote === 'string') setIsLiked(data.myVote.toLowerCase() === 'up')
+      else setIsLiked(Boolean(data?.liked))
+    } catch {
+      setIsLiked(v => !v)
+      setLikeCount(c => isLiked ? Math.max(0, c - 1) : c + 1)
+    }
   }
 
   const handleAddComment = async () => {
@@ -328,13 +340,13 @@ export default function StoryDetailPage() {
             {/* Like + views row */}
             <div className="flex items-center flex-wrap gap-3 pt-4" style={{ borderTop: '1px solid #F0F0F0' }}>
               <button
-                onClick={handleLike}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all"
-                style={{ backgroundColor: liked ? '#FFEBEE' : '#F8F9FA', color: liked ? '#E53935' : '#5F6368' }}
-              >
-                <Heart className={`w-4 h-4 ${liked ? 'fill-current' : ''}`} />
-                {likeCount}
-              </button>
+                  onClick={handleLike}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all"
+                  style={{ backgroundColor: isLiked ? '#FFEBEE' : '#F8F9FA', color: isLiked ? '#E53935' : '#5F6368' }}
+                >
+                  <ThumbsUp className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
+                  {likeCount}
+                </button>
               <div className="flex items-center gap-2 text-sm" style={{ color: '#5F6368' }}>
                 <Eye className="w-4 h-4" /> {story.views}
               </div>

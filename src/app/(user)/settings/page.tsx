@@ -23,6 +23,7 @@ import {
   syncPermissionState,
 } from '@/redux/slices/pushSlice'
 import { isPushSupported, getPushPermissionState } from '@/lib/fcm'
+import PushDevicesPanel from '@/components/user/PushDevicesPanel'
 
 
 type ExperienceEntry = {
@@ -649,6 +650,9 @@ function NotificationsTab({
               onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#212529')}>
               {saving ? 'Saving\u2026' : saveSuccess ? 'Saved \u2713' : 'Save Preferences'}
             </button>
+            <div className="mt-4">
+              <PushDevicesPanel />
+            </div>
           </div>
         )}
       </div>
