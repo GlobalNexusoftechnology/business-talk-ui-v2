@@ -64,6 +64,7 @@ import { formatChatTimestamp } from '@/lib/chat/time';
 import { mergeUniqueMessages } from '@/lib/chat/messages';
 import { buildOptimisticMessage } from '@/lib/chat/optimistic';
 import type { ConversationEntity, MessageEntity } from '@/types/chat';
+import { profileHref } from '@/lib/profile-link'
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -532,7 +533,7 @@ const MessagesClient = () => {
 
   const handleHeaderAvatarClick = useCallback(() => {
     if (selectedConversation?.isGroup || !selectedConversation?.participantId) return;
-    router.push(profileHref(selectedConversation.participantId));
+    router.push(profileHref(selectedConversation.participantId, selectedConversation.name));
   }, [router, selectedConversation]);
 
   const handleSendMessage = async () => {

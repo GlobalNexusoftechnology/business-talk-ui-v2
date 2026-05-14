@@ -34,6 +34,7 @@ import {
   Zap,
 } from 'lucide-react';
 import type { NotificationActor, NotificationEntity, NotificationCategory } from '@/types/notification';
+import { profileHref } from '@/lib/profile-link'
 
 // ─── Exported types ───────────────────────────────────────────────────────────
 
@@ -86,7 +87,7 @@ export const CATEGORY_META: CategoryMeta[] = [
 // Drives all user-facing notification click routing.
 // SYNC: public/firebase-messaging-sw.js → buildDeepLink() must mirror this map.
 
-import { profileHref } from './profile-link'
+
 
 const USER_ENTITY_ROUTES: Record<string, (entityId: string, notifType: string) => string> = {
   user:         (id)    => profileHref(id),

@@ -7,6 +7,7 @@ import { ShareModal } from '@/components/shared/ShareModal'
 import { useEffect } from 'react'
 import apiClient from '@/lib/api-client'
 import { FeedPost } from '@/components/user/FeedPost'
+import { profileHref } from '@/lib/profile-link'
 
 interface GroupMember {
   id: string
@@ -722,7 +723,7 @@ export default function GroupDetailsPage() {
                 key={member.id}
                 className="flex items-center gap-3 p-4 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
                 style={{ backgroundColor: '#F8F9FA' }}
-                onClick={() => member.id && router.push(profileHref(member.id, member.full_name || member.username))}
+                onClick={() => member.id && router.push(profileHref(member.id, member.name))}
               >
                 <img
                   src={member.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=E8E8E8&color=212529&size=48`}
@@ -1003,7 +1004,7 @@ export default function GroupDetailsPage() {
                       const userId = req.user?.id || req.userId
                       if (userId) {
                         setShowRequestsModal(false)
-                        router.push(profileHref(userId))
+                        router.push(profileHref(userId, fullName))
                       }
                     }}
                     className="w-full text-left rounded-xl border p-4 transition hover:shadow-sm cursor-pointer"

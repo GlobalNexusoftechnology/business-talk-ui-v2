@@ -13,6 +13,7 @@ import { useState } from 'react'
 import { useUsers } from '@/hooks/useUsers'
 import { useFollow } from '@/hooks/useFollow'
 import { useAppSelector } from '@/hooks/useRedux'
+import { profileHref } from '@/lib/profile-link'
 
 const categories = [
   'All',
