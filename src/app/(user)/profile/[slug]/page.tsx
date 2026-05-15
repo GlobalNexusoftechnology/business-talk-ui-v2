@@ -9,13 +9,17 @@ import { useAppSelector } from '@/hooks/useRedux'
 function parseIdFromSlug(slug?: string) {
   if (!slug) return ''
   // expect formats like "123" or "123-john-doe" or "john-doe"
-  if (slug.includes('-')) {
-    const parts = slug.split('-')
-    // if first part is numeric, treat as id
-    if (/^\d+$/.test(parts[0])) return parts[0]
-  }
-  // fallback: assume slug itself might be id
-  return slug
+  // if there's a dash, take the part before it (e.g. "123-john-doe" -> "123")
+    // If slug starts with a UUID, return the full UUID (handles UUIDs with dashes)
+    const uuidMatch = slug.match(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/)
+    if (uuidMatch) return uuidMatch[0]
+
+    // if there's a dash (e.g. "123-john-doe"), take the part before it
+    const firstPart = slug.includes('-') ? slug.split('-')[0] : slug
+    // if the first part is numeric, return it (numeric id)
+    if (/^\d+$/.test(firstPart)) return firstPart
+    // otherwise return the first part (could be username)
+    return firstPart
 }
 
 export default function UserProfilePage() {
