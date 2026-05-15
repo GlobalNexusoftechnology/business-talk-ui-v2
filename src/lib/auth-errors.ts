@@ -25,9 +25,18 @@ const BACKEND_ERROR_MAP: Record<string, string> = {
   'duplicate username': 'This username is already taken. Please choose another.',
   'users_username_key': 'This username is already taken. Please choose another.',
   'duplicate key value violates unique constraint': 'This username is already taken. Please choose another.',
-  'already exists': 'This username is already taken. Please choose another.',
+  // removed overly-generic 'already exists' mapping to avoid shadowing
+  // more specific messages like 'email already exists' should match instead
   'email already exists': 'An account with this email already exists.',
   'userexist': 'An account with this email already exists.',
+
+  // Users table constraint-specific mappings
+  'uq_97672ac88f789774dd47f7c8be3': 'An account with this email already exists.',
+  'users_email_key': 'An account with this email already exists.',
+  'uq_17d1817f241f10a3dbafb169fd2': 'This phone number is already in use.',
+  'users_phone_number_key': 'This phone number is already in use.',
+  'uq_5230070094e8135a3d763d90e75': 'A session conflict occurred. Please sign in again.',
+  'fk_a2cecd1a3531c0b041e29ba46e1': 'Invalid role selected. Please choose a valid role.',
 
   // Tokens / session
   'token expired': 'Your session has expired. Please sign in again.',
@@ -130,6 +139,35 @@ const extractAuthError = (err: unknown): ExtractedAuthError => {
   }
 }
 
+// Inspect DB constraint-style messages and return a friendly mapping when possible
+const mapConstraintError = (backendMsg: string): string | undefined => {
+  // Try to extract a constraint name from Postgres-style messages
+  const uqMatch = backendMsg.match(/unique constraint ["']?([a-z0-9_]+)["']?/i)
+  if (uqMatch) {
+    const key = uqMatch[1].toLowerCase()
+    if (BACKEND_ERROR_MAP[key]) return BACKEND_ERROR_MAP[key]
+  }
+
+  // Try to extract the violated column: Key (email)=(...) already exists
+  const colMatch = backendMsg.match(/key \(([^)]+)\)=/i)
+  if (colMatch) {
+    const col = colMatch[1].toLowerCase()
+    if (col.includes('email')) return BACKEND_ERROR_MAP['email already exists']
+    if (col.includes('phone')) return BACKEND_ERROR_MAP['users_phone_number_key']
+    if (col.includes('refresh_token')) return BACKEND_ERROR_MAP['uq_5230070094e8135a3d763d90e75']
+  }
+
+  // Generic fallbacks for common substrings
+  if (backendMsg.includes('duplicate key value') && backendMsg.includes('email')) {
+    return BACKEND_ERROR_MAP['email already exists']
+  }
+  if (backendMsg.includes('duplicate key value') && backendMsg.includes('phone')) {
+    return BACKEND_ERROR_MAP['users_phone_number_key']
+  }
+
+  return undefined
+}
+
 /**
  * Converts any error (Axios, native Error, string) into a
  * safe, user-friendly message. Never exposes raw stack traces or
@@ -155,6 +193,12 @@ export function mapAuthError(
   if (!err) return fallbacks[context]
 
   const { status, message: backendMsg, code } = extractAuthError(err)
+
+  // If this looks like a DB constraint error, try to map it immediately
+  if (backendMsg) {
+    const constraintMapped = mapConstraintError(backendMsg)
+    if (constraintMapped) return constraintMapped
+  }
 
   // Signup-specific DB constraint normalization.
   // Covers postgres-style unique/constraint messages where backend doesn't provide clean text.
