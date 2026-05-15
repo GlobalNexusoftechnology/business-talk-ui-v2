@@ -11,6 +11,7 @@ import type {
   ConversationMessagesState,
   MessageEntity,
 } from '@/types/chat';
+import { markConversationReadServer } from '@/redux/thunks/chatThunks';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -160,6 +161,13 @@ export const fetchConversations = createAsyncThunk(
     }
   },
 );
+
+/**
+ * Mark a conversation as read on the server. This thunk does not revert
+ * the optimistic local unread clear; it reports failures for diagnostics
+ * and can trigger a refresh to reconcile state if desired.
+ */
+// thunk moved to src/redux/thunks/chatThunks.ts
 
 export const sendMessage = createAsyncThunk(
   'chat/sendMessage',
@@ -433,6 +441,28 @@ const chatSlice = createSlice({
           }
         }
       });
+
+    // ── markConversationReadServer ───────────────────────────────────────────
+    builder.addCase(markConversationReadServer.fulfilled, (state, action) => {
+      const payload = action.payload as
+        | { conversationId: string; messageId: string | null; updatedAt?: number }
+        | undefined;
+      const convId = payload?.conversationId ?? action.meta.arg;
+      const conv = state.conversations.byId[convId];
+      if (conv) conv.unread = 0;
+      const convMsg = state.messages.byConversation[convId];
+      if (convMsg) convMsg.unreadCount = 0;
+      // Optionally update lastMessageAt if server provided an updatedAt timestamp
+      if (payload?.updatedAt && conv) {
+        conv.lastMessageAt = payload.updatedAt;
+      }
+    });
+
+    builder.addCase(markConversationReadServer.rejected, (_state, action) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[chat] markConversationReadServer failed', action.error || action.payload);
+      }
+    });
   },
 });
 

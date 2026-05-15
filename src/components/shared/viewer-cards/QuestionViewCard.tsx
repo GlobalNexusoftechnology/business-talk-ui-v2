@@ -255,27 +255,32 @@ export function QuestionViewCard({ data }: Props) {
     )
   }
 
-  const author = data.author || {}
+  const rawAuthor = data.author || {}
+  const authorName =
+    typeof rawAuthor === 'string'
+      ? rawAuthor
+      : rawAuthor?.full_name || rawAuthor?.name || rawAuthor?.username || ''
+  const authorTitle = typeof rawAuthor === 'object' && rawAuthor ? rawAuthor.title || '' : ''
   const avatarSrc =
-    author.avatar ||
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(author.name || 'User')}&background=E8E8E8&color=212529&size=48`
-  const displayQuestion = data.question || data.content || ''
+    (typeof rawAuthor === 'object' && rawAuthor?.avatar) ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName || 'User')}&background=E8E8E8&color=212529&size=48`
+  const displayQuestion = String(data.question ?? data.content ?? '')
 
   return (
     <div className="space-y-4">
 
       {/* AUTHOR HEADER */}
       <div className="flex items-center gap-3">
-        <img
-          src={avatarSrc}
-          alt={author.name || 'Author'}
-          className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-        />
-        <div>
-          <h3 className="font-semibold text-gray-900">{author.name}</h3>
-          {author.title && <p className="text-sm text-gray-500">{author.title}</p>}
-          {data.timestamp && <p className="text-xs text-gray-400">{getTimeAgo(data.timestamp)}</p>}
-        </div>
+          <img
+            src={avatarSrc}
+            alt={authorName || 'Author'}
+            className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+          />
+          <div>
+            <h3 className="font-semibold text-gray-900">{authorName}</h3>
+            {authorTitle && <p className="text-sm text-gray-500">{authorTitle}</p>}
+            {data.timestamp && <p className="text-xs text-gray-400">{getTimeAgo(data.timestamp)}</p>}
+          </div>
       </div>
 
       {/* QUESTION */}
@@ -284,11 +289,14 @@ export function QuestionViewCard({ data }: Props) {
       {/* Tags */}
       {data.tags?.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {data.tags.map((tag: string, idx: number) => (
-            <span key={idx} className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-              {tag}
-            </span>
-          ))}
+          {data.tags.map((tag: any, idx: number) => {
+            const label = typeof tag === 'string' ? tag : tag?.name || tag?.title || String(tag?.id) || ''
+            return (
+              <span key={idx} className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                {label}
+              </span>
+            )
+          })}
         </div>
       )}
 

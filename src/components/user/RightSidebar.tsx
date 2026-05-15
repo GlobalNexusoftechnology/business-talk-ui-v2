@@ -335,12 +335,61 @@ export function RightSidebar() {
 
   // --- HANDLERS ---
   const handleTrendingClick = (type: 'questions' | 'stories') => (item: any) => {
+    if (!item) return
+
+    // Normalize item shape so UniversalContentViewer gets full expected fields
+    const normalizeStory = (s: any) => ({
+      id: s.id || s._id || s.story_id || s.blog_id,
+      author: {
+        name: s.user?.full_name || s.author_name || s.author?.name || s.by || 'Unknown',
+        title: s.user?.profession || s.author?.title || s.author?.role || '',
+        avatar: s.user?.profile_photo || s.author?.avatar || s.cover_image || '',
+      },
+      authorId: String(s.user?.id || s.user?.user_id || s.authorId || s.author_id || s.author?.id || ''),
+      storyTitle: s.title || s.storyTitle || s.name || '',
+      excerpt: s.excerpt || s.summary || s.description || s.content?.slice?.(0, 200) || '',
+      content: s.content || s.body || '',
+      coverImage: s.cover_image || s.image || s.coverImage || null,
+      timestamp: s.created_on || s.timestamp || s.published_at || Date.now(),
+      likes: Number(s.likes || s.likes_count || s.upvotes || 0),
+      liked: Boolean(s.liked || s.myVote === 'up'),
+      comments: Number(s.comments_count || s.comment_count || s.comments || 0),
+      views: Number(s.views || s.view_count || 0),
+    })
+
+    const normalizeQuestion = (q: any) => ({
+      id: q.id || q._id || q.post_id,
+      author: {
+        name: q.user?.full_name || q.author_name || q.author?.name || 'Unknown',
+        title: q.user?.profession || q.author?.title || '',
+        avatar: q.user?.profile_photo || q.author?.avatar || '',
+      },
+      authorId: String(q.user?.id || q.user?.user_id || q.authorId || q.author_id || ''),
+      question: q.question || q.title || q.content || '',
+      content: q.content || q.description || '',
+      description: q.description || q.content || '',
+      tags: q.tags || q.post_tags || [],
+      timestamp: q.created_on || q.timestamp || Date.now(),
+      likes: Number(q.upvotes || q.likes || 0),
+      liked: Boolean(q.liked || q.myVote === 'up'),
+      views: Number(q.views || q.view_count || 0),
+    })
+
     if (isMobile) {
-      router.push(`/${type}/${item.id}`);
-    } else {
-      open(type, item);
+      router.push(`/${type}/${item.id}`)
+      return
     }
-  };
+
+    if (type === 'stories') {
+      open(type, normalizeStory(item))
+      return
+    }
+
+    if (type === 'questions') {
+      open(type, normalizeQuestion(item))
+      return
+    }
+  }
 
   const handleProfileClick = (person: any) => {
     router.push(profileHref(person.id, person.name));

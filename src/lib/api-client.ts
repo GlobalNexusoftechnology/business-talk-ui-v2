@@ -1182,6 +1182,14 @@ class ApiClient {
     return this.client.post(`/chat/${conversationId}/message`, data)
   }
 
+  /**
+   * Mark all messages in a conversation as read for the current user.
+   * Backend should mark messages delivered/seen and update unread counters server-side.
+   */
+  markConversationRead(conversationId: string) {
+    return this.client.patch(`/chat/${conversationId}/read`)
+  }
+
   // =========================
   // 🛡️ ADMIN — ADDITIONAL
   // =========================

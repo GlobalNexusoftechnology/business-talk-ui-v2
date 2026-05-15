@@ -503,12 +503,12 @@ export default function CompleteProfilePage() {
             </div>
           </div>
 
-          <Input {...register('full_name')} type="text" placeholder="John Doe" label="Full Name" error={errors.full_name?.message} />
-          <Input {...register('profession')} type="text" placeholder="Software Engineer" label="Profession" error={errors.profession?.message} />
-          <Input {...register('company')} type="text" placeholder="Acme Inc." label="Company" error={errors.company?.message} />
-          <Input {...register('location')} type="text" placeholder="New York, USA" label="Location" error={errors.location?.message} />
-          <Textarea {...register('short_bio')} placeholder="A short bio about yourself" label="Short Bio" error={errors.short_bio?.message} rows={3} />
-          <Textarea {...register('about')} placeholder="Tell us more about yourself" label="About" error={errors.about?.message} rows={4} />
+          <Input {...register('full_name')} required type="text" placeholder="John Doe" label="Full Name" error={errors.full_name?.message} />
+          <Input {...register('profession')} required type="text" placeholder="Software Engineer" label="Profession" error={errors.profession?.message} />
+          <Input {...register('company')} required type="text" placeholder="Acme Inc." label="Company" error={errors.company?.message} />
+          <Input {...register('location')} required type="text" placeholder="New York, USA" label="Location" error={errors.location?.message} />
+          <Textarea {...register('short_bio')} required placeholder="A short bio about yourself" label="Short Bio" error={errors.short_bio?.message} rows={3} />
+          <Textarea {...register('about')} required placeholder="Tell us more about yourself" label="About" error={errors.about?.message} rows={4} />
 
           {/* Skills */}
           <div>
@@ -517,6 +517,7 @@ export default function CompleteProfilePage() {
               <Input
                 type="text"
                 placeholder="Add a skill (e.g., React, Python)"
+                required
                 value={skillInput}
                 onChange={(e) => setSkillInput(e.target.value)}
                 onKeyPress={(e) => {

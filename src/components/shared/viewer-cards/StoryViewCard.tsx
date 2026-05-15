@@ -39,9 +39,10 @@ export function StoryViewCard({ data }: Props) {
   }, [])
 
   // Reset comment like overrides when server data refreshes
+  // Depend on comments length to avoid reacting to new array identities
   useEffect(() => {
     setCommentLikeOverrides({})
-  }, [comments])
+  }, [comments?.length])
 
   // =========================
   // 🧠 NEST COMMENTS

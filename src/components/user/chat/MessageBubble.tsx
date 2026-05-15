@@ -1,6 +1,36 @@
 import React from 'react';
 import type { MessageEntity } from '@/types/chat';
 
+// Render text with auto-linked URLs and email addresses
+function renderLinkedText(text?: string | null) {
+  if (!text) return null;
+  const splitRegex = /(https?:\/\/[^\s]+|www\.[^\s]+|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/gi;
+  const parts = text.split(splitRegex);
+
+  const isEmail = (s: string) => /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/i.test(s);
+  const isUrl = (s: string) => /^https?:\/\//i.test(s) || /^www\./i.test(s);
+
+  return parts.map((part, idx) => {
+    if (!part) return null;
+    if (isEmail(part)) {
+      return (
+        <a key={idx} href={`mailto:${part}`} className="text-blue-600 underline break-words">
+          {part}
+        </a>
+      );
+    }
+    if (isUrl(part)) {
+      const href = part.match(/^https?:\/\//i) ? part : `https://${part}`;
+      return (
+        <a key={idx} href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline break-words">
+          {part}
+        </a>
+      );
+    }
+    return <span key={idx}>{part}</span>;
+  });
+}
+
 interface MessageBubbleProps {
   message: MessageEntity;
   isMine: boolean;
@@ -12,6 +42,9 @@ function SharedPreview({ message }: { message: MessageEntity }) {
   if (message.messageType !== 'blog' && message.messageType !== 'post') return null;
   const preview = message.preview;
   if (!preview) return null;
+  const imgSrc = preview.image || preview.imageUrl || preview.thumbnailUrl || preview.img
+  const title = preview.title || preview.headline || ''
+  const description = preview.text || preview.description || preview.subtitle || ''
 
   return (
     <a
@@ -20,22 +53,26 @@ function SharedPreview({ message }: { message: MessageEntity }) {
       rel={preview.url ? 'noreferrer' : undefined}
       className="mt-2 block rounded-lg border border-gray-200 overflow-hidden bg-white"
     >
-      {preview.imageUrl && (
+      {imgSrc && (
         <img
-          src={preview.imageUrl}
-          alt={preview.title || `${preview.type} preview`}
+          src={imgSrc}
+          alt={title || `${preview.type} preview`}
           className="w-full max-h-36 object-cover"
         />
       )}
       <div className="p-2">
         <p className="text-[11px] uppercase tracking-wide text-gray-500">{preview.type}</p>
-        {preview.title && <p className="text-sm font-semibold text-gray-900 line-clamp-2">{preview.title}</p>}
-        {(preview.subtitle || preview.description) && (
-          <p className="text-xs text-gray-600 line-clamp-2">{preview.subtitle || preview.description}</p>
+        {title ? (
+          <p className="text-sm font-semibold text-gray-900 line-clamp-2">{title}</p>
+        ) : description ? (
+          <p className="text-sm font-semibold text-gray-900 line-clamp-2">{description}</p>
+        ) : null}
+        {description && title && (
+          <p className="text-xs text-gray-600 line-clamp-2">{description}</p>
         )}
       </div>
     </a>
-  );
+  )
 }
 
 function AttachmentBlock({ message }: { message: MessageEntity }) {
@@ -116,19 +153,19 @@ const MessageBubble = React.memo<MessageBubbleProps>(({ message, isMine, isGroup
         />
       )}
 
-      <div className="max-w-[80%] md:max-w-[70%]">
+      <div className="max-w-[calc(100%-4rem)] md:max-w-[70%]">
         {!isMine && isGroup && (
           <p className="text-xs text-gray-500 ml-1 mb-1">{message.senderName}</p>
         )}
 
         <div
-          className={`px-3 py-2 rounded-2xl text-sm ${
+          className={`px-3 py-2 rounded-2xl text-sm break-words whitespace-pre-wrap ${
             isMine
               ? 'bg-[#DCF8C6] text-black rounded-br-sm'
               : 'bg-gray-100 text-black rounded-bl-sm'
           } ${message.status === 'pending' ? 'opacity-60' : ''}`}
         >
-          {message.text}
+          {renderLinkedText(message.text)}
           <SharedPreview message={message} />
           <AttachmentBlock message={message} />
           <div className="flex items-center justify-end gap-1 mt-1">

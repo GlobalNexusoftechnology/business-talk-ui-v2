@@ -25,6 +25,7 @@ import { useSavedStatus } from '@/hooks/useSavedStatus'
 import { useAccountStatus, useAppSelector } from '@/hooks/useRedux'
 import { getTimeAgo } from '@/lib/utils'
 import { ReportModal } from '../shared/ReportModal'
+import { useOpenContent } from '@/hooks/useOpenContent'
 import apiClient from '@/lib/api-client'
 
 interface StoryPostProps {
@@ -62,6 +63,7 @@ export function StoryPost({
   // category,
 }: StoryPostProps) {
   const router = useRouter()
+  const { openStory } = useOpenContent()
 
   const [showShareModal, setShowShareModal] = useState(false)
   const [showComments, setShowComments] = useState(false)
@@ -546,14 +548,46 @@ export function StoryPost({
             src={coverImage}
             alt={storyTitle}
             className="rounded-xl mb-4 cursor-pointer hover:opacity-90 transition-opacity"
-            onClick={() => id && router.push(`/stories/${id}`)}
+            onClick={() => {
+              if (!id) return
+              const storyData = {
+                id,
+                author,
+                authorId,
+                storyTitle,
+                excerpt,
+                coverImage,
+                timestamp,
+                likes: likeCount,
+                liked: isLiked,
+                comments: nestedComments.length,
+                views,
+              }
+              openStory(storyData)
+            }}
           />
         )}
 
         {/* CONTENT */}
         <h2
           className="font-semibold text-lg cursor-pointer hover:underline"
-          onClick={() => id && router.push(`/stories/${id}`)}
+          onClick={() => {
+            if (!id) return
+            const storyData = {
+              id,
+              author,
+              authorId,
+              storyTitle,
+              excerpt,
+              coverImage,
+              timestamp,
+              likes: likeCount,
+              liked: isLiked,
+              comments: nestedComments.length,
+              views,
+            }
+            openStory(storyData)
+          }}
         >
           {storyTitle}
         </h2>

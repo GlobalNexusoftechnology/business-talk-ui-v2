@@ -34,6 +34,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [sessionChecked, setSessionChecked] = useState(false)
   const [forbiddenToast, setForbiddenToast] = useState(false)
   const [restrictedToast, setRestrictedToast] = useState(false)
+  const [appToast, setAppToast] = useState<{ message: string; type?: 'success' | 'error' | 'info' } | null>(null)
   const hydrationStartedRef = useRef(false)
   const authHydratingRef = useRef(false)
   const lastLoginTimestampRef = useRef(0)
@@ -57,6 +58,18 @@ export function Providers({ children }: { children: React.ReactNode }) {
     }
     window.addEventListener('account-restricted', handler)
     return () => window.removeEventListener('account-restricted', handler)
+  }, [])
+
+  // Listen for generic app toasts via CustomEvent { detail: { message, type } }
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail as any
+      if (!detail || typeof detail.message !== 'string') return
+      setAppToast({ message: detail.message, type: detail.type })
+      setTimeout(() => setAppToast(null), 3000)
+    }
+    window.addEventListener('app-toast', handler as EventListener)
+    return () => window.removeEventListener('app-toast', handler as EventListener)
   }, [])
 
   // On app boot: hydrate auth state exactly once for protected surfaces.
@@ -196,6 +209,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
         {restrictedToast && (
           <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-red-600 text-white text-sm font-medium px-5 py-3 rounded-full shadow-xl">
             Your account is restricted. Please contact support.
+          </div>
+        )}
+
+        {/* App toast (success / error / info) */}
+        {appToast && (
+          <div
+            className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 text-sm font-medium px-5 py-3 rounded-full shadow-xl ${
+              appToast.type === 'success' ? 'bg-green-600 text-white' : appToast.type === 'error' ? 'bg-red-600 text-white' : 'bg-gray-900 text-white'
+            }`}
+          >
+            {appToast.message}
           </div>
         )}
       </QueryClientProvider>

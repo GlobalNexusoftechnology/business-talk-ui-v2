@@ -264,12 +264,14 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
     const postData = {
       id,
       author,
+      authorId,
       content,
       image,
       video,
       media,
       timestamp,
       likes: likeCount,
+      liked: isLiked,
       comments: commentCount,
       sends
     }

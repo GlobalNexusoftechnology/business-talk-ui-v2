@@ -38,6 +38,7 @@ import {
   unarchiveConversation,
   pinConversation,
   unpinConversation,
+  markConversationRead,
 } from '@/redux/slices/chatSlice';
 import {
   emitTypingAction,
@@ -59,6 +60,7 @@ import {
   markMessageFailedInCache,
   messagesQueryKey,
 } from '@/hooks/useInfiniteMessages';
+import { markConversationReadServer } from '@/redux/thunks/chatThunks';
 import MessageBubble from '@/components/user/chat/MessageBubble';
 import { formatChatTimestamp } from '@/lib/chat/time';
 import { mergeUniqueMessages } from '@/lib/chat/messages';
@@ -425,6 +427,9 @@ const MessagesClient = () => {
     if (!activeConversationId) return;
     isNearBottomRef.current = true;
     setShowScrollButton(false);
+    // Optimistically clear unread badge in frontend and notify backend via thunk
+    dispatch(markConversationRead(activeConversationId));
+    dispatch(markConversationReadServer(activeConversationId));
   }, [activeConversationId]);
 
   // Auto-scroll when new messages arrive — only when near the bottom
@@ -613,8 +618,8 @@ const MessagesClient = () => {
     const reader = new FileReader();
     reader.onload = async (event) => {
       const fileString = event.target?.result as string;
-      const { default: apiClient } = await import('@/lib/api-client');
-      await apiClient.sendMessageWithAttachment(activeConversationId, fileString);
+      const { default: client } = await import('@/lib/api-client');
+      await client.sendMessageWithAttachment(activeConversationId, fileString);
     };
     reader.readAsDataURL(file);
   };

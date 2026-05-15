@@ -18,8 +18,14 @@ export interface MessagePreview {
   title?: string;
   subtitle?: string;
   description?: string;
+  // Some backend responses use `image` and `text` instead of `imageUrl`/`description`
+  image?: string;
+  text?: string;
   imageUrl?: string;
   url?: string;
+  thumbnailUrl?: string;
+  img?: string;
+  headline?: string;
 }
 
 export interface MessageAttachment {

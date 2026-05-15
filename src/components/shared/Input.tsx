@@ -9,10 +9,14 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, helpText, className, ...props }, ref) => {
+  ({ label, error, helpText, className, required, ...props }, ref) => {
     return (
       <div className="w-full">
-        {label && <label className="label">{label}</label>}
+        {label && (
+          <label className="label">
+            {label}{required && <span className="text-red-500 ml-0.5">*</span>}
+          </label>
+        )}
 
         <input
           ref={ref}
@@ -21,6 +25,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             error && 'border-red-500 focus:ring-red-500 focus:border-red-500',
             className
           )}
+          required={required}
           {...props}
         />
 
@@ -41,10 +46,14 @@ interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement
 }
 
 export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ label, error, helpText, className, ...props }, ref) => {
+  ({ label, error, helpText, className, required, ...props }, ref) => {
     return (
       <div className="w-full">
-        {label && <label className="label">{label}</label>}
+        {label && (
+          <label className="label">
+            {label}{required && <span className="text-red-500 ml-0.5">*</span>}
+          </label>
+        )}
 
         <textarea
           ref={ref}
@@ -53,6 +62,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
             error && 'border-red-500 focus:ring-red-500 focus:border-red-500',
             className
           )}
+          required={required}
           {...props}
         />
 
