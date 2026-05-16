@@ -231,15 +231,16 @@ export function ShareModal({
     <div>
       <div className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity" onClick={onClose} />
 
-      <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-        <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6" onClick={(e) => e.stopPropagation()}>
+      <div className="fixed inset-0 flex items-end sm:items-center justify-center z-50 p-4">
+        <div className="relative w-full max-w-md sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl p-4 sm:p-6 overflow-visible" onClick={(e) => e.stopPropagation()}>
           <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center shadow-lg">🔗</div>
 
           <button onClick={onClose} className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition">
             <X size={20} />
           </button>
 
-          <div className="text-center mt-8 mb-6">
+          <div className="max-h-[82vh] overflow-y-auto pt-8 sm:pt-10">
+            <div className="text-center mt-0 mb-6">
             <h2 className="text-xl font-semibold text-[#212529]">{title}</h2>
             <p className="text-sm text-gray-500 mt-1">Connect with friends and grow your network!</p>
           </div>
@@ -307,7 +308,7 @@ export function ShareModal({
                     </div>
 
                     {showDropdown && (
-                      <div className="absolute z-40 left-0 right-0 mt-1 bg-white border rounded-md shadow-lg max-h-56 overflow-auto">
+                      <div className="absolute z-40 left-0 right-0 mt-1 bg-white border rounded-md shadow-lg max-h-56 overflow-auto sm:relative sm:mt-2">
                         {searchLoading ? (
                           <div className="p-3 text-sm text-gray-500">Searching users...</div>
                         ) : searchResults.length === 0 ? (
@@ -346,6 +347,7 @@ export function ShareModal({
           </div>
         </div>
       </div>
+    </div>
     </div>
   )
 }

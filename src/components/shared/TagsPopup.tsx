@@ -81,11 +81,12 @@ export function TagsPopup({
       />
 
       {/* Popup Card */}
-      <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 flex items-end sm:items-center justify-center z-50 p-4">
         <div
-          className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl p-6"
+          className="relative w-full max-w-2xl sm:max-w-md md:max-w-2xl bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl p-4 sm:p-6 overflow-visible"
           onClick={(e) => e.stopPropagation()}
         >
+          <div className="max-h-[82vh] overflow-y-auto pt-2">
           {/* Close Button */}
           <button
             onClick={onClose}
@@ -105,7 +106,7 @@ export function TagsPopup({
               <p className="text-sm font-medium mb-3" style={{ color: '#5F6368' }}>
                 Selected Tags ({displayedTags.length})
               </p>
-              <div className="flex flex-nowrap gap-2 overflow-y-auto mt-2 pb-1">
+              <div className="flex gap-2 flex-nowrap overflow-x-auto mt-2 pb-1">
                 {displayedTags.map((tag) => (
                   <div
                     key={tag}
@@ -159,12 +160,12 @@ export function TagsPopup({
             <p className="text-sm font-medium mb-3" style={{ color: '#5F6368' }}>
               Popular Tags
             </p>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-64 overflow-y-auto">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-2 max-h-64 overflow-y-auto">
               {PRESET_TAGS.map((tag) => (
                 <button
                   key={tag}
                   onClick={() => handleToggleTag(tag)}
-                  className="px-4 py-2 rounded-lg font-medium transition-all border-2 text-sm"
+                  className="px-4 py-2 rounded-lg font-medium transition-all border-2 text-sm min-w-0 break-words whitespace-normal text-center"
                   style={{
                     backgroundColor: displayedTags.includes(tag)
                       ? '#212529'
@@ -184,7 +185,7 @@ export function TagsPopup({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 mt-8 pt-6 border-t" style={{ borderColor: '#E8E8E8' }}>
+          <div className="flex flex-col sm:flex-row gap-3 mt-8 pt-6 border-t" style={{ borderColor: '#E8E8E8' }}>
             <button
               onClick={onClose}
               className="flex-1 px-4 py-2 rounded-lg font-medium transition-all"
@@ -205,6 +206,7 @@ export function TagsPopup({
             >
               Save Tags
             </button>
+          </div>
           </div>
         </div>
       </div>

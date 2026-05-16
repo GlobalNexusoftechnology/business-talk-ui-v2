@@ -46,6 +46,27 @@ export function AdminCreateQuestionBox({ onCreated }: { onCreated?: () => void }
         className="w-full p-3 bg-gray-50 border rounded-xl"
       />
 
+      {/* Tags */}
+        {tags.length > 0 && (
+          <div className="flex items-center gap-2 mb-4">
+            <Tag className="w-4 h-4" />
+              <div className="flex flex-wrap gap-2">
+              {tags.map((tag, idx) => (
+                <span 
+                  key={idx} 
+                  className="px-3 py-1 rounded-full text-sm font-medium"
+                  style={{ 
+                    backgroundColor: '#F3F4F6',
+                    color: '#5F6368' 
+                  }}
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
       <div className="flex flex-wrap justify-between gap-2 mt-3">
         <button type="button" onClick={() => setShowTags(true)} className="flex gap-2 text-sm">
           <Tag /> Tags ({tags.length})
