@@ -270,13 +270,13 @@ export default function StoryDetailPage() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F8F9FA' }}>
 
-      {/* Cover image (full-width) */}
+      {/* Cover image (full-width)
       {story.coverImage && (
-        <div className="w-full h-72 md:h-96 overflow-hidden relative">
-          <img src={story.coverImage} alt={story.title} className="w-full h-full object-cover" />
+        <div className="w-full overflow-hidden relative">
+          <img src={story.coverImage} alt={story.title} className="w-full h-72 md:h-96 object-cover" />
           <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55))' }} />
         </div>
-      )}
+      )} */}
 
       <div className="p-3 sm:p-6">
         <div className="max-w-2xl mx-auto space-y-4">
@@ -291,6 +291,14 @@ export default function StoryDetailPage() {
           >
             <ArrowLeft className="w-4 h-4" /> Back
           </button>
+
+          {/* Cover image (full-width) */}
+          {story.coverImage && (
+            <div className="w-full overflow-hidden relative">
+              <img src={story.coverImage} alt={story.title} className="w-full h-full object-contain" />
+              <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55))' }} />
+            </div>
+          )}
 
           {/* Story card */}
           <div className="bg-white rounded-2xl border p-6" style={{ border: '1px solid #E8E8E8' }}>
