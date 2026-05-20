@@ -14,6 +14,7 @@ import {
   Tag,
   Pencil,
 } from 'lucide-react'
+import ExpandableText from '@/components/common/ExpandableText'
 import apiClient from '@/lib/api-client'
 import { MediaGrid, MediaItem } from '@/components/shared/MediaGrid'
 
@@ -85,7 +86,7 @@ function CommentRow({ comment, depth = 0 }: { comment: any; depth?: number }) {
               </span>
             )}
           </div>
-          <p className="text-xs text-gray-700">{text}</p>
+          <p className="text-xs text-gray-700 whitespace-pre-wrap break-words">{text}</p>
           {(comment.likes > 0 || comment.upvotes > 0) && (
             <span className="text-xs text-gray-400 flex items-center gap-1 mt-1">
               <ThumbsUp className="w-3 h-3" />
@@ -193,12 +194,7 @@ export function AdminContentCard({
 
           {/* Content text */}
           {content && (
-            <p
-              className="text-sm mb-3 whitespace-pre-line"
-              style={{ color: '#374151' }}
-            >
-              {content}
-            </p>
+            <ExpandableText className="text-sm mb-3 whitespace-pre-wrap break-words" lines={4}>{content}</ExpandableText>
           )}
 
           {/* Tags */}

@@ -24,6 +24,7 @@ import {
 } from '@/redux/slices/pushSlice'
 import { isPushSupported, getPushPermissionState } from '@/lib/fcm'
 import PushDevicesPanel from '@/components/user/PushDevicesPanel'
+import PasswordInput from '@/components/common/PasswordInput'
 
 
 type ExperienceEntry = {
@@ -1379,49 +1380,19 @@ export default function SettingsPage() {
 
                     <div>
 
-                      <label className="block text-sm font-medium mb-2" style={{ color: '#212529' }}>Current Password</label>
-
-                      <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)}
-
-                        placeholder="Enter current password"
-
-                        className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition-all"
-
-                        style={{ backgroundColor: '#F8F9FA', border: '1px solid #E8E8E8', color: '#212529' }}
-
-                        onFocus={e => (e.currentTarget.style.outlineColor = '#1976D2')} />
+                      <PasswordInput label="Current Password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} placeholder="Enter current password" className="w-full" />
 
                     </div>
 
                     <div>
 
-                      <label className="block text-sm font-medium mb-2" style={{ color: '#212529' }}>New Password</label>
-
-                      <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
-
-                        placeholder="Enter new password (min. 8 characters)"
-
-                        className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition-all"
-
-                        style={{ backgroundColor: '#F8F9FA', border: '1px solid #E8E8E8', color: '#212529' }}
-
-                        onFocus={e => (e.currentTarget.style.outlineColor = '#1976D2')} />
+                      <PasswordInput label="New Password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Enter new password (min. 8 characters)" className="w-full" />
 
                     </div>
 
                     <div>
 
-                      <label className="block text-sm font-medium mb-2" style={{ color: '#212529' }}>Confirm New Password</label>
-
-                      <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
-
-                        placeholder="Re-enter new password"
-
-                        className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition-all"
-
-                        style={{ backgroundColor: '#F8F9FA', border: '1px solid #E8E8E8', color: '#212529' }}
-
-                        onFocus={e => (e.currentTarget.style.outlineColor = '#1976D2')} />
+                      <PasswordInput label="Confirm New Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Re-enter new password" className="w-full" />
 
                     </div>
 

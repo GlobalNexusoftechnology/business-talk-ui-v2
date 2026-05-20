@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 
 import { useEffect, useRef, useState } from 'react'
+import ExpandableText from '@/components/common/ExpandableText'
 import { useRouter } from 'next/navigation'
 import { profileHref } from '@/lib/profile-link'
 import { ShareModal } from '@/components/shared/ShareModal'
@@ -323,7 +324,7 @@ export function StoryPost({
                   <p className="text-xs font-semibold">
                     {reply.author.name}
                   </p>
-                  <p className="text-xs">{reply.content}</p>
+                  <p className="text-xs whitespace-pre-wrap break-words">{reply.content}</p>
                 </div>
 
                 <div className="flex gap-3 text-xs mt-1">
@@ -592,9 +593,7 @@ export function StoryPost({
           {storyTitle}
         </h2>
 
-        <p className="text-sm text-gray-500">
-          {excerpt}
-        </p>
+        <ExpandableText className="text-sm text-gray-500 whitespace-pre-wrap break-words" lines={4}>{excerpt}</ExpandableText>
 
         {/* ACTION BAR */}
         <div className="flex flex-wrap gap-3 mt-4 border-y py-3">
@@ -670,7 +669,7 @@ export function StoryPost({
                 <div className="flex-1 min-w-0">
                   <div className="bg-gray-50 rounded-lg px-3 py-2">
                     <p className="text-xs font-semibold text-gray-900">{c.author.name}</p>
-                    <p className="text-sm text-gray-700">{c.content}</p>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">{c.content}</p>
                   </div>
 
                   <div className="flex gap-3 mt-1 px-1 text-xs text-gray-500">

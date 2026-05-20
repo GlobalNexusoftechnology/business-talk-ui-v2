@@ -293,6 +293,9 @@ export function ShareModal({
                     <p className="text-xs text-gray-500 mb-2">Enter recipient full name (select from suggestions)</p>
                     <div className="flex gap-2">
                       <input
+                        role="combobox"
+                        id="share-recipient-combobox"
+                        aria-controls="share-recipient-list"
                         value={recipientInput}
                         onChange={(e) => {
                           setRecipientInput(e.target.value)

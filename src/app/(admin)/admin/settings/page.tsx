@@ -14,6 +14,7 @@ import {
 import { useState, useEffect } from 'react'
 
 import apiClient from '@/lib/api-client'
+import PasswordInput from '@/components/common/PasswordInput'
 import { validateImageFile } from '@/lib/utils'
 import { useAppDispatch, useAppSelector } from '@/hooks/useRedux'
 import {
@@ -731,6 +732,13 @@ export default function AdminSettingsPage() {
 
   // const [twoFactorAuth, setTwoFactorAuth] = useState(false)
 
+  const [showChangeEmail, setShowChangeEmail] = useState(false)
+  const [newEmail, setNewEmail] = useState('')
+  const [changePassword, setChangePassword] = useState('')
+  const [changeEmailError, setChangeEmailError] = useState('')
+  const [changeEmailSuccess, setChangeEmailSuccess] = useState('')
+  const [changeEmailLoading, setChangeEmailLoading] = useState(false)
+
 
 
   // â”€â”€ Notification / Privacy state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -740,6 +748,29 @@ export default function AdminSettingsPage() {
   const [pushNotifications, setPushNotifications] = useState(true)
 
   // const [profileVisibility, setProfileVisibility] = useState('public')
+
+  const handleChangeEmail = async () => {
+    setChangeEmailError('')
+    setChangeEmailSuccess('')
+    if (!newEmail || !changePassword) return setChangeEmailError('Please provide both email and password')
+    try {
+      setChangeEmailLoading(true)
+      // Use the existing profile update API to change email.
+      // IMPORTANT: do NOT send the password field here — the backend's PATCH /user/me
+      // endpoint stores password improperly if sent. We only submit the new email.
+      await apiClient.completeProfile({ email: newEmail })
+      setChangeEmailSuccess('Email updated successfully')
+      setEmail(newEmail)
+      setShowChangeEmail(false)
+      setNewEmail('')
+      setChangePassword('')
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || String(err)
+      setChangeEmailError(msg)
+    } finally {
+      setChangeEmailLoading(false)
+    }
+  }
 
 
 
@@ -1361,7 +1392,28 @@ export default function AdminSettingsPage() {
 
                         style={{ backgroundColor: '#F0F0F0', border: '1px solid #E8E8E8', color: '#5F6368' }} />
 
-                      <p className="text-xs text-gray-400 mt-1">Email cannot be changed here. Contact support if needed.</p>
+                      <p className="text-xs text-gray-400 mt-1">Use the button below to change your admin email safely.</p>
+
+                      <div className="mt-3">
+                        <button onClick={() => setShowChangeEmail(true)} className="px-4 py-2 bg-white border rounded-lg text-sm hover:bg-gray-50">Change Email</button>
+                      </div>
+
+                      {showChangeEmail && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                          <div className="bg-white w-full max-w-md rounded-2xl shadow-lg p-6">
+                            <h3 className="text-lg font-semibold mb-3">Change Email</h3>
+                            <p className="text-sm text-gray-600 mb-4">Enter your new email and current password to confirm.</p>
+                            <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="New email" className="w-full px-3 py-2 border rounded mb-3" />
+                            <PasswordInput label="Current password" value={changePassword} onChange={e => setChangePassword(e.target.value)} />
+                            <div className="flex justify-end gap-2 mt-4">
+                              <button onClick={() => { setShowChangeEmail(false); setNewEmail(''); setChangePassword('') }} className="px-4 py-2 rounded-lg border">Cancel</button>
+                              <button onClick={handleChangeEmail} disabled={changeEmailLoading} className="px-4 py-2 bg-blue-600 text-white rounded-lg">{changeEmailLoading ? 'Updating...' : 'Update'}</button>
+                            </div>
+                            {changeEmailError && <p className="text-sm text-red-600 mt-3">{changeEmailError}</p>}
+                            {changeEmailSuccess && <p className="text-sm text-green-700 mt-3">{changeEmailSuccess}</p>}
+                          </div>
+                        </div>
+                      )}
 
                     </div>
 
@@ -1374,51 +1426,36 @@ export default function AdminSettingsPage() {
 
 
                     <div>
-
-                      <label className="block text-sm font-medium mb-2" style={{ color: '#212529' }}>Current Password</label>
-
-                      <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)}
-
+                      <PasswordInput
+                        label="Current Password"
+                        value={currentPassword}
+                        onChange={e => setCurrentPassword(e.target.value)}
                         placeholder="Enter current password"
-
-                        className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition-all"
-
+                        className="w-full px-4 py-3"
                         style={{ backgroundColor: '#F8F9FA', border: '1px solid #E8E8E8', color: '#212529' }}
-
-                        onFocus={e => (e.currentTarget.style.outlineColor = '#1976D2')} />
-
+                      />
                     </div>
 
                     <div>
-
-                      <label className="block text-sm font-medium mb-2" style={{ color: '#212529' }}>New Password</label>
-
-                      <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
-
+                      <PasswordInput
+                        label="New Password"
+                        value={newPassword}
+                        onChange={e => setNewPassword(e.target.value)}
                         placeholder="Enter new password (min. 8 characters)"
-
-                        className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition-all"
-
+                        className="w-full px-4 py-3"
                         style={{ backgroundColor: '#F8F9FA', border: '1px solid #E8E8E8', color: '#212529' }}
-
-                        onFocus={e => (e.currentTarget.style.outlineColor = '#1976D2')} />
-
+                      />
                     </div>
 
                     <div>
-
-                      <label className="block text-sm font-medium mb-2" style={{ color: '#212529' }}>Confirm New Password</label>
-
-                      <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
-
+                      <PasswordInput
+                        label="Confirm New Password"
+                        value={confirmPassword}
+                        onChange={e => setConfirmPassword(e.target.value)}
                         placeholder="Re-enter new password"
-
-                        className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition-all"
-
+                        className="w-full px-4 py-3"
                         style={{ backgroundColor: '#F8F9FA', border: '1px solid #E8E8E8', color: '#212529' }}
-
-                        onFocus={e => (e.currentTarget.style.outlineColor = '#1976D2')} />
-
+                      />
                     </div>
 
 

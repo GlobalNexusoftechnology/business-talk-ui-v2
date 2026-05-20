@@ -83,10 +83,11 @@ export default function MainFeed() {
 
   // ── Search state ──────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState('')
-  const [suggestions, setSuggestions] = useState<{ users: any[]; groups: any[]; questions: any[] }>({
+  const [suggestions, setSuggestions] = useState<{ users: any[]; groups: any[]; questions: any[]; posts: any[]; blogs: any[]; stories: any[] }>({
     users: [],
     groups: [],
     questions: [],
+    posts: [], blogs: [], stories: [] 
   })
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [suggestionsLoading, setSuggestionsLoading] = useState(false)
@@ -114,7 +115,7 @@ export default function MainFeed() {
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     if (!searchQuery.trim()) {
-      setSuggestions({ users: [], groups: [], questions: [] })
+      setSuggestions({ users: [], groups: [], questions: [], posts: [], blogs: [], stories: [] })
       setShowSuggestions(false)
       return
     }
@@ -122,10 +123,10 @@ export default function MainFeed() {
       setSuggestionsLoading(true)
       try {
         const res = await apiClient.searchSuggestions(searchQuery)
-        setSuggestions(res.data ?? { users: [], groups: [], questions: [] })
+        setSuggestions(res.data ?? { users: [], groups: [], questions: [], posts: [], blogs: [], stories: [] })
         setShowSuggestions(true)
       } catch {
-        setSuggestions({ users: [], groups: [], questions: [] })
+        setSuggestions({ users: [], groups: [], questions: [], posts: [], blogs: [], stories: [] })
       } finally {
         setSuggestionsLoading(false)
       }
@@ -149,7 +150,65 @@ export default function MainFeed() {
     setSearchLoading(true)
     try {
       const res = await apiClient.searchAll(trimmed)
-      setSearchResults(res.data?.data ?? null)
+      const raw = res.data?.data ?? {}
+
+      const normalize = (key: string) => {
+        const v = raw[key]
+        if (!v) return []
+        if (Array.isArray(v)) return v
+        if (v.entities && Array.isArray(v.entities)) return v.entities
+        if (v.raw && Array.isArray(v.raw)) return v.raw
+        // unknown shape, return empty
+        return []
+      }
+
+      const canonicalize = (item: any, key: string) => {
+        if (!item) return null
+        const out: any = {}
+        out.type = (item.type || item.content_type || item.result_type || key || '').toString().toLowerCase()
+
+        out.id = item.id ?? item.post_id ?? item.blog_id ?? item.story_id ?? item.user_id ?? item.group_id ?? item._id
+
+        out.title = item.title ?? item.post_title ?? item.blog_title
+        out.content = item.content ?? item.post_content ?? item.body ?? item.summary ?? item.excerpt ?? ''
+
+        // user info may be nested or present as prefixed fields
+        out.user = item.user ?? item.author ?? null
+        if (!out.user) {
+          const maybeUserId = item.user_id ?? item.post_user_id ?? item.post_user_id ?? item.post_user
+          if (maybeUserId) {
+            out.user = {
+              id: maybeUserId,
+              username: item.user_username ?? item.username ?? item.user_name,
+              full_name: item.user_full_name ?? item.full_name ?? item.name,
+              profile_photo: item.user_profile_photo ?? item.profile_photo,
+            }
+          }
+        }
+
+        // derive link path
+        let linkPath = ''
+        if (out.type.includes('question') || key === 'questions') linkPath = `/questions/${out.id}`
+        else if (out.type.includes('post') || key === 'posts') linkPath = `/posts/${out.id}`
+        else if (out.type.includes('blog') || key === 'blogs') linkPath = `/blogs/${out.id}`
+        else if (out.type.includes('story') || key === 'stories') linkPath = `/stories/${out.id}`
+        else if (key === 'users' || out.type.includes('user')) linkPath = `/profile/${out.user?.username ?? out.id}`
+        else if (key === 'groups' || out.type.includes('group')) linkPath = `/groups/${out.id}`
+        out.linkPath = linkPath
+
+        return out
+      }
+
+      const normalized = {
+        users: normalize('users').map((i: any) => canonicalize(i, 'users')).filter(Boolean),
+        questions: normalize('questions').map((i: any) => canonicalize(i, 'questions')).filter(Boolean),
+        posts: normalize('posts').map((i: any) => canonicalize(i, 'posts')).filter(Boolean),
+        blogs: normalize('blogs').map((i: any) => canonicalize(i, 'blogs')).filter(Boolean),
+        stories: normalize('stories').map((i: any) => canonicalize(i, 'stories')).filter(Boolean),
+        groups: normalize('groups').map((i: any) => canonicalize(i, 'groups')).filter(Boolean),
+      }
+
+      setSearchResults(normalized)
     } catch {
       setSearchResults(null)
     } finally {
@@ -186,7 +245,7 @@ export default function MainFeed() {
     setSearchQuery('')
     setIsSearchMode(false)
     setSearchResults(null)
-    setSuggestions({ users: [], groups: [], questions: [] })
+    setSuggestions({ users: [], groups: [], questions: [], posts: [], blogs: [], stories: [] })
     setShowSuggestions(false)
   }
 
@@ -244,6 +303,82 @@ export default function MainFeed() {
                       <FileQuestion className="w-4 h-4 text-purple-400 flex-shrink-0" />
                       <span className="text-sm text-gray-700 truncate">
                         <Highlight text={q.content ?? ''} query={searchQuery} />
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Posts */}
+              {suggestions.posts?.length > 0 && (
+                <div>
+                  <div className="px-4 pt-3 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    Posts
+                  </div>
+                  {suggestions.posts.map((p: any) => (
+                    <button
+                      key={p.id}
+                      className="w-full px-4 py-2.5 text-left hover:bg-gray-50 flex items-center gap-3 transition"
+                      onMouseDown={() => {
+                        const text = (p.content ?? '').substring(0, 80)
+                        setSearchQuery(text)
+                        handleSearch(text)
+                      }}
+                    >
+                      <FileQuestion className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                      <span className="text-sm text-gray-700 truncate">
+                        <Highlight text={p.content ?? ''} query={searchQuery} />
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+
+              {/* Stories */}
+              {suggestions.stories?.length > 0 && (
+                <div>
+                  <div className="px-4 pt-3 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    Stories
+                  </div>
+                  {suggestions.stories.map((s: any) => (
+                    <button
+                      key={s.id}
+                      className="w-full px-4 py-2.5 text-left hover:bg-gray-50 flex items-center gap-3 transition"
+                      onMouseDown={() => {
+                        const text = (s.content ?? '').substring(0, 80)
+                        setSearchQuery(text)
+                        handleSearch(text)
+                      }}
+                    >
+                      <FileQuestion className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                      <span className="text-sm text-gray-700 truncate">
+                        <Highlight text={s.content ?? ''} query={searchQuery} />
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Blogs */}
+              {suggestions.blogs?.length > 0 && (
+                <div>
+                  <div className="px-4 pt-3 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    Blogs
+                  </div>
+                  {suggestions.blogs.map((b: any) => (
+                    <button
+                      key={b.id}
+                      className="w-full px-4 py-2.5 text-left hover:bg-gray-50 flex items-center gap-3 transition"
+                      onMouseDown={() => {
+                        const text = (b.content ?? '').substring(0, 80)
+                        setSearchQuery(text)
+                        handleSearch(text)
+                      }}
+                    >
+                      <FileQuestion className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                      <span className="text-sm text-gray-700 truncate">
+                        <Highlight text={b.content ?? ''} query={searchQuery} />
                       </span>
                     </button>
                   ))}
@@ -349,7 +484,8 @@ export default function MainFeed() {
                       {searchResults.questions.map((q: any) => (
                         <div
                           key={q.id}
-                          className="bg-white rounded-2xl border p-4 hover:border-gray-300 transition"
+                          className="bg-white rounded-2xl border p-4 hover:border-gray-300 transition cursor-pointer"
+                          onClick={() => { if (q.linkPath) router.push(q.linkPath) }}
                         >
                           <p className="text-sm text-gray-800">
                             <Highlight text={q.content ?? ''} query={searchQuery} />
@@ -377,7 +513,8 @@ export default function MainFeed() {
                       {searchResults.posts.map((p: any) => (
                         <div
                           key={p.id}
-                          className="bg-white rounded-2xl border p-4 hover:border-gray-300 transition"
+                          className="bg-white rounded-2xl border p-4 hover:border-gray-300 transition cursor-pointer"
+                          onClick={() => { if (p.linkPath) router.push(p.linkPath) }}
                         >
                           <p className="text-sm text-gray-800 line-clamp-3">
                             <Highlight text={p.content ?? ''} query={searchQuery} />
@@ -405,7 +542,8 @@ export default function MainFeed() {
                       {searchResults.stories.map((s: any) => (
                         <div
                           key={s.id}
-                          className="bg-white rounded-2xl border p-4 hover:border-gray-300 transition"
+                          className="bg-white rounded-2xl border p-4 hover:border-gray-300 transition cursor-pointer"
+                          onClick={() => { if (s.linkPath) router.push(s.linkPath) }}
                         >
                           {s.title && (
                             <p className="font-medium text-sm text-gray-900 mb-1">
@@ -435,7 +573,8 @@ export default function MainFeed() {
                       {searchResults.blogs.map((b: any) => (
                         <div
                           key={b.id}
-                          className="bg-white rounded-2xl border p-4 hover:border-gray-300 transition"
+                          className="bg-white rounded-2xl border p-4 hover:border-gray-300 transition cursor-pointer"
+                          onClick={() => { if (b.linkPath) router.push(b.linkPath) }}
                         >
                           {b.title && (
                             <p className="font-medium text-sm text-gray-900 mb-1">

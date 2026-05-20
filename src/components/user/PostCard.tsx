@@ -190,7 +190,7 @@ export default function PostCard({ post }: any) {
         </div>
 
         {/* Content */}
-        <p className="text-sm text-[#212529] mb-3">{post.content}</p>
+        <p className="text-sm text-[#212529] mb-3 whitespace-pre-wrap break-words">{post.content}</p>
 
         {/* Image/Video */}
         {post.image && (
@@ -271,7 +271,7 @@ export default function PostCard({ post }: any) {
                       <p className="font-semibold text-xs text-[#212529]">
                         {comment.author.name}
                       </p>
-                      <p className="text-xs text-gray-700 text-[#212529]">
+                      <p className="text-xs text-gray-700 text-[#212529] whitespace-pre-wrap break-words">
                         {comment.content}
                       </p>
                     </div>
@@ -309,7 +309,7 @@ export default function PostCard({ post }: any) {
                             <p className="font-semibold text-xs text-[#212529]">
                               {reply.author.name}
                             </p>
-                            <p className="text-xs text-gray-700 text-[#212529]">
+                            <p className="text-xs text-gray-700 text-[#212529] whitespace-pre-wrap break-words">
                               {reply.content}
                             </p>
                           </div>

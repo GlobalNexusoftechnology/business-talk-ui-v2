@@ -1,4 +1,5 @@
 import React from 'react';
+import { Check, X } from 'lucide-react'
 import type { MessageEntity } from '@/types/chat';
 
 // Render text with auto-linked URLs and email addresses
@@ -14,7 +15,7 @@ function renderLinkedText(text?: string | null) {
     if (!part) return null;
     if (isEmail(part)) {
       return (
-        <a key={idx} href={`mailto:${part}`} className="text-blue-600 underline break-words">
+        <a key={idx} href={`mailto:${part}`} className="text-blue-600 underline whitespace-pre-wrap break-words">
           {part}
         </a>
       );
@@ -22,12 +23,12 @@ function renderLinkedText(text?: string | null) {
     if (isUrl(part)) {
       const href = part.match(/^https?:\/\//i) ? part : `https://${part}`;
       return (
-        <a key={idx} href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline break-words">
+        <a key={idx} href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline whitespace-pre-wrap break-words">
           {part}
         </a>
       );
     }
-    return <span key={idx}>{part}</span>;
+    return <span key={idx} className="whitespace-pre-wrap break-words">{part}</span>;
   });
 }
 
@@ -171,20 +172,28 @@ const MessageBubble = React.memo<MessageBubbleProps>(({ message, isMine, isGroup
           <div className="flex items-center justify-end gap-1 mt-1">
             <span className="text-[10px] text-gray-500">{displayTime}</span>
             {isMine && (
-              <span
-                className={`text-[10px] ${
-                  message.status === 'seen'
-                    ? 'text-blue-500'
-                    : message.status === 'failed'
-                    ? 'text-red-500'
-                    : 'text-gray-400'
-                }`}
-              >
-                {message.status === 'failed'
-                  ? 'x'
-                  : message.status === 'seen' || message.status === 'delivered'
-                  ? 'vv'
-                  : 'v'}
+              <span className="flex items-center gap-1">
+                {message.status === 'failed' ? (
+                  <span className="flex items-center gap-1">
+                    <X className="w-3 h-3 text-red-500" aria-hidden />
+                    <span className="sr-only">Failed</span>
+                  </span>
+                ) : message.status === 'seen' ? (
+                  <span className="flex items-center gap-[2px]">
+                    <span className="flex items-center">
+                      <Check className="w-3 h-3 text-green-600" aria-hidden />
+                    </span>
+                    <span className="flex items-center">
+                      <Check className="w-3 h-3 text-green-600" aria-hidden />
+                    </span>
+                    <span className="sr-only">Seen</span>
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1">
+                    <Check className="w-3 h-3 text-gray-500" aria-hidden />
+                    <span className="sr-only">Sent</span>
+                  </span>
+                )}
               </span>
             )}
           </div>

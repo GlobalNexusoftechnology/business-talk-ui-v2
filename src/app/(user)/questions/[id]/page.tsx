@@ -90,7 +90,7 @@ function AnswerItem({
         <div className="flex-1">
           <div className="rounded-2xl px-4 py-3" style={{ backgroundColor: '#F8F9FA', border: '1px solid #E8E8E8' }}>
             <p className="text-sm font-semibold" style={{ color: '#212529' }}>{answer.user.full_name || answer.user.username}</p>
-            <p className="text-sm mt-1 leading-relaxed" style={{ color: '#3D3D3D' }}>{answer.comment}</p>
+            <p className="text-sm mt-1 leading-relaxed whitespace-pre-wrap break-words" style={{ color: '#3D3D3D' }}>{answer.comment}</p>
           </div>
           <div className="flex items-center gap-4 mt-1 px-2">
             <span className="text-xs" style={{ color: '#5F6368' }}>{timeAgo(answer.created_on)}</span>
@@ -303,13 +303,13 @@ export default function QuestionDetailPage() {
           </div>
 
           {/* Question heading */}
-          <h1 className="text-xl font-bold mb-3 leading-snug" style={{ color: '#212529' }}>
+          <h1 className="text-xl font-bold mb-3 leading-snug whitespace-pre-wrap break-words" style={{ color: '#212529' }}>
             {question.title}
           </h1>
 
           {/* Description */}
           {question.content && question.content !== question.title && (
-            <p className="text-base leading-relaxed whitespace-pre-wrap mb-4" style={{ color: '#3D3D3D' }}>
+            <p className="text-base leading-relaxed whitespace-pre-wrap break-words mb-4" style={{ color: '#3D3D3D' }}>
               {question.content}
             </p>
           )}

@@ -3,6 +3,7 @@
 import { Search, Clock, Eye, BookmarkPlus, Send, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useEffect } from 'react'
+import ExpandableText from '@/components/common/ExpandableText'
 import apiClient from '@/lib/api-client'
 import { useRouter } from 'next/navigation'
 import { profileHref } from '@/lib/profile-link'
@@ -217,12 +218,10 @@ export default function BlogsPage() {
                       : (blogs[0]?.category || '').replace(/['",]/g, '').trim()}
                   </span>
                 </div>
-                <h2 className="text-2xl font-semibold mb-3" style={{ color: '#212529' }}>
+                <h2 className="text-2xl font-semibold mb-3 whitespace-pre-wrap break-words" style={{ color: '#212529' }}>
                   {blogs[0]?.title}
                 </h2>
-                <p className="mb-4 line-clamp-3" style={{ color: '#5F6368' }}>
-                  {blogs[0]?.excerpt}
-                </p>
+                <ExpandableText className="mb-4 text-sm whitespace-pre-wrap break-words" lines={4}>{blogs[0]?.excerpt}</ExpandableText>
                 <div
                   className="flex items-center gap-3 mb-4 cursor-pointer"
                   onClick={e => { e.stopPropagation(); blogs[0]?.authorId && router.push(profileHref(blogs[0].authorId, blogs[0]?.author?.name)) }}
@@ -291,12 +290,10 @@ export default function BlogsPage() {
                       {blog.publishedAt}
                     </span>
                   </div>
-                  <h3 className="text-xl font-semibold mb-2" style={{ color: '#212529' }}>
+                  <h3 className="text-xl font-semibold mb-2 whitespace-pre-wrap break-words" style={{ color: '#212529' }}>
                     {blog.title}
                   </h3>
-                  <p className="mb-4 line-clamp-2" style={{ color: '#5F6368' }}>
-                    {blog.excerpt}
-                  </p>
+                  <ExpandableText className="mb-4 text-sm whitespace-pre-wrap break-words" lines={4}>{blog.excerpt}</ExpandableText>
 
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div

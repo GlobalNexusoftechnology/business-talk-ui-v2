@@ -95,7 +95,7 @@ function CommentItem({
         <div className="flex-1">
           <div className="bg-gray-50 rounded-2xl px-4 py-3" style={{ border: '1px solid #E8E8E8' }}>
             <p className="text-sm font-semibold" style={{ color: '#212529' }}>{comment.user.full_name || comment.user.username}</p>
-            <p className="text-sm mt-0.5" style={{ color: '#3D3D3D' }}>{comment.comment}</p>
+            <p className="text-sm mt-0.5 whitespace-pre-wrap break-words" style={{ color: '#3D3D3D' }}>{comment.comment}</p>
           </div>
           <div className="flex items-center gap-4 mt-1 px-2">
             <span className="text-xs" style={{ color: '#5F6368' }}>{timeAgo(comment.created_on)}</span>
@@ -312,7 +312,7 @@ export default function PostDetailPage() {
           </div>
 
           {/* Content */}
-          <p className="text-base leading-relaxed whitespace-pre-wrap mb-4" style={{ color: '#212529' }}>
+          <p className="text-base leading-relaxed whitespace-pre-wrap break-words mb-4" style={{ color: '#212529' }}>
             {post.content}
           </p>
 

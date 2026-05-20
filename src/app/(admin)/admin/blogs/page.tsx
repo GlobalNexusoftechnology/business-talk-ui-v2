@@ -1,18 +1,129 @@
-'use client'
+ 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/shared/Button'
+// import { useRouter } from 'next/navigation'
 import { AdminCreateBlogBox } from '@/components/admin/AdminCreateBlogBox'
 import { useAdminBlogs, useDeleteBlog, useUpdateBlog } from '@/hooks/useAdminBlogs'
+// import { useDeletePost } from '@/hooks/useAdminPosts'
 // import { useBanUser, useWarnUser } from '@/hooks/useAdminPosts'
 import { AdminContentCard } from '@/components/admin/AdminContentCard'
 import { validateImageFile } from '@/lib/utils'
+import { useSearchParams } from 'next/navigation'
+import apiClient from '@/lib/api-client'
 
 const filters = ['All', 'Latest', 'Trending', 'Reported']
 
 export default function AdminBlogsPage() {
   const [activeFilter, setActiveFilter] = useState('All')
   const [showCreate, setShowCreate] = useState(false)
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [searchResults, setSearchResults] = useState<any[] | null>(null)
+  // const router = useRouter()
+  const searchParams = useSearchParams()
+  const qParam = searchParams?.get('q') || ''
+
+  useEffect(() => {
+    if (!qParam) {
+      setSearchResults(null)
+      return
+    }
+
+    const run = async () => {
+      try {
+        const res = await apiClient.searchAll(qParam, 'blogs', 1, 50)
+        const raw = res?.data ?? {}
+
+        const extract = (obj: any) => {
+          if (!obj) return []
+          if (Array.isArray(obj)) return obj
+          const keys = ['items', 'posts', 'questions', 'blogs', 'stories', 'users']
+          let out: any[] = []
+          for (const k of keys) {
+            const arr = obj[k]
+            if (Array.isArray(arr)) out = out.concat(arr)
+          }
+          return out
+        }
+
+        let items: any[] = []
+        if (Array.isArray(raw)) items = raw
+        else if (raw.data && Array.isArray(raw.data)) items = raw.data
+        else if (raw.data && typeof raw.data === 'object') items = extract(raw.data)
+        else items = extract(raw)
+
+        const filtered = (items || []).filter((i: any) => {
+          const t = String(i.type || '').toUpperCase()
+          return t === 'BLOG' || t === 'ADMIN_BLOG' || t === 'STORY'
+        })
+
+        if ((filtered || []).length > 0) {
+          setSearchResults(filtered)
+        } else {
+          // fallback: if qParam looks like an id, try fetching blog/story by id
+          const looksLikeId = /^[0-9a-fA-F-]{6,}$/.test(qParam) || /^\d+$/.test(qParam)
+          if (looksLikeId) {
+            try {
+              const single = await apiClient.getBlogById(qParam)
+              const blog = single?.data
+              if (blog && (String(blog.type || '').toUpperCase() === 'BLOG' || String(blog.type || '').toUpperCase() === 'STORY' || String(blog.type || '').toUpperCase() === 'ADMIN_BLOG')) {
+                setSearchResults([blog])
+                return
+              }
+            } catch (e) {
+              // ignore
+            }
+          }
+
+          setSearchResults([])
+        }
+      } catch (err) {
+        setSearchResults([])
+      }
+    }
+
+    run()
+  }, [qParam])
+
+  // // Debounced input -> call search API for blogs/stories
+  // useEffect(() => {
+  //   if (debounceRef.current) clearTimeout(debounceRef.current)
+  //   if (!debouncedSearch) {
+  //     if (!qParam) setSearchResults(null)
+  //     return
+  //   }
+
+  //   debounceRef.current = setTimeout(async () => {
+  //     try {
+  //       const res = await apiClient.searchAll(debouncedSearch, 'blogs', 1, 50)
+  //       const raw = res?.data ?? {}
+  //       let items: any[] = []
+  //       if (Array.isArray(raw)) items = raw
+  //       else if (raw && typeof raw === 'object') {
+  //         const keys = ['items', 'posts', 'questions', 'blogs', 'stories', 'users']
+  //         for (const k of keys) {
+  //           const arr = raw[k]
+  //           if (Array.isArray(arr)) items = items.concat(arr)
+  //         }
+  //       }
+  //       const filtered = (items || []).filter((i: any) => {
+  //         const t = String(i.type || '').toUpperCase()
+  //         return t === 'BLOG' || t === 'ADMIN_BLOG' || t === 'STORY'
+  //       })
+  //       setSearchResults(filtered)
+  //     } catch (err) {
+  //       setSearchResults([])
+  //     }
+  //   }, 300)
+
+  //   return () => {
+  //     if (debounceRef.current) clearTimeout(debounceRef.current)
+  //   }
+  // }, [debouncedSearch, qParam])
+
+  // simple client-side suggestions removed — using local debounced search like posts/users
   const [editingBlog, setEditingBlog] = useState<any | null>(null)
   const [editTitle, setEditTitle] = useState('')
   const [editContent, setEditContent] = useState('')
@@ -53,6 +164,77 @@ export default function AdminBlogsPage() {
     setEditCoverFile(null)
     setEditError('')
   }
+  // const deletePost = useDeletePost()
+  const itemsToRender = searchResults !== null ? searchResults : blogs
+
+  // const resolveCardType = (it: any) => {
+  //   const t = String(it?.type || it?.post_type || '').toUpperCase()
+  //   if (t === 'QUESTION') return 'question'
+  //   if (t === 'BLOG' || t === 'ADMIN_BLOG') return 'blog'
+  //   if (t === 'STORY') return 'story'
+  //   return 'post'
+  // }
+
+  // const renderCard = (b: any) => {
+  //   const cardType = resolveCardType(b) as any
+  //   const author = {
+  //     id: b.user?.id || '',
+  //     name: b.user?.full_name || b.user?.username || 'Unknown',
+  //     avatar: b.user?.profile_photo,
+  //     title: b.user?.profession,
+  //   }
+
+  //   const common = {
+  //     key: b.id,
+  //     id: b.id,
+  //     author,
+  //     likes: b.upvotes ?? b.likes ?? 0,
+  //     commentsCount: b.commentsCount ?? b.comments_count ?? b.comment_count ?? 0,
+  //     views: b.views,
+  //     createdOn: b.created_on,
+  //   }
+
+  //   if (cardType === 'blog' || cardType === 'story') {
+  //     return (
+  //       <AdminContentCard
+  //         {...common}
+  //         type={cardType}
+  //         title={b.title}
+  //         content={b.content}
+  //         coverImage={b.cover_image}
+  //         media={b.media || []}
+  //         tags={b.tags || []}
+  //         onDelete={(id) => deleteBlog.mutate(id)}
+  //         onEdit={b.type === 'ADMIN_BLOG' ? () => openEditModal(b) : undefined}
+  //       />
+  //     )
+  //   }
+
+  //   if (cardType === 'question') {
+  //     return (
+  //       <AdminContentCard
+  //         {...common}
+  //         type="question"
+  //         title={b.content}
+  //         content={b.description}
+  //         tags={b.tags || []}
+  //         onDelete={(id) => deleteBlog.mutate(id)}
+  //       />
+  //     )
+  //   }
+
+  //   // default: post
+  //   return (
+  //     <AdminContentCard
+  //       {...common}
+  //       type="post"
+  //       content={b.content}
+  //       media={b.media || []}
+  //       tags={b.tags || []}
+  //       onDelete={(id) => deletePost.mutate(id)}
+  //     />
+  //   )
+  // }
 
   const handleUpdateBlog = async () => {
     if (!editingBlog?.id) return
@@ -120,14 +302,35 @@ export default function AdminBlogsPage() {
               {f}
             </button>
           ))}
+          <div className="ml-auto relative flex items-center gap-2">
+            <input
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                if (debounceRef.current) clearTimeout(debounceRef.current)
+                debounceRef.current = setTimeout(() => setDebouncedSearch(e.target.value), 300)
+              }}
+              placeholder="Search blogs, authors..."
+              className="px-3 py-2 border rounded-lg"
+            />
+          </div>
         </div>
 
         {isLoading ? (
           <div className="py-16 text-center text-gray-400">Loading...</div>
-        ) : blogs.length === 0 ? (
+        ) : itemsToRender.length === 0 ? (
           <div className="py-16 text-center text-gray-400">No blogs found.</div>
         ) : (
-          blogs.map((b: any) => (
+          itemsToRender
+            .filter((b: any) => {
+              if (!debouncedSearch) return true
+              const q = debouncedSearch.toLowerCase()
+              const author = (b.user?.full_name || b.user?.username || '').toLowerCase()
+              const content = (b.content || b.title || '').toLowerCase()
+              const title = (b.title || '').toLowerCase()
+              return author.includes(q) || content.includes(q) || title.includes(q)
+            })
+            .map((b: any) => (
             <AdminContentCard
               key={b.id}
               id={b.id}

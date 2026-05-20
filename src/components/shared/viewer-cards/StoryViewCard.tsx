@@ -169,7 +169,7 @@ export function StoryViewCard({ data }: Props) {
               <div className="flex-1">
                 <div className="bg-gray-100 px-3 py-2 rounded-lg">
                   <p className="text-xs font-semibold">{reply.author.name}</p>
-                  <p className="text-xs">{reply.content}</p>
+                  <p className="text-xs whitespace-pre-wrap break-words">{reply.content}</p>
                 </div>
                 <div className="flex gap-3 text-xs mt-1 text-gray-500">
                   <button
@@ -246,8 +246,8 @@ export function StoryViewCard({ data }: Props) {
 
       {/* TITLE + CONTENT */}
       <h2 className="text-xl font-semibold text-gray-900">{data.storyTitle}</h2>
-      {data.content && <p className="text-sm text-gray-600 leading-relaxed">{data.content}</p>}
-      {data.excerpt && !data.content && <p className="text-sm text-gray-600 leading-relaxed">{data.excerpt}</p>}
+      {data.content && <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap break-words">{data.content}</p>}
+      {data.excerpt && !data.content && <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap break-words">{data.excerpt}</p>}
 
       {/* ACTION BAR */}
       <div className="flex flex-wrap gap-4 border-t border-b py-3 text-sm text-gray-500">
@@ -317,7 +317,7 @@ export function StoryViewCard({ data }: Props) {
                 <div className="flex-1">
                   <div className="bg-gray-100 px-3 py-2 rounded-lg">
                     <p className="text-xs font-semibold text-gray-800">{c.author.name}</p>
-                    <p className="text-sm text-gray-700">{c.content}</p>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">{c.content}</p>
                   </div>
                   <div className="flex gap-3 text-xs mt-1 text-gray-500">
                     <button

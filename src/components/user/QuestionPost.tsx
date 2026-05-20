@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 
 import { useState, useEffect, useRef } from 'react'
+import ExpandableText from '@/components/common/ExpandableText'
 import { useRouter } from 'next/navigation'
 import { profileHref } from '@/lib/profile-link'
 import { ShareModal } from '@/components/shared/ShareModal'
@@ -427,7 +428,7 @@ export function QuestionPost({
               <div className="flex-1">
                 <div className="bg-gray-100 px-3 py-2 rounded-lg">
                   <p className="text-xs font-semibold">{reply.author.name}</p>
-                  <p className="text-xs">{reply.content}</p>
+                  <p className="text-xs whitespace-pre-wrap break-words">{reply.content}</p>
                 </div>
 
                 <div className="flex gap-3 text-xs mt-1">
@@ -459,6 +460,27 @@ export function QuestionPost({
                       }`}
                     /> {reply.dislikes}
                   </button>
+                    <h4
+                      onClick={() =>
+                        openQuestion({
+                          id,
+                          question: displayQuestion,
+                          content: displayQuestion,
+                          description,
+                          tags,
+                          author,
+                          authorId,
+                          timestamp,
+                          likes: likeCount,
+                          liked: isLiked,
+                          views,
+                        })
+                      }
+                      className="text-lg font-semibold cursor-pointer"
+                      tabIndex={0}
+                    >
+                      <ExpandableText lines={4} className="font-semibold text-lg">{displayQuestion}</ExpandableText>
+                    </h4>
                   <button onClick={() => setReplyingTo(reply.id)}>
                     Reply
                   </button>
@@ -655,12 +677,13 @@ export function QuestionPost({
             })
           }
           className="text-lg font-semibold cursor-pointer"
+          tabIndex={0}
         >
-          {displayQuestion}
+          <ExpandableText lines={4} className="font-semibold text-lg whitespace-pre-wrap break-words">{displayQuestion}</ExpandableText>
         </h2>
 
         {description && (
-          <p className="text-sm text-gray-500 mt-2">{description}</p>
+          <p className="text-sm text-gray-500 mt-2 whitespace-pre-wrap break-words">{description}</p>
         )}
 
         

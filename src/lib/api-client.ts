@@ -58,7 +58,8 @@ const PUBLIC_AUTH_PATHS = [
 ]
 
 const LAST_LOGIN_AT_KEY = 'auth:last_login_at'
-const AUTH_STABILIZATION_MS = 12_000
+// Increased stabilization window to avoid premature forced logout during brief refresh races
+const AUTH_STABILIZATION_MS = 120_000
 
 let authHydratingInProgress = false
 
@@ -431,6 +432,11 @@ class ApiClient {
 
   getMyProfile() {
     return this.client.get('/auth/me', { withCredentials: true })
+  }
+
+  // Admin: change email with password verification
+  async changeAdminEmail(newEmail: string, password: string) {
+    return this.client.patch('/admin/change-email', { newEmail, password })
   }
 
   getDashboardStats() {

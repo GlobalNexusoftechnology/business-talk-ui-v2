@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 
 import apiClient from '@/lib/api-client'
+import { useSearchParams } from 'next/navigation'
 import adminApi from '@/lib/admin-api'
 
 export default function AdminUsersPage() {
@@ -74,6 +75,42 @@ export default function AdminUsersPage() {
 
     fetchUsers()
   }, [])
+
+  // If ?q= is present, use backend search API for users
+  const searchParams = useSearchParams()
+  const qParam = searchParams?.get('q') || ''
+
+  useEffect(() => {
+    if (!qParam) return
+
+    const run = async () => {
+      try {
+        const res = await apiClient.searchAll(qParam, 'users', 1, 50)
+        const items: any[] = res?.data?.items ?? res?.data ?? []
+        const normalized = (items || []).map((u: any) => ({
+          id: u.id,
+          name: u.full_name || u.username || u.name || 'User',
+          email: u.email,
+          company: u.company || 'N/A',
+          role: u.profession || 'User',
+          posts: 0,
+          followers: 0,
+          lastActive: 'N/A',
+          status: u.is_banned ? 'suspended' : u.warning_count > 0 ? 'reported' : 'active',
+          verified: u.is_verified || false,
+          is_banned: u.is_banned,
+          warning_count: u.warning_count,
+        }))
+
+        setUsers(normalized)
+        setFilteredUsers(normalized)
+      } catch (err) {
+        // ignore
+      }
+    }
+
+    run()
+  }, [qParam])
 
   // ================= FILTER =================
   useEffect(() => {

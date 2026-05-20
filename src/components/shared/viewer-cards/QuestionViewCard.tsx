@@ -207,7 +207,7 @@ export function QuestionViewCard({ data }: Props) {
               <div className="flex-1">
                 <div className="bg-gray-100 px-3 py-2 rounded-lg">
                   <p className="text-xs font-semibold">{reply.author.name}</p>
-                  <p className="text-xs">{reply.content}</p>
+                  <p className="text-xs whitespace-pre-wrap break-words">{reply.content}</p>
                 </div>
                 <div className="flex gap-3 text-xs mt-1 text-gray-500">
                   <button
@@ -284,7 +284,7 @@ export function QuestionViewCard({ data }: Props) {
       </div>
 
       {/* QUESTION */}
-      <h2 className="text-lg font-semibold text-gray-900">{displayQuestion}</h2>
+      <h2 className="text-lg font-semibold text-gray-900 whitespace-pre-wrap break-words">{displayQuestion}</h2>
 
       {/* Tags */}
       {data.tags?.length > 0 && (
@@ -379,7 +379,7 @@ export function QuestionViewCard({ data }: Props) {
                 </div>
               </div>
 
-              <p className="text-sm text-gray-700 mb-3">{answer.content}</p>
+              <p className="text-sm text-gray-700 mb-3 whitespace-pre-wrap break-words">{answer.content}</p>
 
               <div className="flex gap-3 text-sm text-gray-500">
                 <button

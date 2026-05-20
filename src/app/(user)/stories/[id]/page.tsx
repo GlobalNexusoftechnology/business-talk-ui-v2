@@ -96,7 +96,7 @@ function CommentItem({
         <div className="flex-1">
           <div className="rounded-2xl px-4 py-3" style={{ backgroundColor: '#F8F9FA', border: '1px solid #E8E8E8' }}>
             <p className="text-sm font-semibold" style={{ color: '#212529' }}>{comment.user.full_name || comment.user.username}</p>
-            <p className="text-sm mt-1 leading-relaxed" style={{ color: '#3D3D3D' }}>{comment.content}</p>
+            <p className="text-sm mt-1 leading-relaxed whitespace-pre-wrap break-words" style={{ color: '#3D3D3D' }}>{comment.content}</p>
           </div>
           <div className="flex items-center gap-4 mt-1 px-2">
             <span className="text-xs" style={{ color: '#5F6368' }}>{timeAgo(comment.created_on)}</span>
@@ -295,7 +295,7 @@ export default function StoryDetailPage() {
           {/* Story card */}
           <div className="bg-white rounded-2xl border p-6" style={{ border: '1px solid #E8E8E8' }}>
             {/* Title */}
-            <h1 className="text-2xl font-bold mb-4 leading-tight" style={{ color: '#212529' }}>
+            <h1 className="text-2xl font-bold mb-4 leading-tight whitespace-pre-wrap break-words" style={{ color: '#212529' }}>
               {story.title}
             </h1>
 
@@ -321,7 +321,7 @@ export default function StoryDetailPage() {
             </div>
 
             {/* Content */}
-            <div className="prose max-w-none text-base leading-relaxed whitespace-pre-wrap mb-5" style={{ color: '#212529' }}>
+            <div className="prose max-w-none text-base leading-relaxed whitespace-pre-wrap mb-5 break-words" style={{ color: '#212529' }}>
               {story.content}
             </div>
 

@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { ShareModal } from '@/components/shared/ShareModal'
 import { ContentData } from '@/hooks/useContentViewer'
 import { MediaGrid, MediaItem } from '@/components/shared/MediaGrid'
+import ExpandableText from '@/components/common/ExpandableText'
 
 interface PostViewCardProps {
   data: ContentData
@@ -37,9 +38,9 @@ export function PostViewCard({ data }: PostViewCardProps) {
                   alt={nestedReply.author.name}
                 />
                 <div className="flex-1">
-                  <div className="bg-gray-100 rounded-lg px-3 py-2">
+                    <div className="bg-gray-100 rounded-lg px-3 py-2">
                     <p className="font-semibold text-xs text-gray-900">{nestedReply.author.name}</p>
-                    <p className="text-xs text-gray-700">{nestedReply.content}</p>
+                    <p className="text-xs text-gray-700 whitespace-pre-wrap break-words">{nestedReply.content}</p>
                   </div>
                   <div className="flex gap-3 mt-1 px-3 text-xs text-gray-500">
                     <button
@@ -250,7 +251,7 @@ export function PostViewCard({ data }: PostViewCardProps) {
 
       {/* Content */}
       <div>
-        <p className="text-gray-800 leading-relaxed">{data.content}</p>
+        <ExpandableText className="text-gray-800 leading-relaxed" lines={4}>{data.content}</ExpandableText>
       </div>
 
       {/* Media */}
@@ -333,7 +334,7 @@ export function PostViewCard({ data }: PostViewCardProps) {
                   <div className="flex-1">
                     <div className="bg-gray-100 rounded-lg px-3 py-2">
                       <p className="font-semibold text-xs text-gray-900">{comment.author.name}</p>
-                      <p className="text-xs text-gray-700">{comment.content}</p>
+                      <p className="text-xs text-gray-700 whitespace-pre-wrap break-words">{comment.content}</p>
                     </div>
                     <div className="flex gap-3 mt-1 px-3 text-xs text-gray-500">
                       <button

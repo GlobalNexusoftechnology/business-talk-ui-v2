@@ -13,6 +13,7 @@ import { useSavedStatus } from '@/hooks/useSavedStatus'
 import { useAccountStatus, useAppSelector } from '@/hooks/useRedux'
 import { getTimeAgo } from '@/lib/utils'
 import { MediaGrid, MediaItem } from '@/components/shared/MediaGrid'
+import ExpandableText from '@/components/common/ExpandableText'
 
 interface FeedPostProps {
   id?: string
@@ -119,9 +120,9 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
                   alt={nestedReply.author.name}
                 />
                 <div className="flex-1">
-                  <div className="bg-gray-100 rounded-lg px-3 py-2">
+                    <div className="bg-gray-100 rounded-lg px-3 py-2">
                     <p className="font-semibold text-xs text-gray-900">{nestedReply.author.name}</p>
-                    <p className="text-xs text-gray-700">{nestedReply.content}</p>
+                    <p className="text-xs text-gray-700 whitespace-pre-wrap break-words">{nestedReply.content}</p>
                   </div>
                   <div className="flex gap-3 mt-1 px-3 text-xs text-gray-500">
                     <button 
@@ -594,7 +595,7 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
           className="mb-4 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={handleOpenViewer}
         >
-          <p className="text-gray-800 leading-relaxed">{content}</p>
+          <ExpandableText className="text-gray-800 leading-relaxed" lines={4}>{content}</ExpandableText>
         </div>
 
         {/* Media Grid */}
@@ -695,7 +696,7 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
                     <div className="flex-1">
                       <div className="bg-gray-50 rounded-lg px-3 py-2">
                         <p className="text-xs font-semibold text-gray-900">{comment.author.name}</p>
-                        <p className="text-sm text-gray-700">{comment.content}</p>
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">{comment.content}</p>
                       </div>
                       <div className="flex gap-2 mt-1 px-3 text-xs text-gray-500">
                         <button 

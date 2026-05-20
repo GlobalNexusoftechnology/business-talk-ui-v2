@@ -2,6 +2,7 @@
 
 
 import { BookOpen, Eye, MessageCircle, Send, ThumbsUp } from 'lucide-react'
+import ExpandableText from '@/components/common/ExpandableText'
 import { useState } from 'react'
 import { ShareModal } from '@/components/shared/ShareModal'
 import { ContentData } from '@/hooks/useContentViewer'
@@ -44,7 +45,7 @@ export function BlogViewCard({ data }: BlogViewCardProps) {
                 <div className="flex-1">
                   <div className="bg-gray-100 rounded-lg px-3 py-2">
                     <p className="font-semibold text-xs text-gray-900">{nestedReply.author.name}</p>
-                    <p className="text-xs text-gray-700">{nestedReply.content}</p>
+                    <p className="text-xs text-gray-700 whitespace-pre-wrap break-words">{nestedReply.content}</p>
                   </div>
                   <div className="flex gap-3 mt-1 px-3 text-xs text-gray-500">
                     <button
@@ -318,12 +319,7 @@ export function BlogViewCard({ data }: BlogViewCardProps) {
       <h2 className="text-2xl font-bold text-gray-900">{data.storyTitle}</h2>
 
       {/* Content */}
-      <p className="text-gray-700 leading-relaxed">{data.excerpt}</p>
-
-      {/* Read More Link */}
-      <button className="text-black font-medium text-sm hover:text-gray-700 transition-colors">
-        Read full story →
-      </button>
+      <ExpandableText className="text-gray-700 leading-relaxed" lines={4}>{data.excerpt}</ExpandableText>
 
       {/* Actions */}
       <div className="flex items-center gap-2 pt-4 border-t border-gray-100">
@@ -398,7 +394,7 @@ export function BlogViewCard({ data }: BlogViewCardProps) {
                   <div className="flex-1">
                     <div className="bg-gray-50 rounded-lg px-3 py-2">
                       <p className="text-xs font-semibold text-gray-900">{comment.author.name}</p>
-                      <p className="text-sm text-gray-700">{comment.content}</p>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">{comment.content}</p>
                     </div>
                     <div className="flex gap-2 mt-1 px-3 text-xs text-gray-500">
                       <button 

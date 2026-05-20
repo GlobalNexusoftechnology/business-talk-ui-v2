@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { profileHref } from '@/lib/profile-link'
+import ExpandableText from '@/components/common/ExpandableText'
 
 interface BlogCardProps {
   blog: {
@@ -54,7 +55,7 @@ const BlogCard: React.FC<BlogCardProps> = ({ blog }) => {
           className="w-full h-40 object-cover rounded mb-2"
         />
       )}
-      <p className="text-gray-700 text-sm line-clamp-3">{blog.content}</p>
+      <ExpandableText className="text-gray-700 text-sm whitespace-pre-wrap break-words" lines={4}>{blog.content}</ExpandableText>
     </div>
   );
 };

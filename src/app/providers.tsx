@@ -19,7 +19,7 @@ const PUBLIC_AUTH_ROUTES = [
   '/google-success',
 ]
 
-const AUTH_STABILIZATION_MS = 12_000
+const AUTH_STABILIZATION_MS = 120_000
 const LAST_LOGIN_AT_KEY = 'auth:last_login_at'
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))

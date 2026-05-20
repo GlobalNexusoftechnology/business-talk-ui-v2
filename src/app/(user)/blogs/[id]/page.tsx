@@ -106,7 +106,7 @@ function BlogCommentItem({
         <div className="flex-1">
           <div className="rounded-2xl px-4 py-3" style={{ backgroundColor: '#F8F9FA', border: '1px solid #E8E8E8' }}>
             <p className="text-sm font-semibold" style={{ color: '#212529' }}>{comment.user.name}</p>
-            <p className="text-sm mt-0.5 leading-relaxed" style={{ color: '#3D3D3D' }}>{comment.content}</p>
+            <p className="text-sm mt-0.5 leading-relaxed whitespace-pre-wrap break-words" style={{ color: '#3D3D3D' }}>{comment.content}</p>
           </div>
           <div className="flex items-center gap-4 mt-1 px-2">
             <button
@@ -340,7 +340,7 @@ export default function BlogDetailsPage() {
         <img src={blog.image} alt={blog.title} className="w-full h-48 sm:h-64 md:h-80 object-cover rounded-xl mb-6" />
 
         {/* TITLE */}
-        <h1 className="text-3xl font-bold mb-4">{blog.title}</h1>
+        <h1 className="text-3xl font-bold mb-4 whitespace-pre-wrap break-words">{blog.title}</h1>
 
         {/* AUTHOR */}
         <div
@@ -357,7 +357,7 @@ export default function BlogDetailsPage() {
             <p className="text-sm" style={{ color: '#5F6368' }}>{blog.author.title} · {blog.publishedAt}</p>
           </div>
         </div>
-        <p className="mb-8">{blog.content}</p>
+        <p className="mb-8 whitespace-pre-wrap break-words">{blog.content}</p>
 
         {/* ================== 🆕 COMMENTS LIST ================== */}
         {comments.length > 0 && (

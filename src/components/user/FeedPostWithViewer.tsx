@@ -133,7 +133,7 @@ export function FeedPostWithViewer({
 
         {/* Post Content */}
         <div className="mb-4">
-          <p className="text-gray-800 leading-relaxed">{content}</p>
+          <p className="text-gray-800 leading-relaxed whitespace-pre-wrap break-words">{content}</p>
         </div>
 
         {/* Post Image */}

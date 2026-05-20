@@ -1,21 +1,70 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/shared/Button'
 import { AdminCreatePostBox } from '@/components/admin/AdminCreatePostBox'
 import { useAdminPosts, useDeletePost, useWarnUser, useBanUser } from '@/hooks/useAdminPosts'
 import { AdminContentCard } from '@/components/admin/AdminContentCard'
+import { useSearchParams } from 'next/navigation'
+import apiClient from '@/lib/api-client'
 
 const filters = ['All', 'Latest', 'Trending', 'Reported']
 
 export default function AdminPostsPage() {
   const [filter, setFilter] = useState('All')
   const [showCreate, setShowCreate] = useState(false)
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [searchResults, setSearchResults] = useState<any[] | null>(null)
+  const searchParams = useSearchParams()
+  const qParam = searchParams?.get('q') || ''
+
+  useEffect(() => {
+    if (!qParam) {
+      setSearchResults(null)
+      return
+    }
+
+    const run = async () => {
+      try {
+        const res = await apiClient.searchAll(qParam, 'posts', 1, 50)
+        const raw = res?.data ?? {}
+
+        const extract = (obj: any) => {
+          if (!obj) return []
+          if (Array.isArray(obj)) return obj
+          const keys = ['items', 'posts', 'questions', 'blogs', 'stories', 'users']
+          let out: any[] = []
+          for (const k of keys) {
+            const arr = obj[k]
+            if (Array.isArray(arr)) out = out.concat(arr)
+          }
+          return out
+        }
+
+        let items: any[] = []
+        if (Array.isArray(raw)) items = raw
+        else if (raw.data && Array.isArray(raw.data)) items = raw.data
+        else if (raw.data && typeof raw.data === 'object') items = extract(raw.data)
+        else items = extract(raw)
+
+        // filter out QUESTION type for Posts page (show only normal posts)
+        const filtered = (items || []).filter((i: any) => String(i.type || i.post_type || '').toUpperCase() !== 'QUESTION')
+        setSearchResults(filtered)
+      } catch (err) {
+        setSearchResults([])
+      }
+    }
+
+    run()
+  }, [qParam])
 
   const { data: posts = [], isLoading } = useAdminPosts(filter)
   const deletePost = useDeletePost()
   const warnUser = useWarnUser()
   const banUser = useBanUser()
+  const itemsToRender = searchResults !== null ? searchResults : posts
 
   return (
     <div className="p-6 min-h-screen" style={{ backgroundColor: '#F8F9FA' }}>
@@ -25,7 +74,7 @@ export default function AdminPostsPage() {
           <Button onClick={() => setShowCreate(true)}>Create Post</Button>
         </div>
 
-        <div className="flex gap-2 mb-6 flex-wrap">
+        <div className="flex gap-2 mb-6 flex-wrap items-center">
           {filters.map((f) => (
             <button
               key={f}
@@ -40,36 +89,58 @@ export default function AdminPostsPage() {
               {f}
             </button>
           ))}
+          <div className="ml-auto flex items-center gap-2">
+            <input
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                if (debounceRef.current) clearTimeout(debounceRef.current)
+                debounceRef.current = setTimeout(() => setDebouncedSearch(e.target.value), 300)
+              }}
+              placeholder="Search posts, authors..."
+              className="px-3 py-2 border rounded-lg"
+            />
+          </div>
         </div>
 
         {isLoading ? (
           <div className="py-16 text-center text-gray-400">Loading...</div>
-        ) : posts.length === 0 ? (
+        ) : itemsToRender.length === 0 ? (
           <div className="py-16 text-center text-gray-400">No posts found.</div>
         ) : (
-          posts.map((p: any) => (
-            <AdminContentCard
-              key={p.id}
-              id={p.id}
-              type="post"
-              author={{
-                id: p.user?.id || '',
-                name: p.user?.full_name || p.user?.username || 'Unknown',
-                avatar: p.user?.profile_photo,
-                title: p.user?.profession,
-              }}
-              content={p.content}
-              media={p.media || []}
-              tags={p.tags || []}
-              likes={p.upvotes ?? p.likes ?? 0}
-              commentsCount={p.commentsCount ?? p.comments_count ?? p.comment_count ?? 0}
-              views={p.views}
-              createdOn={p.created_on}
-              onWarn={(uid) => warnUser.mutate(uid)}
-              onBan={(uid) => banUser.mutate(uid)}
-              onDelete={(id) => deletePost.mutate(id)}
-            />
-          ))
+          <>
+            {itemsToRender
+              .filter((p: any) => {
+                if (!debouncedSearch) return true
+                const q = debouncedSearch.toLowerCase()
+                const author = (p.user?.full_name || p.user?.username || '').toLowerCase()
+                const content = (p.content || p.title || '').toLowerCase()
+                return author.includes(q) || content.includes(q)
+              })
+              .map((p: any) => (
+                <AdminContentCard
+                  key={p.id}
+                  id={p.id}
+                  type="post"
+                  author={{
+                    id: p.user?.id || '',
+                    name: p.user?.full_name || p.user?.username || 'Unknown',
+                    avatar: p.user?.profile_photo,
+                    title: p.user?.profession,
+                  }}
+                  content={p.content}
+                  media={p.media || []}
+                  tags={p.tags || []}
+                  likes={p.upvotes ?? p.likes ?? 0}
+                  commentsCount={p.commentsCount ?? p.comments_count ?? p.comment_count ?? 0}
+                  views={p.views}
+                  createdOn={p.created_on}
+                  onWarn={(uid) => warnUser.mutate(uid)}
+                  onBan={(uid) => banUser.mutate(uid)}
+                  onDelete={(id) => deletePost.mutate(id)}
+                />
+              ))}
+          </>
         )}
       </div>
 

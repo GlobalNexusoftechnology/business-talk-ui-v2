@@ -15,7 +15,7 @@ const isRestrictedUser = (user: any) =>
   Boolean(user?.is_banned || user?.isBanned)
 
 const LAST_LOGIN_AT_KEY = 'auth:last_login_at'
-const AUTH_STABILIZATION_MS = 12_000
+const AUTH_STABILIZATION_MS = 120_000
 
 const isWithinRecentLoginWindow = (): boolean => {
   if (typeof window === 'undefined') return false
