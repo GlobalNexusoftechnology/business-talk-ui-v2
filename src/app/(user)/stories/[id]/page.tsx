@@ -294,9 +294,9 @@ export default function StoryDetailPage() {
 
           {/* Cover image (full-width) */}
           {story.coverImage && (
-            <div className="w-full overflow-hidden relative">
-              <img src={story.coverImage} alt={story.title} className="w-full h-full object-contain" />
-              <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55))' }} />
+            <div className="w-full overflow-hidden relative mb-6 h-48 sm:h-64 md:h-80 rounded-xl">
+              <img src={story.coverImage} alt={story.title} className="w-full h-full object-cover rounded-xl" />
+              <div className="absolute inset-0 rounded-xl" style={{ background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55))' }} />
             </div>
           )}
 

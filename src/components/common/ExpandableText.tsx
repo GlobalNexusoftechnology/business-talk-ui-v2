@@ -43,13 +43,16 @@ export default function ExpandableText({ children, className = '', lines = 4 }: 
       </div>
 
       {showToggle && (
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="mt-2 text-sm font-medium text-blue-600 hover:underline"
-          aria-expanded={expanded}
-        >
-          {expanded ? 'Show Less' : 'Read More'}
-        </button>
+          <button
+            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+              e.stopPropagation()
+              setExpanded(!expanded)
+            }}
+            className="mt-2 text-sm font-medium text-blue-500 hover:underline"
+            aria-expanded={expanded}
+          >
+            {expanded ? 'Show Less' : 'Read More'}
+          </button>
       )}
     </div>
   )
