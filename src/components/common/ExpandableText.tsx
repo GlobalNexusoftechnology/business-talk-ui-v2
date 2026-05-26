@@ -4,9 +4,11 @@ interface ExpandableTextProps {
   children: string | null | undefined
   className?: string
   lines?: number
+  stopPropagation?: boolean
+  onClick?: () => void
 }
 
-export default function ExpandableText({ children, className = '', lines = 4 }: ExpandableTextProps) {
+export default function ExpandableText({ children, className = '', lines = 4, stopPropagation = true, onClick }: ExpandableTextProps) {
   const text = children || ''
   const [expanded, setExpanded] = useState(false)
   const [showToggle, setShowToggle] = useState(false)
@@ -31,6 +33,11 @@ export default function ExpandableText({ children, className = '', lines = 4 }: 
   return (
     <div>
       <div
+        onClick={(e) => {
+          if (stopPropagation) e.stopPropagation()
+          // Only trigger external onClick when expanded (Show Less visible)
+          if (expanded && onClick) onClick()
+        }}
         ref={ref}
         className={`whitespace-pre-wrap break-words ${className}`}
         style={

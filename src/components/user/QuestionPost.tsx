@@ -660,27 +660,34 @@ export function QuestionPost({
         </div>
 
         {/* QUESTION */}
+        {/* <ExpandableText lines={4} className="font-semibold text-lg whitespace-pre-wrap break-words"> */}
         <h2
-          onClick={() =>
-            openQuestion({
-              id,
-              question: displayQuestion,
-              content: displayQuestion,
-              description,
-              tags,
-              author,
-              authorId,
-              timestamp,
-              likes: likeCount,
-              liked: isLiked,
-              views,
-            })
-          }
           className="text-lg font-semibold cursor-pointer"
           tabIndex={0}
         >
-          <ExpandableText lines={4} className="font-semibold text-lg whitespace-pre-wrap break-words">{displayQuestion}</ExpandableText>
+          <ExpandableText
+            lines={4}
+            className="font-semibold text-lg whitespace-pre-wrap break-words"
+            onClick={() =>
+              openQuestion({
+                id,
+                question: displayQuestion,
+                content: displayQuestion,
+                description,
+                tags,
+                author,
+                authorId,
+                timestamp,
+                likes: likeCount,
+                liked: isLiked,
+                views,
+              })
+            }
+          >
+            {displayQuestion}
+          </ExpandableText>
         </h2>
+        {/* </ExpandableText> */}
 
         {description && (
           <p className="text-sm text-gray-500 mt-2 whitespace-pre-wrap break-words">{description}</p>

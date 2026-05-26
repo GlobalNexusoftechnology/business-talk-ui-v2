@@ -592,10 +592,9 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
 
         {/* Post Content */}
         <div 
-          className="mb-4 cursor-pointer hover:opacity-80 transition-opacity"
-          onClick={handleOpenViewer}
+          className="mb-4 hover:opacity-80 transition-opacity"
         >
-          <ExpandableText className="text-gray-800 leading-relaxed" lines={4}>{content}</ExpandableText>
+          <ExpandableText onClick={handleOpenViewer} className="text-gray-800 leading-relaxed" lines={4}>{content}</ExpandableText>
         </div>
 
         {/* Media Grid */}
