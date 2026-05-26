@@ -461,6 +461,10 @@ export function QuestionPost({
                     /> {reply.dislikes}
                   </button>
                     <h4
+                      className="text-lg font-semibold cursor-pointer"
+                      tabIndex={0}
+                    >
+                      <ExpandableText 
                       onClick={() =>
                         openQuestion({
                           id,
@@ -475,11 +479,7 @@ export function QuestionPost({
                           liked: isLiked,
                           views,
                         })
-                      }
-                      className="text-lg font-semibold cursor-pointer"
-                      tabIndex={0}
-                    >
-                      <ExpandableText lines={4} className="font-semibold text-lg">{displayQuestion}</ExpandableText>
+                      } lines={4} className="font-semibold text-lg">{displayQuestion}</ExpandableText>
                     </h4>
                   <button onClick={() => setReplyingTo(reply.id)}>
                     Reply
@@ -660,7 +660,6 @@ export function QuestionPost({
         </div>
 
         {/* QUESTION */}
-        {/* <ExpandableText lines={4} className="font-semibold text-lg whitespace-pre-wrap break-words"> */}
         <h2
           className="text-lg font-semibold cursor-pointer"
           tabIndex={0}
