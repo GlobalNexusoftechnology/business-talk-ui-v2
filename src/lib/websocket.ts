@@ -12,11 +12,20 @@ const CANONICAL_TO_BACKEND_EMIT: Record<string, string> = {
 };
 
 const getSocketOrigin = (): string => {
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://localhost:4000';
+  // Prefer a WS-specific URL if provided, then fall back to the API base.
+  // Use a backend-friendly dev default on localhost:3000.
+  const candidate =
+    process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+
   try {
-    return new URL(base).origin;
+    return new URL(candidate).origin;
   } catch {
-    return 'https://localhost:4000';
+    // Fallback to a safe localhost origin if parsing fails
+    try {
+      return new URL(process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000').origin;
+    } catch {
+      return 'http://localhost:4000';
+    }
   }
 };
 
