@@ -460,7 +460,7 @@ export function QuestionPost({
                       }`}
                     /> {reply.dislikes}
                   </button>
-                    <h4
+                    <p
                       className="text-lg font-semibold cursor-pointer"
                       tabIndex={0}
                     >
@@ -480,7 +480,7 @@ export function QuestionPost({
                           views,
                         })
                       } lines={4} className="font-semibold text-lg">{displayQuestion}</ExpandableText>
-                    </h4>
+                    </p>
                   <button onClick={() => setReplyingTo(reply.id)}>
                     Reply
                   </button>
@@ -660,13 +660,13 @@ export function QuestionPost({
         </div>
 
         {/* QUESTION */}
-        <h2
-          className="text-lg font-semibold cursor-pointer"
+        <p
+          className="text-lg cursor-pointer"  // add font-blod/semibold if you want a bit bold text for question
           tabIndex={0}
         >
           <ExpandableText
             lines={4}
-            className="font-semibold text-lg whitespace-pre-wrap break-words"
+            className="text-gray-800 text-lg whitespace-pre-wrap break-words" // add font-blod/semibold if you want a bit bold text for question
             onClick={() =>
               openQuestion({
                 id,
@@ -685,7 +685,7 @@ export function QuestionPost({
           >
             {displayQuestion}
           </ExpandableText>
-        </h2>
+        </p>
         {/* </ExpandableText> */}
 
         {description && (

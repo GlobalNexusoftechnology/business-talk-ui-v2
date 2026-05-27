@@ -571,7 +571,7 @@ export function StoryPost({
 
         {/* CONTENT */}
         <h2
-          className="font-semibold text-lg cursor-pointer hover:underline"
+          className="font-semibold text-lg cursor-pointer hover:underline"  
           onClick={() => {
             if (!id) return
             const storyData = {
@@ -593,7 +593,7 @@ export function StoryPost({
           {storyTitle}
         </h2>
 
-        <ExpandableText className="text-sm text-gray-500 whitespace-pre-wrap break-words" lines={4}>{excerpt}</ExpandableText>
+        <ExpandableText className="text-sm text-gray-500 whitespace-pre-wrap break-words" lines={4}>{excerpt}</ExpandableText>  {/* add font-blod/semibold if you want a bit bold text for question */}
 
         {/* ACTION BAR */}
         <div className="flex flex-wrap gap-3 mt-4 border-y py-3">
