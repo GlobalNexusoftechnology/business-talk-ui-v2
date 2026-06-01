@@ -12,7 +12,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <p className="text-3xl font-bold tracking-widest uppercase" style={{ color: '#000000', letterSpacing: '1px' }}>
             Welcome to
           </p>
-          <p className="text-5xl font-bold tracking-widest uppercase mb-8" style={{ color: '#000000', lineHeight: '2.25rem' }}>
+          <p className="text-5xl font-bold uppercase mb-8" style={{ color: '#000000', lineHeight: '2.25rem' }}>  {/* tracking-widest */}
             Businesstalk24
           </p>
 

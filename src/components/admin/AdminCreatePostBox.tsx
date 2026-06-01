@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { ImageIcon, Video, X } from 'lucide-react'
 import apiClient from '@/lib/api-client'
-import { validateMediaFile } from '@/lib/utils'
+import { validateMediaFile, validateFileBeforeUpload } from '@/lib/utils'
 
 export function AdminCreatePostBox({ onCreated }: { onCreated?: () => void }) {
   const [content, setContent] = useState('')
@@ -31,6 +31,13 @@ export function AdminCreatePostBox({ onCreated }: { onCreated?: () => void }) {
     try {
       setLoading(true)
 
+      // Validate files before uploading
+      if (files.length > 0) {
+        const validations = await Promise.all(files.map((f) => validateFileBeforeUpload(f)))
+        const errors = validations.filter(Boolean) as string[]
+        if (errors.length) { alert(errors.join('\n')); setLoading(false); return }
+      }
+
       const formData = new FormData()
       formData.append('type', 'NORMAL')
       formData.append('content', content)
@@ -47,6 +54,10 @@ export function AdminCreatePostBox({ onCreated }: { onCreated?: () => void }) {
       onCreated?.()
     } catch (err) {
       console.error(err)
+      const status = (err as any)?.response?.status
+      if (status === 413) {
+        alert('Upload failed: File is too large. Please upload a smaller file.')
+      }
     } finally {
       setLoading(false)
     }

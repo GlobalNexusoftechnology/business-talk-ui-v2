@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/lib/api-client'
 import { useAccountStatus } from '@/hooks/useRedux'
-import { validateMediaFile } from '@/lib/utils'
+import { validateMediaFile, validateFileBeforeUpload } from '@/lib/utils'
 
 export function CreatePostBox() {
   const { isBanned } = useAccountStatus()
@@ -66,6 +66,17 @@ export function CreatePostBox() {
     try {
       setLoading(true)
 
+      // Validate files (size, type, dimensions) before uploading to avoid backend 413
+      if (selectedFiles.length > 0) {
+        const validations = await Promise.all(selectedFiles.map((f) => validateFileBeforeUpload(f)))
+        const errors = validations.filter(Boolean) as string[]
+        if (errors.length) {
+          alert(errors.join('\n'))
+          setLoading(false)
+          return
+        }
+      }
+
       const formData = new FormData()
       formData.append('type', 'NORMAL')
       formData.append('content', postContent)
@@ -82,6 +93,12 @@ export function CreatePostBox() {
       await queryClient.invalidateQueries({ queryKey: ['posts'] })
     } catch (err) {
       console.error('Create post failed:', err)
+      // Handle backend 413 Request Entity Too Large
+      const status = (err as any)?.response?.status
+      if (status === 413) {
+        const msg = 'Upload failed: File is too large. Please upload a smaller file.'
+        alert(msg)
+      }
     } finally {
       setLoading(false)
     }

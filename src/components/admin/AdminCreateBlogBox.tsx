@@ -5,7 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { ImageIcon, Tag, X } from 'lucide-react'
 import { TagsPopup } from '@/components/shared/TagsPopup'
 import apiClient from '@/lib/api-client'
-import { validateImageFile } from '@/lib/utils'
+import { validateImageFile, validateFileBeforeUpload } from '@/lib/utils'
 
 export function AdminCreateBlogBox({ onCreated }: { onCreated?: () => void }) {
   const [title, setTitle] = useState('')
@@ -21,6 +21,12 @@ export function AdminCreateBlogBox({ onCreated }: { onCreated?: () => void }) {
 
     try {
       setLoading(true)
+
+      // Validate cover image before upload
+      if (cover.length > 0) {
+        const err = await validateFileBeforeUpload(cover[0])
+        if (err) { alert(err); setLoading(false); return }
+      }
 
       const formData = new FormData()
       formData.append('type', 'ADMIN_BLOG') // 🔥 KEY DIFFERENCE
@@ -38,6 +44,12 @@ export function AdminCreateBlogBox({ onCreated }: { onCreated?: () => void }) {
       setTags([])
       await queryClient.invalidateQueries({ queryKey: ['admin-blogs'] })
       onCreated?.()
+    } catch (err) {
+      console.error(err)
+      const status = (err as any)?.response?.status
+      if (status === 413) {
+        alert('Upload failed: File is too large. Please upload a smaller file.')
+      }
     } finally {
       setLoading(false)
     }

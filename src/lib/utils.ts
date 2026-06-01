@@ -58,3 +58,89 @@ export function validateMediaFile(file: File): string | null {
   }
   return null
 }
+
+// Additional transform / raw limits and megapixel constraints
+export const RAW_MAX_SIZE = 10 * 1024 * 1024 // 10 MB
+export const IMAGE_TRANSFORM_MAX = 100 * 1024 * 1024 // 100 MB (transformed image)
+export const VIDEO_TRANSFORM_MAX = 40 * 1024 * 1024 // 40 MB (transformed video)
+export const IMAGE_MAX_MEGAPIXELS = 25 // 25 MP
+export const ALL_FRAMES_MAX_MEGAPIXELS = 50 // 50 MP across frames (video)
+
+/**
+ * Advanced validation before upload that also checks image/video dimensions
+ * and common transformation limits. Returns an error string or null.
+ */
+export async function validateFileBeforeUpload(file: File): Promise<string | null> {
+  // Raw files (non-image/video) guard
+  if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+    if (file.size > RAW_MAX_SIZE) {
+      return `"${file.name}" exceeds the raw file limit of 10 MB (${(file.size / 1024 / 1024).toFixed(1)} MB).`
+    }
+    return null
+  }
+
+  // Image validation (type + size + megapixels)
+  if (file.type.startsWith('image/')) {
+    const basic = validateImageFile(file)
+    if (basic) return basic
+
+    // Check megapixels by loading the image
+    try {
+      const url = URL.createObjectURL(file)
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const i = new Image()
+        i.onload = () => resolve(i)
+        i.onerror = (e) => reject(e)
+        i.src = url
+      })
+      const mp = (img.naturalWidth * img.naturalHeight) / 1_000_000
+      URL.revokeObjectURL(url)
+      if (mp > IMAGE_MAX_MEGAPIXELS) {
+        return `"${file.name}" is ${mp.toFixed(1)} MP which exceeds the ${IMAGE_MAX_MEGAPIXELS} MP limit.`
+      }
+      // Warn if transformed image might be large (treat as error to avoid backend 413)
+      if (file.size > IMAGE_TRANSFORM_MAX) {
+        return `"${file.name}" may exceed the backend image transform limit (${(IMAGE_TRANSFORM_MAX / 1024 / 1024).toFixed(0)} MB). Please resize before upload.`
+      }
+    } catch (e) {
+      return `Failed to validate "${file.name}" image dimensions.`
+    }
+
+    return null
+  }
+
+  // Video validation (type + size + frame megapixels)
+  if (file.type.startsWith('video/')) {
+    const basic = validateMediaFile(file)
+    if (basic) return basic
+
+    // Check video dimensions via HTMLVideoElement metadata
+    try {
+      const url = URL.createObjectURL(file)
+      const vid = document.createElement('video')
+      const metadata = await new Promise<HTMLVideoElement>((resolve, reject) => {
+        vid.onloadedmetadata = () => resolve(vid)
+        vid.onerror = (e) => reject(e)
+        vid.preload = 'metadata'
+        vid.src = url
+      })
+      const vw = metadata.videoWidth || 0
+      const vh = metadata.videoHeight || 0
+      URL.revokeObjectURL(url)
+      const mp = (vw * vh) / 1_000_000
+      if (mp > ALL_FRAMES_MAX_MEGAPIXELS) {
+        return `"${file.name}" has frame resolution ${mp.toFixed(1)} MP which exceeds the ${ALL_FRAMES_MAX_MEGAPIXELS} MP limit.`
+      }
+      // Warn if transformed video might exceed backend transform limit
+      if (file.size > VIDEO_TRANSFORM_MAX) {
+        return `"${file.name}" may exceed the backend video transform limit (${(VIDEO_TRANSFORM_MAX / 1024 / 1024).toFixed(0)} MB). Please upload a smaller file.`
+      }
+    } catch (e) {
+      return `Failed to validate "${file.name}" video metadata.`
+    }
+
+    return null
+  }
+
+  return null
+}

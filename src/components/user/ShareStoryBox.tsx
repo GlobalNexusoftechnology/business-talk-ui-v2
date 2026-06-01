@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { TagsPopup } from '@/components/shared/TagsPopup'
 import apiClient from '@/lib/api-client'
-import { validateImageFile } from '@/lib/utils'
+import { validateImageFile, validateFileBeforeUpload } from '@/lib/utils'
 
 export function ShareStoryBox() {
   const [storyTitle, setStoryTitle] = useState('')
@@ -67,6 +67,12 @@ export function ShareStoryBox() {
     try {
       setLoading(true)
 
+      // Validate cover image before upload
+      if (coverImage[0]) {
+        const err = await validateFileBeforeUpload(coverImage[0])
+        if (err) { alert(err); setLoading(false); return }
+      }
+
       const formData = new FormData()
       formData.append('type', 'STORY')
       formData.append('title', storyTitle)
@@ -86,6 +92,10 @@ export function ShareStoryBox() {
       await queryClient.invalidateQueries({ queryKey: ['stories-feed'] })
     } catch (err) {
       console.error('Story failed:', err)
+      const status = (err as any)?.response?.status
+      if (status === 413) {
+        alert('Upload failed: File is too large. Please upload a smaller file.')
+      }
     } finally {
       setLoading(false)
     }
