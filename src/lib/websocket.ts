@@ -57,14 +57,25 @@ class WebSocketManager {
     });
 
     this.socket.on('connect', () => {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('WS CONNECTED', this.socket?.id);
+      }
       this.dispatch('connect', {});
     });
 
     this.socket.on('disconnect', (reason) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('WS DISCONNECTED', reason);
+      }
       this.dispatch('disconnect', { reason });
     });
 
     this.socket.on('connect_error', (err) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('WS CONNECT ERROR');
+        console.log(err.message);
+        console.log(err);
+      }
       this.dispatch('connect_error', { message: err.message });
     });
 
