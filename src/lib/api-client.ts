@@ -368,6 +368,10 @@ class ApiClient {
         ? cookies.split(';').map((c) => c.trim().split('=')[0]).filter(Boolean)
         : []
       
+      // Capture Set-Cookie headers from response
+      const setCookieHeaders = res?.headers?.['set-cookie'] || []
+      const setCookieCount = Array.isArray(setCookieHeaders) ? setCookieHeaders.length : 0
+      
       console.log('[auth] login response received', {
         status: res?.status,
         hasData: Boolean(res?.data),
@@ -375,7 +379,21 @@ class ApiClient {
         credentialsReceived: hasCookies,
         cookieCount: cookieNames.length,
         cookieNames,
+        setCookieHeaders: setCookieCount, // How many cookies backend sent
       })
+
+      // ⚠️ CRITICAL: If backend sent cookies but they're not in document.cookie
+      if (setCookieCount > 0 && !hasCookies) {
+        console.warn(
+          '[auth] ❌ CRITICAL: Backend sent Set-Cookie headers but cookies NOT accessible in document.cookie!',
+          {
+            setCookieCount,
+            reason: 'Cross-origin cookies (localhost:4001 → localhost:4000) require backend SameSite=None or SameSite=Lax',
+            solution: 'Backend must set cookies with correct SameSite and Domain flags for cross-domain localhost access',
+            setCookieHeaders: setCookieHeaders.map((h: string) => h.split(';')[0]), // Just show the cookie=value part
+          }
+        )
+      }
     }
 
     return res

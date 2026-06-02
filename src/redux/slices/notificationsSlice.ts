@@ -239,6 +239,26 @@ const notificationsSlice = createSlice({
     },
 
     /**
+   * Called when notificationAck is sent successfully over websocket.
+   * Updates Redux immediately instead of waiting for API refresh.
+   */
+  notificationAcknowledged(
+    state,
+    action: PayloadAction<string>,
+  ) {
+    const notification = state.entities[action.payload];
+
+    if (notification && !notification.isRead) {
+      notification.isRead = true;
+
+      state.unreadCount = Math.max(
+        0,
+        state.unreadCount - 1,
+      );
+    }
+  },
+
+    /**
      * Invalidate the notification cache (req 9).
      * Next call to fetchNotifications() will bypass the stale check and hit the API.
      */
@@ -332,7 +352,7 @@ const notificationsSlice = createSlice({
   },
 });
 
-export const { wsNotificationReceived, invalidateNotificationCache } =
+export const { wsNotificationReceived, notificationAcknowledged, invalidateNotificationCache } =
   notificationsSlice.actions;
 
 export default notificationsSlice.reducer;

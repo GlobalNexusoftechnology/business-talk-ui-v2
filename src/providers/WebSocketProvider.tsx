@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import WebSocketManager from '@/lib/websocket';
+import WebSocketManager, { NOTIFICATIONS_NAMESPACE } from '@/lib/websocket';
 import { store } from '@/redux/store';
 import {
   wsMessageReceived,
@@ -28,20 +28,47 @@ import {
 import {
   wsNotificationReceived,
   parseApiNotification,
+  fetchNotifications,
+  fetchUnreadCount,
+  invalidateNotificationCache,
+  // notificationAcknowledged,
 } from '@/redux/slices/notificationsSlice';
 import { useAppSelector } from '@/hooks/useRedux';
 
 interface WebSocketContextValue {
   wsManager: WebSocketManager | null;
+  notificationManager: WebSocketManager | null;
   isConnected: boolean;
+  isChatConnected: boolean;
+  isNotificationConnected: boolean;
+  acknowledgeNotification?: (
+    notificationId: string | number,
+  ) => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextValue>({
   wsManager: null,
+  notificationManager: null,
   isConnected: false,
+  isChatConnected: false,
+  isNotificationConnected: false,
 });
 
 export const useWebSocket = () => useContext(WebSocketContext);
+
+/**
+ * Hook to manually acknowledge a notification on the /v1/notifications namespace.
+ * Use this when you need to acknowledge notifications at a custom time (e.g., after user action).
+ */
+export const useNotificationAck = () => {
+  const context = useContext(WebSocketContext);
+  
+  return {
+    acknowledgeNotification: (notificationId: string | number) => {
+      context.acknowledgeNotification?.(notificationId);
+    },
+  };
+};
 
 export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -49,11 +76,16 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
   const MESSAGE_DEDUPE_TTL_MS = 45_000;
 
   const wsManagerRef = useRef<WebSocketManager | null>(null);
+  const notificationWsRef = useRef<WebSocketManager | null>(null);
   const disconnectStartedAtRef = useRef<number | null>(null);
   const hasConnectedRef = useRef(false);
   const recentMessageKeysRef = useRef<Set<string>>(new Set());
   const recentMessageKeyTsRef = useRef<Map<string, number>>(new Map());
-  const [isConnected, setIsConnected] = useState(false);
+  const [chatConnected, setChatConnected] = useState(false);
+  const [notificationConnected, setNotificationConnected] =
+    useState(false);
+    const isConnected =
+  chatConnected && notificationConnected;
   // React Query client — available because WebSocketProvider is inside QueryClientProvider
   const queryClient = useQueryClient();
   const authUser = useAppSelector((state) => state.auth.user as any);
@@ -146,11 +178,12 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     const ws = new WebSocketManager();
+    const notificationWs = new WebSocketManager(NOTIFICATIONS_NAMESPACE);
     const unsubscribers: Array<() => void> = [];
 
     // ── Connection state ─────────────────────────────────────────────────────
     unsubscribers.push(ws.on('connect', () => {
-      setIsConnected(true);
+      setChatConnected(true);
       registerWsManager(ws);
 
       const wasConnectedBefore = hasConnectedRef.current;
@@ -180,7 +213,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
     }));
 
     unsubscribers.push(ws.on('disconnect', () => {
-      setIsConnected(false);
+      setChatConnected(false);
       registerWsManager(null);
       disconnectStartedAtRef.current = Date.now();
 
@@ -215,6 +248,114 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
           canConnect,
         });
       }
+    }));
+
+    unsubscribers.push(notificationWs.on('connect', () => {
+      setNotificationConnected(true);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[notification-realtime] socket connected', {
+          namespace: NOTIFICATIONS_NAMESPACE,
+          userId: userId.substring(0, 8),
+        });
+      }
+    }));
+
+    unsubscribers.push(notificationWs.on('disconnect', (reason: any) => {
+      setNotificationConnected(false);
+      if (process.env.NODE_ENV === 'development') {
+        if (reason === 'io server disconnect') {
+          console.error('[notification-realtime] ❌ SERVER REJECTED CONNECTION (During Handshake)', {
+            reason,
+            namespace: NOTIFICATIONS_NAMESPACE,
+            hint: 'Backend middleware likely rejected during JWT validation. Check: 1) access_token cookie valid? 2) Backend auth middleware logs? 3) CORS origins allowed?',
+          });
+        } else {
+          console.log('[notification-realtime] socket disconnected', {
+            reason,
+            namespace: NOTIFICATIONS_NAMESPACE,
+          });
+        }
+      }
+    }));
+
+    unsubscribers.push(notificationWs.on('connect_error', (data: any) => {
+      if (process.env.NODE_ENV === 'development') {
+        const errorData = {
+          message: data?.message,
+          namespace: NOTIFICATIONS_NAMESPACE,
+        };
+        
+        if (data?.message?.includes('UNAUTHORIZED')) {
+          console.error('[notification-realtime] AUTH FAILED: UNAUTHORIZED', errorData);
+        } else if (data?.message?.includes('TOKEN_EXPIRED')) {
+          console.error('[notification-realtime] AUTH FAILED: TOKEN_EXPIRED', errorData);
+        } else if (data?.message?.includes('BANNED')) {
+          console.error('[notification-realtime] AUTH FAILED: BANNED', errorData);
+        } else if (data?.message?.includes('CORS') || data?.message?.includes('403')) {
+          console.error('[notification-realtime] CORS or HANDSHAKE FAILURE', errorData);
+        } else {
+          console.log('[notification-realtime] connect_error', errorData);
+        }
+      }
+    }));
+
+
+    unsubscribers.push(
+        notificationWs.on('reconnect', () => {
+          if (process.env.NODE_ENV === 'development') {
+            console.log(
+              '[notification-realtime] reconnect sync',
+            );
+          }
+
+          store.dispatch(invalidateNotificationCache());
+
+          store.dispatch(
+            fetchNotifications({
+              force: true,
+            }),
+          );
+
+          store.dispatch(fetchUnreadCount());
+        }),
+      );
+
+    unsubscribers.push(notificationWs.on('notification', (data: any) => {
+      const notification = parseApiNotification(data);
+      store.dispatch(
+        wsNotificationReceived(notification),
+      );
+
+      store.dispatch(fetchUnreadCount());
+      
+      // Send acknowledgment back to server (backend expects notificationAck with notification ID)
+      if (notification.id) {
+        notificationWs.emit('notificationAck', { notificationId: notification.id });
+      }
+    }));
+
+    unsubscribers.push(notificationWs.on('pendingNotifications', (data: any) => {
+      const items: any[] = Array.isArray(data) ? data : data?.notifications ?? [];
+      if (!Array.isArray(items)) return;
+      for (const item of items) {
+        const notification = parseApiNotification(item);
+        store.dispatch(wsNotificationReceived(notification));
+        
+        // Acknowledge each pending notification
+        if (notification.id) {
+          notificationWs.emit('notificationAck', { notificationId: notification.id });
+        }
+      }
+
+      store.dispatch(invalidateNotificationCache());
+
+      store.dispatch(
+        fetchNotifications({
+          force: true,
+        }),
+      );
+
+      store.dispatch(fetchUnreadCount());
     }));
 
     // ── Incoming message → React Query cache + Redux metadata ───────────────
@@ -418,25 +559,97 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (shouldSuppressNotification) return;
 
-      store.dispatch(wsNotificationReceived(notification));
+      store.dispatch(
+        wsNotificationReceived(notification),
+      );
+
     }));
 
-    ws.connect();
+    // ── Connect with full auth context ─────────────────────────────────────
+    if (process.env.NODE_ENV === 'development') {
+      // Diagnostic: check for access_token cookie
+      const cookies = document.cookie.split(';').map(c => c.trim());
+      const hasAccessToken = cookies.some(c => c.startsWith('access_token='));
+      const accessTokenCookie = cookies.find(c => c.startsWith('access_token='));
+      const tokenLength = accessTokenCookie?.split('=')[1]?.length ?? 0;
+
+      console.log('[WS Provider] Pre-connection diagnostics', {
+        userId: userId.substring(0, 8),
+        authReady,
+        isAuthenticated,
+        hasAccessTokenCookie: hasAccessToken,
+        accessTokenLength: tokenLength,
+        cookieCount: cookies.length,
+        cookies: cookies.map(c => {
+          const [key] = c.split('=');
+          return key;
+        }),
+        NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
+      });
+
+      if (!hasAccessToken) {
+        console.warn(
+          '[WS Provider] Cookie not visible to JavaScript. This is expected for HttpOnly cookies. ' +
+          'Backend will not be able to authenticate WebSocket connection. ' +
+          'Check: 1) Login completed successfully? 2) Cookies enabled in browser? 3) CORS credentials mode correct?',
+        );
+      }
+    }
+
+    console.log('[WS Provider] Connecting WebSocket', {
+      userId: userId.substring(0, 8),
+      authMethod: 'withCredentials (cookie-based)',
+      NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
+      canConnect,
+    });
+
+    let accessToken: string | undefined;
+
+    try {
+      accessToken =
+        localStorage.getItem('access_token') ??
+        localStorage.getItem('accessToken') ??
+        undefined;
+    } catch {
+      accessToken = undefined;
+    }
+
+    ws.connect(accessToken);
+    notificationWs.connect(accessToken);
 
     wsManagerRef.current = ws;
+    notificationWsRef.current = notificationWs;
 
     return () => {
       unsubscribers.forEach((unsubscribe) => unsubscribe());
       ws.disconnect();
+      notificationWs.disconnect();
       registerWsManager(null);
-      setIsConnected(false);
+      setChatConnected(false);
+      setNotificationConnected(false);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryClient, canConnect, authReady, isAuthenticated, isRestricted, userId]);
 
   return (
     <WebSocketContext.Provider
-      value={{ wsManager: wsManagerRef.current, isConnected }}
+      value={{
+        wsManager: wsManagerRef.current,
+        notificationManager:
+          notificationWsRef.current,
+        isConnected,
+        isChatConnected: chatConnected,
+        isNotificationConnected:
+          notificationConnected,
+        acknowledgeNotification: (notificationId: string | number) => {
+          if (notificationWsRef.current) {
+            notificationWsRef.current.emit('notificationAck', { notificationId });
+            if (process.env.NODE_ENV === 'development') {
+              console.log('[notification-realtime] sent acknowledgment', { notificationId });
+            }
+          }
+        },
+      }}
     >
       {children}
     </WebSocketContext.Provider>
