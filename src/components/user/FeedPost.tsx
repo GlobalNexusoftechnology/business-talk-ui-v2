@@ -23,6 +23,10 @@ interface FeedPostProps {
     title: string
     avatar: string
   }
+  groupId?: string
+  group?: {
+    name: string
+  }
   content: string
   image?: string
   video?: string
@@ -35,7 +39,7 @@ interface FeedPostProps {
   sends: number
 }
 
-export function FeedPost({ id = Date.now().toString(), authorId = '', author, content, image, video, media = [], timestamp, likes, liked = false, comments, sends }: FeedPostProps) {
+export function FeedPost({ id = Date.now().toString(), authorId = '', author, groupId, group, content, image, video, media = [], timestamp, likes, liked = false, comments, sends }: FeedPostProps) {
   const router = useRouter()
   const reduxUser = useAppSelector((state: any) => state.auth.user)
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string; avatar: string }>({ id: '', name: 'You', avatar: '' })
@@ -485,16 +489,19 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, co
         <div className="flex items-start justify-between mb-4">
           <div
             className="flex items-center gap-3 cursor-pointer"
-            onClick={() => authorId && router.push(profileHref(authorId, author.name))}
+            // onClick={() => authorId && router.push(profileHref(authorId, author.name))}
           >
             <img
               src={author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(author.name)}&background=E8E8E8&color=212529&size=48`}
               alt={author.name}
               className="w-12 h-12 rounded-full object-cover"
+              onClick={() => authorId && router.push(profileHref(authorId, author.name))}
             />
             <div>
-              <h3 className="font-semibold text-gray-900 hover:underline">{author.name}</h3>
-              <p className="text-sm text-gray-500">{author.title}</p>
+              <h3 className="font-semibold text-gray-900 hover:underline" onClick={() => authorId && router.push(profileHref(authorId, author.name))}>{author.name}</h3>
+              <p className="text-sm text-gray-500" onClick={() => authorId && router.push(profileHref(authorId, author.name))}>{author.title}</p>
+              {/* add a logic to show group name when groupId is not null other vise leave it do not show null in UI */}
+              {groupId && <div className="text-xs text-gray-500 hover:underline" onClick={() => authorId && router.push(`/groups/${groupId}`)}>{group?.name}</div>}
               <p className="text-xs text-gray-400">{getTimeAgo(timestamp)}</p>
             </div>
           </div>

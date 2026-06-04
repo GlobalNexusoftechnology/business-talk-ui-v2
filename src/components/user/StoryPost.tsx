@@ -571,7 +571,7 @@ export function StoryPost({
 
         {/* CONTENT */}
         <h2
-          className="font-semibold text-lg cursor-pointer hover:underline"  
+          className="font-semibold text-gray-800 cursor-pointer hover:underline"  
           onClick={() => {
             if (!id) return
             const storyData = {

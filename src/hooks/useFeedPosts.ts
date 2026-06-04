@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import apiClient from '../lib/api-client'
 
+
 export function useFeedPosts(postType: 'NORMAL' | 'QUESTION') {
   return useQuery({
     queryKey: ['feed', postType],
@@ -43,6 +44,9 @@ export function useFeedPosts(postType: 'NORMAL' | 'QUESTION') {
               `https://ui-avatars.com/api/name=${encodeURIComponent(post.user?.full_name || post.user?.username)}`,
             title: post.user?.profession || '',
           },
+
+          groupId: post.group?.id ? String(post.group?.id) : null,
+          group: post.group ? { name: post.group?.name } : null,
 
           likes: post.upvotes || 0,
           liked: Boolean(post.liked ?? post.is_liked ?? (post.myVote === 'up')),

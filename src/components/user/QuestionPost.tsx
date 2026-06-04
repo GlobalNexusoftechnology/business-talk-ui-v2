@@ -661,12 +661,12 @@ export function QuestionPost({
 
         {/* QUESTION */}
         <p
-          className="text-lg cursor-pointer"  // add font-blod/semibold if you want a bit bold text for question
+          className="cursor-pointer hover:opacity-80"  // add font-blod/semibold if you want a bit bold text for question
           tabIndex={0}
         >
           <ExpandableText
             lines={4}
-            className="text-gray-800 text-lg whitespace-pre-wrap break-words" // add font-blod/semibold if you want a bit bold text for question
+            className="text-gray-800 whitespace-pre-wrap break-words" // add font-blod/semibold if you want a bit bold text for question
             onClick={() =>
               openQuestion({
                 id,
