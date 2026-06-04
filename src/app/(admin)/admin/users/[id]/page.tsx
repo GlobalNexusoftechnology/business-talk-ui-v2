@@ -1,10 +1,13 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { AlertTriangle, Ban, EyeOff, ShieldCheck, Trash2, UserRoundCheck, ArrowLeft } from 'lucide-react'
 import adminApi from '@/lib/admin-api'
 import apiClient from '@/lib/api-client'
+import { ProfileLayout } from '@/app/(user)/profile/components/ProfileLayout'
+import { useAppSelector } from '@/hooks/useRedux'
+import AdminUserActionBar from '@/components/admin/AdminUserActionBar'
 
 type UserProfile = {
   id: string
@@ -15,6 +18,11 @@ type UserProfile = {
   company?: string
   location?: string
   bio?: string
+  about?: string
+  short_bio?: string
+  phone_number?: string
+  experience?: any
+  education?: any
   profile_photo?: string
   cover_image?: string
   warning_count?: number
@@ -34,9 +42,13 @@ export default function AdminUserDetailPage() {
   const userId = String(params?.id || '')
 
   const [user, setUser] = useState<UserProfile | null>(null)
+  // const [stats, setStats] = useState<any>(null)
+  // const [activity, setActivity] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const currentUserId = useAppSelector((state) => String(state.auth?.user?.id || ''))
+  const isOwnProfile = currentUserId !== '' && currentUserId === String(userId)
 
   const loadUser = async () => {
     if (!userId) return
@@ -44,9 +56,12 @@ export default function AdminUserDetailPage() {
     try {
       setError(null)
       setLoading(true)
-      const [profileRes, statsRes] = await Promise.allSettled([
+      const [profileRes ] =
+      await Promise.allSettled([
         apiClient.getUserById(userId),
-        apiClient.getUserStats(userId),
+        // apiClient.getUserStats(userId),
+        // apiClient.getUserActivity(),
+        // apiClient.getUserActivity(userId),
       ])
 
       const profileData =
@@ -54,10 +69,18 @@ export default function AdminUserDetailPage() {
           ? profileRes.value?.data
           : null
 
-      const statsData =
-        statsRes.status === 'fulfilled'
-          ? statsRes.value?.data
-          : null
+      // const statsData =
+      //   statsRes.status === 'fulfilled'
+      //     ? statsRes.value?.data
+      //     : null
+
+      // const activityData =
+      //   activityRes.status === 'fulfilled'
+      //     ? activityRes.value?.data
+      //     : null
+
+      // setStats(statsData)
+      // setActivity(activityData)
 
       if (!profileData) {
         setError('Unable to load user profile.')
@@ -68,14 +91,12 @@ export default function AdminUserDetailPage() {
       setUser({
         ...profileData,
         warning_count: Number(
-          profileData.warning_count ?? statsData?.warning_count ?? 0
+          profileData.warning_count ?? 0
         ),
-        is_banned: Boolean(profileData.is_banned ?? statsData?.is_banned),
+        is_banned: Boolean(profileData.is_banned),
         is_shadow_banned: Boolean(
           profileData.is_shadow_banned ??
-            profileData.isShadowBanned ??
-            statsData?.is_shadow_banned ??
-            statsData?.isShadowBanned
+            profileData.isShadowBanned
         ),
       })
     } catch {
@@ -91,10 +112,10 @@ export default function AdminUserDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
 
-  const displayName = useMemo(() => {
-    if (!user) return 'Unknown User'
-    return user.full_name || user.username || 'Unknown User'
-  }, [user])
+  // const displayName = useMemo(() => {
+  //   if (!user) return 'Unknown User'
+  //   return user.full_name || user.username || 'Unknown User'
+  // }, [user])
 
   const runAction = async (key: string, task: () => Promise<any>) => {
     try {
@@ -126,6 +147,34 @@ export default function AdminUserDetailPage() {
     )
   }
 
+  const profileData = {
+    ...user,
+
+    name:
+      user.full_name ||
+      user.username,
+
+    avatar:
+      user.profile_photo,
+
+    title:
+      user.profession,
+
+    about:
+      user.about ||
+      user.short_bio ||
+      user.bio,
+
+    phone_number:
+      user.phone_number,
+
+    experience:
+      user.experience,
+
+    education:
+      user.education,
+  }
+
   const banned = isUserBanned(user)
   const shadowBanned = isUserShadowBanned(user)
 
@@ -140,40 +189,63 @@ export default function AdminUserDetailPage() {
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
-        <div className="h-28 bg-gradient-to-r from-gray-900 to-gray-700" />
-        <div className="p-6 -mt-12">
-          <img
-            src={
-              user.profile_photo ||
-              `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=E8E8E8&color=212529&size=96`
-            }
-            alt={displayName}
-            className="w-24 h-24 rounded-full border-4 border-white object-cover"
-          />
-
-          <div className="mt-3">
-            <h1 className="text-2xl font-semibold text-gray-900">{displayName}</h1>
-            <p className="text-sm text-gray-600">{user.email || 'No email available'}</p>
-            <p className="text-sm text-gray-500 mt-1">
-              {user.profession || 'Professional'}{user.company ? ` at ${user.company}` : ''}
-            </p>
-            {user.location && <p className="text-sm text-gray-500">{user.location}</p>}
-          </div>
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            <span className={`px-3 py-1 rounded-full text-xs font-medium ${banned ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-              {banned ? 'Banned' : 'Active'}
-            </span>
-            <span className={`px-3 py-1 rounded-full text-xs font-medium ${shadowBanned ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
-              {shadowBanned ? 'Shadow Banned' : 'Visible'}
-            </span>
-            <span className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
-              Warnings: {Number(user.warning_count || 0)}
-            </span>
-          </div>
+      {error && (
+        <div className="rounded-xl border p-3 bg-red-50 text-red-700">
+          {error}
         </div>
-      </div>
+      )}
+
+      <AdminUserActionBar
+        user={user}
+        actionLoading={actionLoading}
+        onWarn={() =>
+          runAction('warn', () =>
+            adminApi.warnUser(user.id)
+          )
+        }
+        onBanToggle={() =>
+          runAction(
+            'ban-toggle',
+            () =>
+              banned
+                ? adminApi.unbanUser(user.id)
+                : adminApi.banUser(user.id)
+          )
+        }
+        onShadowBanToggle={() =>
+          runAction(
+            'shadow-toggle',
+            () =>
+              shadowBanned
+                ? adminApi.unshadowBanUser(user.id)
+                : adminApi.shadowBanUser(user.id)
+          )
+        }
+        onDelete={() =>
+          runAction('delete', async () => {
+            if (
+              !window.confirm(
+                'Delete this user permanently?'
+              )
+            )
+              return
+
+            await apiClient.deleteUserById(
+              user.id
+            )
+
+            router.push('/admin/users')
+          })
+        }
+      />
+
+      <ProfileLayout
+        profile={profileData}
+        userId={userId}
+        isOwnProfile={isOwnProfile}
+        // stats={stats}
+        // activity={activity}
+      />
 
       {error && (
         <div className="rounded-xl border p-3 bg-red-50 text-red-700">{error}</div>

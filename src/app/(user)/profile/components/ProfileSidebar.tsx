@@ -115,8 +115,10 @@ export function ProfileSidebar({
       } catch {
         try {
           const res = await apiClient.getFollowers(userId!)
+          const followingfilter = await apiClient.getFollowing(userId!)
+          const following = Array.isArray(followingfilter.data) ? followingfilter.data.length : (followingfilter.data?.count ?? 0)
           const followers = Array.isArray(res.data) ? res.data.length : (res.data?.count ?? 0)
-          setStats({ followers, posts: 0, comments: 0, engagement: 0, following: 0 })
+          setStats({ followers, posts: 0, comments: 0, engagement: 0, following })
         } catch { /* silent */ }
       }
     }

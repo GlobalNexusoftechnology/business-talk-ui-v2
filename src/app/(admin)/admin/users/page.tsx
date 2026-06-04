@@ -16,6 +16,7 @@ import {
 import apiClient from '@/lib/api-client'
 import { useSearchParams } from 'next/navigation'
 import adminApi from '@/lib/admin-api'
+import ExpandableText from '@/components/common/ExpandableText'
 
 export default function AdminUsersPage() {
   const router = useRouter()
@@ -377,8 +378,19 @@ export default function AdminUsersPage() {
 
       {/* FULL PROFILE MODAL */}
       {selectedUser && (
-        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl w-full max-w-lg relative shadow-2xl">
+        <div
+          className="
+            fixed
+            inset-0
+            bg-black/50
+            flex
+            justify-center
+            items-center
+            z-50
+            p-4
+          "
+        >
+          <div className="bg-white rounded-2xl w-full max-w-lg relative shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
 
             <button
               onClick={closeUserModal}
@@ -389,9 +401,17 @@ export default function AdminUsersPage() {
 
             {/* Cover image */}
             <div
-              className="w-full h-32 rounded-t-2xl bg-gradient-to-r from-blue-400 to-blue-600 relative overflow-hidden"
-            >
-              {(fullProfile?.cover_image) && (
+              className="
+                w-full
+                h-48
+                rounded-t-2xl
+                relative
+                bg-gradient-to-r
+                from-blue-400
+                to-blue-600
+              "
+            > {/* overflow-hidden */}
+              {fullProfile?.cover_image && (
                 <img
                   src={fullProfile.cover_image}
                   alt="cover"
@@ -401,18 +421,18 @@ export default function AdminUsersPage() {
             </div>
 
             {/* Avatar + name */}
-            <div className="px-6 pb-6">
-              <div className="-mt-10 mb-3 flex items-end justify-between z-10 relative">
+            <div className="px-6 pt-12 pb-6 overflow-y-auto flex-1">
+              <div className="-mt-10 mb-3 flex items-end justify-between z-30 relative overflow-y">
                 <img
                   src={
                     fullProfile?.profile_photo ||
                     `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedUser.name)}&size=80&background=1976D2&color=fff`
                   }
                   alt={selectedUser.name}
-                  className="w-20 h-20 rounded-full border-4 border-white object-cover shadow z-10 relative"
+                  className="w-24 h-24 rounded-full border-4 border-white object-cover shadow z-30 relative overflow-y"
                 />
                 <span
-                  className={`px-3 py-1 rounded-full text-xs font-medium ${
+                  className={`px-3 py-1 rounded-full text-xs font-medium overflow-y ${
                     selectedUser.status === 'active'
                       ? 'bg-green-100 text-green-700'
                       : selectedUser.status === 'suspended'
@@ -478,11 +498,19 @@ export default function AdminUsersPage() {
                     </div>
                   </div>
 
+                  {/* Bio */}
+                  {fullProfile?.short_bio && (
+                    <div className="mb-4">
+                      <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Bio</p>
+                        <ExpandableText className="text-sm text-gray-700"> {fullProfile.short_bio} </ExpandableText>
+                    </div>
+                  )}
+
                   {/* About */}
-                  {(fullProfile?.about || fullProfile?.short_bio) && (
+                  {(fullProfile?.about) && (
                     <div className="mb-4">
                       <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">About</p>
-                      <p className="text-sm text-gray-700">{fullProfile.about || fullProfile.short_bio}</p>
+                        <ExpandableText className="text-sm text-gray-700"> {fullProfile.about} </ExpandableText>
                     </div>
                   )}
 

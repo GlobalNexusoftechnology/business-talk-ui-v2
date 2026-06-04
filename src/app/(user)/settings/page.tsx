@@ -674,7 +674,7 @@ export default function SettingsPage() {
 
   const [profile, setProfile] = useState({
 
-    full_name: '', profession: '', company: '',
+    full_name: '', profession: '', company: '', about: '',
 
     location: '', phone_number: '', short_bio: '',
 
@@ -768,7 +768,9 @@ export default function SettingsPage() {
 
         phone_number: d.phone_number || '',
 
-        short_bio:    d.short_bio || d.about || '',
+        short_bio:    d.short_bio    || '',
+
+        about:        d.about        || '',
 
       })
 
@@ -1136,6 +1138,16 @@ export default function SettingsPage() {
 
                       onFocus={e => (e.currentTarget.style.outlineColor = '#1976D2')} />
 
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: '#212529' }}>About</label>
+                    <textarea rows={4} value={profile.about}
+                      onChange={e => setProfile(p => ({ ...p, about: e.target.value }))}
+                      placeholder={profile.about || 'More details about your background, interests, or anything you want to share...'}
+                      className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition-all resize-none"
+                      style={{ backgroundColor: '#F8F9FA', border: '1px solid #E8E8E8', color: '#212529' }}
+                      onFocus={e => (e.currentTarget.style.outlineColor = '#1976D2')} />
                   </div>
 
                 </div>

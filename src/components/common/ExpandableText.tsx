@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react'
 
 interface ExpandableTextProps {
-  children: string | null | undefined
-  className?: string
+  children: string | null | undefined | any
+  className?: string 
   lines?: number
   stopPropagation?: boolean
   onClick?: () => void
