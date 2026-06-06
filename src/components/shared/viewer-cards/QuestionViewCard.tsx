@@ -7,6 +7,7 @@ import { ContentData } from '@/hooks/useContentViewer'
 import apiClient from '@/lib/api-client'
 import { useAccountStatus } from '@/hooks/useRedux'
 import { getTimeAgo } from '@/lib/utils'
+import ExpandableText from '@/components/common/ExpandableText'
 
 interface Props {
   data: ContentData
@@ -284,7 +285,9 @@ export function QuestionViewCard({ data }: Props) {
       </div>
 
       {/* QUESTION */}
-      <h2 className="text-lg font-semibold text-gray-900 whitespace-pre-wrap break-words">{displayQuestion}</h2>
+      <p className="text-gray-900 whitespace-pre-wrap break-words">
+        <ExpandableText className="text-gray-900 whitespace-pre-wrap break-words" lines={4}>{displayQuestion}</ExpandableText>
+        </p>  {/* text-lg font-semibold  */}
 
       {/* Tags */}
       {data.tags?.length > 0 && (

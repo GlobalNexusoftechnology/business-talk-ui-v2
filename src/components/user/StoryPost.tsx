@@ -593,7 +593,7 @@ export function StoryPost({
           {storyTitle}
         </h2>
 
-        <ExpandableText className="text-sm text-gray-500 whitespace-pre-wrap break-words" lines={4}>{excerpt}</ExpandableText>  {/* add font-blod/semibold if you want a bit bold text for question */}
+        <ExpandableText className="text-sm text-gray-600 whitespace-pre-wrap break-words" lines={4}>{excerpt}</ExpandableText>  {/* add font-blod/semibold if you want a bit bold text for question */}
 
         {/* ACTION BAR */}
         <div className="flex flex-wrap gap-3 mt-4 border-y py-3">

@@ -8,6 +8,7 @@ import { useStoryLike } from '@/hooks/useStoryLike'
 import { useStoryComments } from '@/hooks/useStoryComments'
 import { useAccountStatus } from '@/hooks/useRedux'
 import { getTimeAgo } from '@/lib/utils'
+import ExpandableText from '@/components/common/ExpandableText'
 
 interface Props {
   data: ContentData
@@ -246,8 +247,12 @@ export function StoryViewCard({ data }: Props) {
 
       {/* TITLE + CONTENT */}
       <h2 className="text-xl font-semibold text-gray-900">{data.storyTitle}</h2>
-      {data.content && <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap break-words">{data.content}</p>}
-      {data.excerpt && !data.content && <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap break-words">{data.excerpt}</p>}
+      {data.content && <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap break-words">
+        <ExpandableText className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap break-words" lines={4}>{data.content}</ExpandableText>
+        </p>}
+      {data.excerpt && !data.content && <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap break-words">
+        <ExpandableText className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap break-words" lines={4}>{data.excerpt}</ExpandableText>
+        </p>}
 
       {/* ACTION BAR */}
       <div className="flex flex-wrap gap-4 border-t border-b py-3 text-sm text-gray-500">
