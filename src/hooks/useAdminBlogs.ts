@@ -1,12 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/lib/api-client'
+import {
+  extractPaginatedData
+} from '@/lib/api-client'
 
-export function useAdminBlogs(filter: string) {
+export function useAdminBlogs(filter: string, page?: number, limit?: number) {
   return useQuery({
-    queryKey: ['admin-blogs', filter],
+    queryKey: ['admin-blogs', filter, page, limit],
     queryFn: async () => {
-      const res = await apiClient.getBlogs()
-      let blogs = res.data || []
+      const res = await apiClient.getBlogs(page, limit)
+      const {
+        data: blogs
+      } =
+        extractPaginatedData(res)
 
       if (filter === 'Latest') {
         return blogs.sort((a: any, b: any) => Number(b.created_on) - Number(a.created_on))

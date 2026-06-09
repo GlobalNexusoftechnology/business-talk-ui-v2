@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import apiClient from '@/lib/api-client'
+import apiClient, { extractPaginatedData } from '@/lib/api-client'
 
 // GET ALL GROUPS
 export const useGroups = () => {
@@ -7,7 +7,8 @@ export const useGroups = () => {
     queryKey: ['groups'],
     queryFn: async () => {
       const res = await apiClient.getGroups()
-      return res.data
+
+      return extractPaginatedData(res)
     },
   })
 }
@@ -37,7 +38,7 @@ export const useGroupChat = (groupId: string) => {
 }
 
 // GET GROUP FEED (paginated)
-export const useGroupFeed = (groupId: string, page = 1, limit = 20) => {
+export const useGroupFeed = (groupId: string, page = 1, limit = 50) => {
   return useQuery({
     queryKey: ['group-feed', groupId, page],
     queryFn: async () => {

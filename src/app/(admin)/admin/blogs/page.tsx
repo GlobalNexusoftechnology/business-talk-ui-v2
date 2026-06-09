@@ -21,6 +21,9 @@ export default function AdminBlogsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [searchResults, setSearchResults] = useState<any[] | null>(null)
+  const [page, setPage] = useState(1)
+  const limit = 50
+  const [allBlogs, setAllBlogs] = useState<any[]>([])
   // const router = useRouter()
   const searchParams = useSearchParams()
   const qParam = searchParams?.get('q') || ''
@@ -132,7 +135,32 @@ export default function AdminBlogsPage() {
   const [editCoverFile, setEditCoverFile] = useState<File | null>(null)
   const [editError, setEditError] = useState('')
 
-  const { data: blogs = [], isLoading } = useAdminBlogs(activeFilter)
+  const { data: blogs = [], isLoading } =
+    useAdminBlogs(
+      activeFilter,
+      page,
+      limit
+    )
+
+  useEffect(() => {
+    if (!blogs?.length) return
+
+    setAllBlogs(prev => {
+      const existingIds = new Set(prev.map((item: any) =>item.id))
+
+      const newBlogs = blogs.filter(
+        (item: any) =>!existingIds.has(item.id)
+      )
+
+      return [...prev, ...newBlogs]
+    })
+  }, [blogs])
+
+  useEffect(() => {
+    setPage(1)
+    setAllBlogs([])
+  }, [activeFilter])
+
   const deleteBlog = useDeleteBlog()
   const updateBlog = useUpdateBlog()
   // const warnUser = useWarnUser()
@@ -165,7 +193,10 @@ export default function AdminBlogsPage() {
     setEditError('')
   }
   // const deletePost = useDeletePost()
-  const itemsToRender = searchResults !== null ? searchResults : blogs
+  const itemsToRender =
+  searchResults !== null
+    ? searchResults
+    : allBlogs
 
   // const resolveCardType = (it: any) => {
   //   const t = String(it?.type || it?.post_type || '').toUpperCase()
@@ -357,6 +388,13 @@ export default function AdminBlogsPage() {
             />
           ))
         )}
+        <div className="flex justify-center mt-6">
+          <Button
+            onClick={() => setPage(prev => prev + 1)}
+          >
+            Load More
+          </Button>
+        </div>
       </div>
 
       {showCreate && (

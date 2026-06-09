@@ -193,6 +193,71 @@ export default function GroupDetailsPage() {
   const [feedLoading, setFeedLoading] = useState(false)
   const [inviteLoading, setInviteLoading] = useState(false)
   const [inviteMessage, setInviteMessage] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+
+  const fetchGroupFeed = async (
+    pageNumber = 1,
+    append = false
+  ) => {
+    if (!groupId) return
+
+    try {
+      if (pageNumber === 1) {
+        setFeedLoading(true)
+      } else {
+        setLoadingMore(true)
+      }
+
+      const res = await apiClient.getGroupFeed(
+        groupId,
+        pageNumber,
+        20
+      )
+
+      const items = extractFeedItems(res.data)
+
+      const mapped = items.map(mapGroupFeedPost)
+
+      setGroupFeed(prev =>
+        append
+          ? [...prev, ...mapped]
+          : mapped
+      )
+
+      setHasMore(
+        res.data?.hasMore ??
+        mapped.length === 20
+      )
+
+      setGroup(prev =>
+        prev
+          ? {
+              ...prev,
+              posts: extractFeedTotal(
+                res.data,
+                mapped.length
+              ),
+            }
+          : prev
+      )
+    } catch (err) {
+      console.error('Group feed fetch error', err)
+    } finally {
+      setFeedLoading(false)
+      setLoadingMore(false)
+    }
+  }
+
+
+  useEffect(() => {
+    if (!groupId) return
+
+    setPage(1)
+
+    fetchGroupFeed(1, false)
+  }, [groupId])
 
   // ── Media upload state ──────────────────────────────────────────────────
   const [mediaFiles, setMediaFiles] = useState<File[]>([])
@@ -248,36 +313,46 @@ export default function GroupDetailsPage() {
     fetchGroup()
   }, [groupId])
 
-  useEffect(() => {
-    if (!groupId) return
+  // useEffect(() => {
+  //   if (!groupId) return
 
-    const fetchGroupFeed = async () => {
-      try {
-        setFeedLoading(true)
-        const res = await apiClient.getGroupFeed(groupId, 1, 20)
-        const items = extractFeedItems(res.data)
+  //   const fetchGroupFeed = async (
+  //     pageNumber = 1,
+  //     append = false
+  //   ) => {
+  //     try {
+  //       if (pageNumber === 1) {
+  //         setFeedLoading(true)
+  //       } else {
+  //         setLoadingMore(true)
+  //       }
 
-        const mapped = items.map(mapGroupFeedPost)
-        setGroupFeed(mapped)
-        setGroup((prev) =>
-          prev
-            ? {
-                ...prev,
-                posts: extractFeedTotal(res.data, mapped.length),
-                recentPosts: mapped,
-              }
-            : prev
-        )
-      } catch (err) {
-        console.error('Group feed fetch error', err)
-        setGroupFeed([])
-      } finally {
-        setFeedLoading(false)
-      }
-    }
+  //       const res = await apiClient.getGroupFeed(
+  //         groupId,
+  //         pageNumber,
+  //         20
+  //       )
 
-    fetchGroupFeed()
-  }, [groupId])
+  //       const items = extractFeedItems(res.data)
+
+  //       const mapped = items.map(mapGroupFeedPost)
+
+  //       setGroupFeed(prev =>
+  //         append ? [...prev, ...mapped] : mapped
+  //       )
+
+  //       setHasMore(
+  //         res.data?.hasMore ??
+  //         mapped.length === 20
+  //       )
+  //     } finally {
+  //       setFeedLoading(false)
+  //       setLoadingMore(false)
+  //     }
+  //   }
+
+  //   fetchGroupFeed()
+  // }, [groupId])
 
   if (loading) {
     return <div className="p-6">Loading group...</div>
@@ -342,19 +417,8 @@ export default function GroupDetailsPage() {
       setUploadProgress(0)
       setPostNotice('Post created successfully.')
 
-      const feedRes = await apiClient.getGroupFeed(group.id, 1, 20)
-      const items = extractFeedItems(feedRes.data)
-      const mapped = items.map(mapGroupFeedPost)
-      setGroupFeed(mapped)
-      setGroup((prev) =>
-        prev
-          ? {
-              ...prev,
-              posts: extractFeedTotal(feedRes.data, mapped.length),
-              recentPosts: mapped,
-            }
-          : prev
-      )
+      setPage(1)
+      await fetchGroupFeed(1, false)
     } catch (err) {
       console.error('Failed to create group post', err)
       setPostNotice('Failed to create post. Please try again.')
@@ -673,24 +737,48 @@ export default function GroupDetailsPage() {
           No posts in this group yet.
         </div>
       ) : (
-        <div className="space-y-4">
-          {groupFeed.map((post) => (
-            <FeedPost
-              key={post.id}
-              id={post.id}
-              authorId={post.author.id}
-              author={post.author}
-              content={post.content}
-              image={post.image}
-              video={post.video}
-              timestamp={String(post.timestamp)}
-              likes={post.likes}
-              dislikes={post.dislikes}
-              comments={post.comments}
-              sends={post.sends}
-            />
-          ))}
-        </div>
+        <>
+          <div className="space-y-4">
+            {groupFeed.map((post) => (
+              <FeedPost
+                key={post.id}
+                id={post.id}
+                authorId={post.author.id}
+                author={post.author}
+                content={post.content}
+                image={post.image}
+                video={post.video}
+                timestamp={String(post.timestamp)}
+                likes={post.likes}
+                dislikes={post.dislikes}
+                comments={post.comments}
+                sends={post.sends}
+              />
+            ))}
+          </div>
+
+          {hasMore && (
+            <div className="mt-6 flex justify-center">
+              <button
+                onClick={() => {
+                  const nextPage = page + 1
+                  setPage(nextPage)
+                  fetchGroupFeed(nextPage, true)
+                }}
+                disabled={loadingMore}
+                className="px-5 py-2 rounded-lg border"
+                style={{
+                  borderColor: '#212529',
+                  color: '#212529',
+                }}
+              >
+                {loadingMore
+                  ? 'Loading...'
+                  : 'Load More Posts'}
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   )

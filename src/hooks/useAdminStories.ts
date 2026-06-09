@@ -1,12 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import apiClient from '@/lib/api-client'
+import apiClient, { extractPaginatedData } from '@/lib/api-client'
 
-export function useAdminStories(filter: string) {
+export function useAdminStories(filter: string, page = 1, limit = 50) {
   return useQuery({
-    queryKey: ['admin-stories', filter],
+    queryKey: ['admin-stories', filter, page, limit],
     queryFn: async () => {
-      const res = await apiClient.getStories()
-      let stories = res.data || []
+      const res = await apiClient.getStories(page, limit)
+      const {
+        data: storiesData
+      } = extractPaginatedData(res)
+
+      let stories = storiesData || []
 
       if (filter === 'Latest') {
         return stories.sort((a: { created_on: string }, b: { created_on: string }) => Number(b.created_on) - Number(a.created_on))

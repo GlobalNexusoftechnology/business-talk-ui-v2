@@ -21,6 +21,9 @@ export default function AdminQuestionsPage() {
   // const inputRef = useRef<HTMLInputElement | null>(null)
   // const router = useRouter()
   const [searchResults, setSearchResults] = useState<any[] | null>(null)
+  const [page, setPage] = useState(1)
+  const limit = 50
+  const [allQuestions, setAllQuestions] = useState<any[]>([])
   const searchParams = useSearchParams()
   const qParam = searchParams?.get('q') || ''
 
@@ -159,12 +162,35 @@ export default function AdminQuestionsPage() {
 
   // simple client-side suggestions removed — using local debounced search like posts/users
 
-  const { data: questions = [], isLoading } = useAdminQuestions(activeFilter)
+  const { data: questions = [], isLoading } = useAdminQuestions(activeFilter, page, limit)
+  
+  useEffect(() => {
+    if (!questions?.length) return
+
+    setAllQuestions(prev => {
+      const existingIds = new Set(prev.map((item: any) =>item.id))
+
+      const newQuestions = questions.filter(
+        (item: any) =>!existingIds.has(item.id)
+      )
+
+      return [...prev, ...newQuestions]
+    })
+  }, [questions])
+
+  useEffect(() => {
+    setPage(1)
+    setAllQuestions([])
+  }, [activeFilter])
+
   const deleteQuestion = useDeleteQuestion()
   const warnUser = useWarnUser()
   const banUser = useBanUser()
   const deletePost = useDeletePost()
-  const items = searchResults !== null ? searchResults : questions
+  const items =
+  searchResults !== null
+    ? searchResults
+    : allQuestions
 
   // dedupe items by canonical type+id to avoid duplicate React keys from backend shapes
   const itemsToRender = (() => {
@@ -316,6 +342,13 @@ export default function AdminQuestionsPage() {
                 return author.includes(ql) || content.includes(ql)
               })
               .map((q: any) => renderCard(q))}
+            <div className="flex justify-center mt-6">
+              <Button
+                onClick={() => setPage(prev => prev + 1)}
+              >
+                Load More
+              </Button>
+            </div>
           </>
         )}
       </div>

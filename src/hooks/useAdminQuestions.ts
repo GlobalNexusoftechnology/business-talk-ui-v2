@@ -1,19 +1,24 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import apiClient from '@/lib/api-client'
+import apiClient, { extractPaginatedData } from '@/lib/api-client'
 import adminApi from '@/lib/admin-api'
 
-export function useAdminQuestions(filter: string) {
+export function useAdminQuestions(filter: string, page?: number, limit?: number) {
   return useQuery({
-    queryKey: ['admin-questions', filter],
+    queryKey: ['admin-questions', filter, page, limit],
     queryFn: async () => {
       const baseRes =
         filter === 'Trending'
           ? await apiClient.getTrendingPosts()
-          : await apiClient.getAllPosts()
+          : await apiClient.getAllPosts(page, limit)
 
-      const questions = (baseRes.data || []).filter(
-        (p: any) => (p.post_type || p.type)?.toUpperCase() === 'QUESTION'
-      )
+      const {
+        data: allPosts
+      } = extractPaginatedData(baseRes)
+
+      const questions =
+        (allPosts || []).filter(
+              (p: any) => (p.post_type || p.type)?.toUpperCase() === 'QUESTION'
+        )
 
       if (filter === 'Latest') {
         return questions.sort((a: any, b: any) => Number(b.created_on) - Number(a.created_on))

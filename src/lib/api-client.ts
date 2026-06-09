@@ -548,16 +548,45 @@ class ApiClient {
     return this.client.get('/trending/posts')
   }
 
-  getForYouFeed() {
-    return this.client.get('/posts/feed/for-you')
+  getForYouFeed(
+    page = 1,
+    limit = 50
+  ) {
+    return this.client.get(
+      '/posts/feed/for-you',
+      {
+        params: {
+          page,
+          limit,
+        },
+      }
+    )
   }
 
-  getFollowingFeed() {
-    return this.client.get('/posts/feed/following')
+  getFollowingFeed(
+    page = 1,
+    limit = 50
+  ) {
+    return this.client.get(
+      '/posts/feed/following',
+      {
+        params: {
+          page,
+          limit,
+        },
+      }
+    )
   }
 
-  getAllPosts() {
-    return this.client.get('/posts/all')
+  getAllPosts(page = 1, limit = 50) {
+    return this.client.get('/posts/all',
+      {
+        params: {
+          page,
+          limit,
+        },
+      }
+    )
   }
 
   createPost(data: any) {
@@ -658,10 +687,21 @@ class ApiClient {
   // 📰 STORIES
   // =========================
 
-  async getStories() {
-    const res = await this.client.get('/blogs')
+  async getStories(page = 1, limit = 50) {
+    const res = await this.client.get('/blogs', {
+      params: {
+        page,
+        limit,
+      },
+    })
+
+    const payload = res.data || {}
+
     return {
-      data: (res.data || []).filter((b: any) => b.type === 'STORY'),
+      ...payload,
+      data: (payload.data || payload || []).filter(
+        (b: any) => b.type === 'STORY'
+      ),
     }
   }
 
@@ -676,10 +716,23 @@ class ApiClient {
   // 📰 BLOG / STORY INTERACTIONS
   // =========================
 
-  async getBlogs() {
-    const res = await this.client.get('/blogs')
+  async getBlogs(page = 1, limit = 50) {
+    const res = await this.client.get('/blogs', {
+      params: {
+        page,
+        limit,
+      },
+    })
+
+    const payload = res.data || {}
+
     return {
-      data: (res.data || []).filter((b: any) => b.type === 'BLOG' || b.type === 'ADMIN_BLOG'),
+      ...payload,
+      data: (payload.data || payload || []).filter(
+        (b: any) =>
+          b.type === 'BLOG' ||
+          b.type === 'ADMIN_BLOG'
+      ),
     }
   }
 
@@ -870,7 +923,7 @@ class ApiClient {
   // 🔔 ADMIN NOTIFICATIONS
   // =========================
 
-  getAdminNotifications(page = 1, limit = 20) {
+  getAdminNotifications(page = 1, limit = 50) {
     return this.client.get('/admin/notifications', {
       params: { page, limit },
     })
@@ -892,7 +945,7 @@ class ApiClient {
   // 🔍 SEARCH
   // =========================
 
-  searchAll(query: string, type = 'all', page = 1, limit = 10) {
+  searchAll(query: string, type = 'all', page = 1, limit = 50) {
     return this.client.get('/search', {
       params: { q: query, type, page, limit },
     })
@@ -948,7 +1001,7 @@ class ApiClient {
   }
 
   // Get reports (admin)
-  getReports(status?: string, page = 1, limit = 10) {
+  getReports(status?: string, page = 1, limit = 50) {
     return this.client.get('/admin/reports', {
       params: { status, page, limit },
     })
@@ -1091,7 +1144,7 @@ class ApiClient {
   }
 
   // 15. GET GROUP FEED (paginated)
-  getGroupFeed(groupId: string, page = 1, limit = 20) {
+  getGroupFeed(groupId: string, page = 1, limit = 50) {
     return this.client.get(`/groups/${groupId}/feed`, { params: { page, limit } })
   }
 
@@ -1423,15 +1476,15 @@ class ApiClient {
   // 👤 USER CONTENT (profile page)
   // =========================
 
-  getUserPosts(userId: string, page = 1, limit = 5) {
+  getUserPosts(userId: string, page = 1, limit = 50) {
     return this.client.get('/posts', { params: { author: userId, page, limit } })
   }
 
-  getUserBlogs(userId: string, page = 1, limit = 5) {
+  getUserBlogs(userId: string, page = 1, limit = 50) {
     return this.client.get('/blogs', { params: { author: userId, page, limit } })
   }
 
-  getUserComments(userId: string, page = 1, limit = 10) {
+  getUserComments(userId: string, page = 1, limit = 50) {
     return this.client.get(`/user/${userId}/comments`, { params: { page, limit } })
   }
 
@@ -1534,3 +1587,23 @@ class ApiClient {
 
 const apiClient = new ApiClient();
 export default apiClient;
+
+export const extractPaginatedData = (res: any) => {
+  const payload = res?.data
+
+  if (Array.isArray(payload)) {
+    return {
+      data: payload,
+      page: 1,
+      limit: payload.length,
+      hasMore: false,
+    }
+  }
+
+  return {
+    data: payload?.data ?? [],
+    page: payload?.page ?? 1,
+    limit: payload?.limit ?? 10,
+    hasMore: payload?.hasMore ?? false,
+  }
+}

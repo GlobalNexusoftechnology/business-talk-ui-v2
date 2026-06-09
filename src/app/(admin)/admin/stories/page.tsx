@@ -20,6 +20,9 @@ export default function AdminStoriesPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [searchResults, setSearchResults] = useState<any[] | null>(null)
+  const [page, setPage] = useState(1)
+  const limit = 50
+  const [allStories, setAllStories] = useState<any[]>([])
   // const inputRef = useRef<HTMLInputElement | null>(null)
   // const router = useRouter()
   const searchParams = useSearchParams()
@@ -141,12 +144,35 @@ export default function AdminStoriesPage() {
   // }, [debouncedSearch, qParam])
 
   // using simple client-side search, no autocomplete
-  const { data: stories = [], isLoading } = useAdminStories(activeFilter)
+  const { data: stories = [], isLoading } = useAdminStories(activeFilter, page, limit)
+
+  useEffect(() => {
+    if (!stories?.length) return
+
+    setAllStories(prev => {
+      const existingIds = new Set(prev.map(item => item.id))
+
+      const newStories = stories.filter(
+        (item: any) =>!existingIds.has(item.id)
+      )
+
+      return [...prev, ...newStories]
+    })
+  }, [stories])
+
+  useEffect(() => {
+    setPage(1)
+    setAllStories([])
+  }, [activeFilter])
+
   const deleteStory = useDeleteStory()
   // const deletePost = useDeletePost()
   const warnUser = useWarnUser()
   const banUser = useBanUser()
-  const itemsToRender = searchResults !== null ? searchResults : stories
+  const itemsToRender =
+  searchResults !== null
+    ? searchResults
+    : allStories
 
   // const resolveCardType = (it: any) => {
   //   const t = String(it?.type || it?.post_type || '').toUpperCase()
@@ -298,6 +324,13 @@ export default function AdminStoriesPage() {
             />
           ))
         )}
+        <div className="flex justify-center mt-6">
+          <Button
+            onClick={() => setPage(prev => prev + 1)}
+          >
+            Load More
+          </Button>
+        </div>
       </div>
 
       {showCreate && (

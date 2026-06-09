@@ -77,9 +77,45 @@ export default function MainFeed() {
     } catch {}
   }, [searchParams])
 
-  const { data: posts, isLoading: postsLoading } = useFeedPosts('NORMAL')
-  const { data: questions, isLoading: questionsLoading } = useFeedPosts('QUESTION')
-  const { data: stories, isLoading: storiesLoading } = useStoriesFeed()
+  const {
+    data: postPages,
+    isLoading: postsLoading,
+    fetchNextPage: fetchMorePosts,
+    hasNextPage: hasMorePosts,
+    isFetchingNextPage: loadingMorePosts,
+  } = useFeedPosts('NORMAL')
+
+  const {
+    data: questionPages,
+    isLoading: questionsLoading,
+    fetchNextPage: fetchMoreQuestions,
+    hasNextPage: hasMoreQuestions,
+    isFetchingNextPage: loadingMoreQuestions,
+  } = useFeedPosts('QUESTION')
+  
+  const {
+    data: storyPages,
+    isLoading: storiesLoading,
+    fetchNextPage: fetchMoreStories,
+    hasNextPage: hasMoreStories,
+    isFetchingNextPage:
+      loadingMoreStories,
+  } = useStoriesFeed()
+
+  const stories =
+    storyPages?.pages.flatMap(
+      page => page.data
+    ) || []
+
+  const posts =
+    postPages?.pages.flatMap(
+      page => page.data
+    ) || []
+
+  const questions =
+    questionPages?.pages.flatMap(
+      page => page.data
+    ) || []
 
   // ── Search state ──────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState('')
@@ -99,6 +135,7 @@ export default function MainFeed() {
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const searchBarRef = useRef<HTMLDivElement>(null)
+  const loadMoreRef = useRef<HTMLDivElement>(null)
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -110,6 +147,64 @@ export default function MainFeed() {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
+
+  useEffect(() => {
+    const observer =
+      new IntersectionObserver(
+        entries => {
+          if (
+            entries[0].isIntersecting
+          ) {
+            if (
+              activeTab === 'home' &&
+              hasMorePosts &&
+              !loadingMorePosts
+            ) {
+              fetchMorePosts()
+            }
+
+            if (
+              activeTab === 'qa' &&
+              hasMoreQuestions &&
+              !loadingMoreQuestions
+            ) {
+              fetchMoreQuestions()
+            }
+
+            if (
+              activeTab === 'stories' &&
+              hasMoreStories &&
+              !loadingMoreStories
+            ) {
+              fetchMoreStories()
+            }
+          }
+        },
+        {
+          threshold: 0.5,
+        }
+      )
+
+    if (loadMoreRef.current) {
+      observer.observe(
+        loadMoreRef.current
+      )
+    }
+
+    return () =>
+      observer.disconnect()
+  }, [
+    activeTab,
+    hasMorePosts,
+    loadingMorePosts,
+    hasMoreQuestions,
+    loadingMoreQuestions,
+    hasMoreStories,
+    loadingMoreStories,
+    fetchMorePosts,
+    fetchMoreQuestions,
+    fetchMoreStories,
+  ])
 
   // Debounced autocomplete suggestions
   useEffect(() => {
@@ -759,6 +854,15 @@ export default function MainFeed() {
                       <FeedPost key={post.id} {...post} />
                     ))
                   )}
+                  {/* Infinite Scroll Trigger */}
+                  <div
+                    ref={loadMoreRef}
+                    className="py-6 flex justify-center"
+                  >
+                    {loadingMorePosts && (
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                    )}
+                  </div>
                 </div>
               </>
             )}
@@ -777,6 +881,14 @@ export default function MainFeed() {
                       <QuestionPost key={q.id} {...q} />
                     ))
                   )}
+                  <div
+                    ref={loadMoreRef}
+                    className="py-6 flex justify-center"
+                  >
+                    {loadingMoreQuestions && (
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                    )}
+                  </div>
                 </div>
               </>
             )}
@@ -795,6 +907,15 @@ export default function MainFeed() {
                       <StoryPost key={story.id} {...story} />
                     ))
                   )}
+                  <div
+                    ref={loadMoreRef}
+                    className="py-6 flex justify-center"
+                  >
+                    {loadingMoreStories && (
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                    )}
+                  </div>
+                  
                 </div>
               </>
             )}

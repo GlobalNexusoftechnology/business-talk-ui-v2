@@ -1,10 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import apiClient from '@/lib/api-client'
+import apiClient, { extractPaginatedData } from '@/lib/api-client'
 import adminApi from '@/lib/admin-api'
 
-export function useAdminPosts(filter: string) {
+export function useAdminPosts(filter: string, page?: number, limit?: number) {
   return useQuery({
-    queryKey: ['admin-posts', filter],
+    queryKey: ['admin-posts', filter, page, limit],
     queryFn: async () => {
       let posts: any[] = []
 
@@ -12,8 +12,13 @@ export function useAdminPosts(filter: string) {
         const res = await apiClient.getTrendingPosts()
         posts = res.data || []
       } else {
-        const res = await apiClient.getAllPosts()
-        posts = res.data || []
+        const res = await apiClient.getAllPosts(page, limit)
+
+        const {
+          data: postsData
+        } = extractPaginatedData(res)
+
+        posts = postsData || []
       }
 
       // Posts page should show only NORMAL content, not QUESTION content.

@@ -17,6 +17,9 @@ export default function AdminPostsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [searchResults, setSearchResults] = useState<any[] | null>(null)
+  const [page, setPage] = useState(1)
+  const limit = 50
+  const [allPosts, setAllPosts] = useState<any[]>([])
   const searchParams = useSearchParams()
   const qParam = searchParams?.get('q') || ''
 
@@ -60,11 +63,34 @@ export default function AdminPostsPage() {
     run()
   }, [qParam])
 
-  const { data: posts = [], isLoading } = useAdminPosts(filter)
+  const { data: posts = [], isLoading } = useAdminPosts(filter, page,  limit)
+
+  useEffect(() => {
+    if (!posts?.length) return
+
+    setAllPosts(prev => {
+      const existingIds = new Set(prev.map(item => item.id))
+
+      const newPosts = posts.filter(
+        item => !existingIds.has(item.id)
+      )
+
+      return [...prev, ...newPosts]
+    })
+  }, [posts])
+
+  useEffect(() => {
+    setPage(1)
+    setAllPosts([])
+  }, [filter])
+
   const deletePost = useDeletePost()
   const warnUser = useWarnUser()
   const banUser = useBanUser()
-  const itemsToRender = searchResults !== null ? searchResults : posts
+  const itemsToRender =
+  searchResults !== null
+    ? searchResults
+    : allPosts
 
   return (
     <div className="p-6 min-h-screen" style={{ backgroundColor: '#F8F9FA' }}>
@@ -140,6 +166,14 @@ export default function AdminPostsPage() {
                   onDelete={(id) => deletePost.mutate(id)}
                 />
               ))}
+
+            <div className="flex justify-center mt-6">
+              <Button
+                onClick={() => setPage(prev => prev + 1)}
+              >
+                Load More
+              </Button>
+            </div>
           </>
         )}
       </div>

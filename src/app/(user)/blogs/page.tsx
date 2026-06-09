@@ -1,10 +1,10 @@
 'use client'
 
-import { Search, Clock, Eye, BookmarkPlus, Send, Trash2 } from 'lucide-react'
-import { useState } from 'react'
-import { useEffect } from 'react'
+import { Search, Clock, Eye, BookmarkPlus, Send, Trash2, Loader2 } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { useInfiniteQuery } from '@tanstack/react-query'
 import ExpandableText from '@/components/common/ExpandableText'
-import apiClient from '@/lib/api-client'
+import apiClient, { extractPaginatedData } from '@/lib/api-client'
 import { useRouter } from 'next/navigation'
 import { profileHref } from '@/lib/profile-link'
 import { ShareModal } from '@/components/shared/ShareModal'
@@ -38,11 +38,121 @@ export default function BlogsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('All')
   const [showShareModal, setShowShareModal] = useState(false)
-  const [blogs, setBlogs] = useState<Blog[]>([])
-  const [loading, setLoading] = useState(true)
+  // const [blogs, setBlogs] = useState<Blog[]>([])
+  // const [loading, setLoading] = useState(true)
   const [selectedBlog, setSelectedBlog] = useState<Blog | null>(null)
   const [currentUserId, setCurrentUserId] = useState('')
   const [deleteToast, setDeleteToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+
+  const loadMoreRef = useRef<HTMLDivElement>(null)
+
+  const {
+    data,
+    isLoading: loading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['blogs-feed'],
+
+    initialPageParam: 1,
+
+    queryFn: async ({ pageParam }) => {
+      const res = await apiClient.getBlogs(
+        pageParam,
+        50
+      )
+
+      const {
+        data,
+        hasMore,
+      } = extractPaginatedData(res)
+
+      const formatted = data.map(
+        (b: any) => ({
+          id: b.id,
+          authorId:
+            b.user?.id ||
+            b.author?.id ||
+            '',
+
+          title: b.title,
+
+          excerpt:
+            b.content?.slice(
+              0,
+              150
+            ) || '',
+
+          author: {
+            name:
+              b.user?.username ||
+              b.author?.name ||
+              'Unknown',
+
+            avatar:
+              b.user
+                ?.profile_photo ||
+              b.author
+                ?.avatar ||
+              '/avatar.png',
+
+            title:
+              b.user
+                ?.profession ||
+              b.author
+                ?.title ||
+              'User',
+          },
+
+          image:
+            b.cover_image ||
+            '/placeholder.jpg',
+
+          category:
+            (
+              b.tags || []
+            ).map(
+              (t: any) =>
+                t.name
+            ),
+
+          readTime:
+            '5 min read',
+
+          publishedAt:
+            new Date(
+              Number(
+                b.created_on
+              )
+            ).toDateString(),
+
+          views:
+            b.views || 0,
+
+          bookmarks: 0,
+        })
+      )
+
+      return {
+        data: formatted,
+        hasMore,
+        nextPage:
+          pageParam + 1,
+      }
+    },
+
+    getNextPageParam:
+      lastPage =>
+        lastPage.hasMore
+          ? lastPage.nextPage
+          : undefined,
+  })
+
+  const blogs =
+  data?.pages.flatMap(
+    page => page.data
+  ) || []
 
   const showDeleteToast = (message: string, type: 'success' | 'error') => {
     setDeleteToast({ message, type })
@@ -61,40 +171,36 @@ export default function BlogsPage() {
   }, [reduxUser])
 
   useEffect(() => {
-    const fetchBlogs = async () => {
-      try {
-        const res = await apiClient.getBlogs()
-        const data = res.data || []
+    const observer =
+      new IntersectionObserver(
+        entries => {
+          if (
+            entries[0]
+              ?.isIntersecting &&
+            hasNextPage &&
+            !isFetchingNextPage
+          ) {
+            fetchNextPage()
+          }
+        },
+        {
+          threshold: 0.5,
+        }
+      )
 
-        // map backend → UI
-        const formatted = data.map((b: any) => ({
-          id: b.id,
-          authorId: b.user?.id || b.author?.id || '',
-          title: b.title,
-          excerpt: b.content?.slice(0, 150) || '',
-          author: {
-            name: b.user?.username || b.author?.name || 'Unknown',
-            avatar: b.user?.profile_photo || b.author?.avatar || '/avatar.png',
-            title: b.user?.profession || b.author?.title || 'User',
-          },
-          image: b.cover_image || '/placeholder.jpg',
-          category: (b.tags || []).map((t: any) => t.name),
-          readTime: '5 min read',
-          publishedAt: new Date(b.created_at).toDateString(),
-          views: b.views || 0,
-          bookmarks: 0,
-        }))
-
-        setBlogs(formatted)
-      } catch (err) {
-        console.error('Blogs fetch error', err)
-      } finally {
-        setLoading(false)
-      }
+    if (loadMoreRef.current) {
+      observer.observe(
+        loadMoreRef.current
+      )
     }
 
-    fetchBlogs()
-  }, [])
+    return () =>
+      observer.disconnect()
+  }, [
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  ])
 
   if (loading) {
     return <div className="p-6">Loading blogs...</div>
@@ -109,8 +215,13 @@ export default function BlogsPage() {
     if (!window.confirm('Delete this blog? This cannot be undone.')) return
     try {
       await apiClient.deleteBlog(blogId)
-      setBlogs(prev => prev.filter(b => b.id !== blogId))
-      showDeleteToast('Blog deleted successfully', 'success')
+      // setBlogs(prev => prev.filter(b => b.id !== blogId))
+      showDeleteToast(
+        'Blog deleted successfully',
+        'success'
+      )
+
+      window.location.reload()
     } catch (err: any) {
       const status = err?.response?.status
       if (status === 403) {
@@ -359,6 +470,14 @@ export default function BlogsPage() {
               </div>
             </div>
           ))}
+          <div
+            ref={loadMoreRef}
+            className="py-8 flex justify-center"
+          >
+            {isFetchingNextPage && (
+              <Loader2 className="w-6 h-6 animate-spin" />
+            )}
+          </div>
         </div>
       </div>
 
