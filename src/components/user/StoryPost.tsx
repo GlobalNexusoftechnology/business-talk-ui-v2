@@ -28,6 +28,7 @@ import { getTimeAgo } from '@/lib/utils'
 import { ReportModal } from '../shared/ReportModal'
 import { useOpenContent } from '@/hooks/useOpenContent'
 import apiClient from '@/lib/api-client'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
 
 interface StoryPostProps {
   id?: string
@@ -89,6 +90,7 @@ export function StoryPost({
   const { state: followState, follow, unfollow } = useFollow(authorId)
   const { isBanned } = useAccountStatus()
   const { isSaved, toggle: toggleSave, showToast: showSavedToast } = useSavedStatus(id || undefined, 'blog')
+  const requireAuth = useRequireAuth()
 
   useEffect(() => {
     const handleClickOutside = (e: any) => {
@@ -167,6 +169,7 @@ export function StoryPost({
   // 🔖 SAVE STORY — handled by useSavedStatus hook
   // =========================
   const handleSave = async () => {
+    if (!requireAuth()) return
     await toggleSave(() => setShowActionMenu(false))
   }
 
@@ -174,6 +177,7 @@ export function StoryPost({
   // ❤️ LIKE STORY
   // =========================
   const handleLike = async () => {
+    if (!requireAuth()) return
     if (!id || isLiking) return
 
     const wasLiked = isLiked
@@ -207,6 +211,7 @@ export function StoryPost({
   // 💬 ADD COMMENT
   // =========================
   const handleAddComment = () => {
+    if (!requireAuth()) return
     if (!commentInput.trim() || isBanned) return
 
     addComment({ content: commentInput })
@@ -217,6 +222,7 @@ export function StoryPost({
   // 🔁 ADD REPLY
   // =========================
   const handleAddReply = (parentId: string) => {
+    if (!requireAuth()) return
     if (!replyInput.trim() || isBanned) return
 
     addComment({
@@ -232,6 +238,7 @@ export function StoryPost({
   // 👍 LIKE COMMENT
   // =========================
   const handleLikeComment = async (id: string, currentLikes: number) => {
+    if (!requireAuth()) return
     if (!id || isLikingComment) return
 
     const prev = commentLikeOverrides[id]

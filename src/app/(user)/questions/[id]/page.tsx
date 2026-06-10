@@ -12,6 +12,9 @@ import {
   CheckCircle,
 } from 'lucide-react'
 import apiClient from '@/lib/api-client'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { ShareModal } from '@/components/shared/ShareModal'
+import RichTextContent from '@/components/common/RichTextContent'
 
 /* ── Types ─────────────────────────────────────────── */
 interface Author {
@@ -23,7 +26,7 @@ interface Author {
 
 interface Question {
   id: string
-  title: string
+  // title: string
   content: string
   author: Author
   createdAt: string
@@ -157,6 +160,8 @@ export default function QuestionDetailPage() {
   const [answers, setAnswers] = useState<Answer[]>([])
   const [answerText, setAnswerText] = useState('')
   const [answerSubmitting, setAnswerSubmitting] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const requireAuth = useRequireAuth()
 
   /* fetch question (it's a post with type=QUESTION) */
   useEffect(() => {
@@ -167,7 +172,7 @@ export default function QuestionDetailPage() {
         const d = res.data
         const formatted: Question = {
           id: d.id,
-          title: d.question || d.content?.split('\n')[0] || 'Question',
+          // title: d.question || d.content?.split('\n')[0] || 'Question',
           content: d.description || d.content || '',
           author: {
             id: d.user?.id || '',
@@ -212,6 +217,7 @@ export default function QuestionDetailPage() {
   }, [postId])
 
   const handleVote = async (dir: 'up' | 'down') => {
+    if (!requireAuth()) return
     if (!question) return
     try {
       const res = await apiClient.votePost(question.id, dir)
@@ -222,18 +228,14 @@ export default function QuestionDetailPage() {
       else if (typeof data.myVote === 'string') setIsLiked(data.myVote.toLowerCase() === 'up')
       else setIsLiked(Boolean(data?.liked))
       if (dir === 'down') setDownvoted(false)
-    } catch {
-      if (dir === 'up') {
-        setIsLiked(v => !v)
-        setLikeCount(c => isLiked ? Math.max(0, c - 1) : c + 1)
-      } else {
-        setDownvoted(v => !v)
-        setDownvotes(c => downvoted ? Math.max(0, c - 1) : c + 1)
-      }
+    } catch (err) {
+      console.error(err)
+      return
     }
   }
 
   const handlePostAnswer = async () => {
+    if (!requireAuth()) return
     if (!answerText.trim() || !question) return
     setAnswerSubmitting(true)
     try {
@@ -245,6 +247,7 @@ export default function QuestionDetailPage() {
   }
 
   const handleReplyAdded = (parentId: string, reply: Answer) => {
+    if (!requireAuth()) return
     const addReply = (list: Answer[]): Answer[] =>
       list.map(a =>
         a.id === parentId
@@ -303,15 +306,11 @@ export default function QuestionDetailPage() {
           </div>
 
           {/* Question heading */}
-          <h1 className="text-xl font-bold mb-3 leading-snug whitespace-pre-wrap break-words" style={{ color: '#212529' }}>
-            {question.title}
-          </h1>
+          {/* <RichTextContent className="text-xl font-bold mb-3 leading-snug whitespace-pre-wrap break-words" style={{ color: '#212529' }} html={question.title} /> */}
 
           {/* Description */}
-          {question.content && question.content !== question.title && (
-            <p className="text-base leading-relaxed whitespace-pre-wrap break-words mb-4" style={{ color: '#3D3D3D' }}>
-              {question.content}
-            </p>
+          {question.content && (
+            <RichTextContent className="text-base leading-relaxed whitespace-pre-wrap break-words mb-4" style={{ color: '#3D3D3D' }} html={question.content} />
           )}
 
           {/* Tags */}
@@ -346,6 +345,14 @@ export default function QuestionDetailPage() {
               <CheckCircle className="w-4 h-4" />
               <span>{answers.length} Answer{answers.length !== 1 ? 's' : ''}</span>
             </div>
+
+            {/* ================== SHARE BUTTON ================== */}
+                    <button
+                      onClick={() => setShowShareModal(true)}
+                      className="ml-auto"
+                    >
+                      <Send />
+                    </button>
           </div>
         </div>
 
@@ -389,6 +396,15 @@ export default function QuestionDetailPage() {
         )}
 
       </div>
+
+      {/* Share Modal */}
+            <ShareModal
+                    isOpen={showShareModal}
+                    onClose={() => setShowShareModal(false)}
+                    postContent={question.content}
+                    contentType="questions"
+                    contentId={question.id}
+                  />
     </div>
   )
 }

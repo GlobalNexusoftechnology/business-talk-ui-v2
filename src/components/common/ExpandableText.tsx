@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import DOMPurify from 'dompurify'
 
 interface ExpandableTextProps {
   children: string | null | undefined | any
@@ -9,7 +10,9 @@ interface ExpandableTextProps {
 }
 
 export default function ExpandableText({ children, className = '', lines = 4, stopPropagation = true, onClick }: ExpandableTextProps) {
-  const text = children || ''
+  const html = DOMPurify.sanitize(
+    String(children || '')
+  )
   const [expanded, setExpanded] = useState(false)
   const [showToggle, setShowToggle] = useState(false)
   const ref = useRef<HTMLDivElement | null>(null)
@@ -28,26 +31,34 @@ export default function ExpandableText({ children, className = '', lines = 4, st
     const isOverflowing = clone.scrollHeight > el.clientHeight + 1
     setShowToggle(isOverflowing)
     clone.remove()
-  }, [text, lines])
+  }, [html, lines])
 
   return (
     <div>
       <div
         onClick={(e) => {
           if (stopPropagation) e.stopPropagation()
-          // Only trigger external onClick when expanded (Show Less visible)
-          if (expanded && onClick) onClick()
+
+          if (expanded && onClick) {
+            onClick()
+          }
         }}
         ref={ref}
-        className={`whitespace-pre-wrap break-words ${className}`}
+        className={`rich-text-content break-words ${className}`}
+        dangerouslySetInnerHTML={{
+          __html: html,
+        }}
         style={
           expanded
             ? { display: 'block' }
-            : { display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden', WebkitLineClamp: String(lines) } as React.CSSProperties
+            : {
+                display: '-webkit-box',
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                WebkitLineClamp: String(lines),
+              } as React.CSSProperties
         }
-      >
-        {text}
-      </div>
+      />
 
       {showToggle && (
           <button

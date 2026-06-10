@@ -2,12 +2,14 @@ import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/lib/api-client'
 import { useAppSelector } from '@/hooks/useRedux'
+import { useRequireAuth } from './useRequireAuth'
 
 export function useFollow(targetUserId: string) {
   const queryClient = useQueryClient()
   const currentUserId = useAppSelector((state) => String(state.auth?.user?.id || ''))
   const [state, setState] = useState<'connect' | 'pending' | 'connected'>('connect')
   const [loading, setLoading] = useState(false)
+  const requireAuth = useRequireAuth()
 
   const followingQueryKey = useMemo(
     () => ['my-following', currentUserId],
@@ -41,6 +43,7 @@ export function useFollow(targetUserId: string) {
   }, [followingIds, targetUserId])
 
   const follow = async () => {
+    if (!requireAuth()) return
     if (!isUUID(targetUserId)) {
       console.error('Invalid UUID:', targetUserId)
       return
@@ -68,6 +71,7 @@ export function useFollow(targetUserId: string) {
   }
 
   const unfollow = async () => {
+    if (!requireAuth()) return
     try {
       setLoading(true)
       await apiClient.unfollowUserById(targetUserId)

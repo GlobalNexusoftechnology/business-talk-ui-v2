@@ -8,13 +8,14 @@ import { profileHref } from '@/lib/profile-link'
 import apiClient from '@/lib/api-client'
 import { MergedMobileSidebarContent } from '@/components/shared/MergedMobileSidebarContent'
 import { useAppSelector } from '@/hooks/useRedux'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
 
 interface UserLayoutWrapperProps {
   children: React.ReactNode
 }
 
 export const UserLayoutWrapper = ({ children }: UserLayoutWrapperProps) => {
-
+  const requireAuth = useRequireAuth()
   type Person = any
   type Story = any
   type Question = any
@@ -39,22 +40,67 @@ export const UserLayoutWrapper = ({ children }: UserLayoutWrapperProps) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [peopleRes, groupsRes, storiesRes, hotRes] = await Promise.all([
-          apiClient.getFollowSuggestions(),
-          apiClient.getGroupSuggestions(10),
+        const isGuest =
+          typeof window !== 'undefined' &&
+          !localStorage.getItem('user')
+
+        let peopleData: any[] = []
+        let groupsData: any[] = []
+
+        const requests = [
           apiClient.getStories(),
           apiClient.getTrendingPosts(),
-        ])
-        setPeople(peopleRes.data || [])
-        setGroups(groupsRes.data || [])
+        ]
+
+        if (!isGuest) {
+          requests.unshift(
+            apiClient.getFollowSuggestions(),
+            apiClient.getGroupSuggestions(10)
+          )
+        }
+
+        const results = await Promise.all(requests)
+
+        let storiesRes: any
+        let hotRes: any
+
+        if (isGuest) {
+          ;[storiesRes, hotRes] = results
+        } else {
+          const [peopleRes, groupsRes] = results
+
+          peopleData = peopleRes.data || []
+          groupsData = groupsRes.data || []
+
+          storiesRes = results[2]
+          hotRes = results[3]
+        }
+
+        setPeople(peopleData)
+        setGroups(groupsData)
+
         const sortedStories = (storiesRes.data || []).sort(
-          (a: any, b: any) => new Date(b.created_on).getTime() - new Date(a.created_on).getTime()
+          (a: any, b: any) =>
+            new Date(b.created_on).getTime() -
+            new Date(a.created_on).getTime()
         )
+
         setStories(sortedStories.slice(0, 5))
+
         const trendingPosts = hotRes.data || []
+
         const questionPosts = trendingPosts
-          .filter((p: any) => (p.post_type || p.type)?.toUpperCase() === 'QUESTION')
-          .sort((a: any, b: any) => (b.hot_score || 0) - (a.hot_score || 0))
+          .filter(
+            (p: any) =>
+              (p.post_type || p.type)?.toUpperCase() ===
+              'QUESTION'
+          )
+          .sort(
+            (a: any, b: any) =>
+              (b.hot_score || 0) -
+              (a.hot_score || 0)
+          )
+
         setQuestions(questionPosts.slice(0, 5))
       } catch (err) {
         // silent
@@ -78,6 +124,7 @@ export const UserLayoutWrapper = ({ children }: UserLayoutWrapperProps) => {
             loading={loading}
             onProfileClick={(person: any) => router.push(profileHref(person.id, person.full_name))}
             onFollow={async (id: string) => {
+              if (!requireAuth()) return
               try {
                 await apiClient.followUserById(id)
                 setPeople((prev) => prev.filter((p) => p.id !== id))

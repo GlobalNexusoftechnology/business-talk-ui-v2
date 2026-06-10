@@ -8,6 +8,15 @@ export function useUsers() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const isGuest =
+      typeof window !== 'undefined' &&
+      !localStorage.getItem('user')
+
+    if (isGuest) {
+      setLoading(false)
+      return
+    }
+
     fetchUsers()
   }, [])
 

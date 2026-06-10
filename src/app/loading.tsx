@@ -5,7 +5,7 @@ export default function Loading() {
     <>
       <div className="loader-container">
         <div className="content">
-          <div className="logo-wrapper">
+          <div className="logo-wrapper w-100" >
             <img
               src="/assets/logos/BUSINESSTALK24_LOGO_svg.svg"
               alt="BusinessTalk24"
@@ -59,7 +59,7 @@ export default function Loading() {
         }
 
         .logo {
-          width: 120px;
+          width: 250px;
           height: 120px;
           position: relative;
           z-index: 2;

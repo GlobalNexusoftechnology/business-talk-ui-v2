@@ -12,6 +12,9 @@ import {
 } from 'lucide-react'
 import apiClient from '@/lib/api-client'
 import { MediaGrid, MediaItem } from '@/components/shared/MediaGrid'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { ShareModal } from '@/components/shared/ShareModal'
+import RichTextContent from '@/components/common/RichTextContent'
 
 /* ── Types ─────────────────────────────────────────── */
 interface Author {
@@ -153,6 +156,7 @@ export default function PostDetailPage() {
   const postId = params.id as string
 
   const [post, setPost] = useState<Post | null>(null)
+  const [showShareModal, setShowShareModal] = useState(false)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
 
@@ -164,6 +168,7 @@ export default function PostDetailPage() {
   const [comments, setComments] = useState<Comment[]>([])
   const [commentText, setCommentText] = useState('')
   const [commentSubmitting, setCommentSubmitting] = useState(false)
+  const requireAuth = useRequireAuth()
 
   /* fetch post */
   useEffect(() => {
@@ -224,6 +229,7 @@ export default function PostDetailPage() {
   }, [postId])
 
   const handleVote = async (dir: 'up' | 'down') => {
+    if (!requireAuth()) return
     if (!post) return
     try {
       const res = await apiClient.votePost(post.id, dir)
@@ -234,15 +240,15 @@ export default function PostDetailPage() {
       if (data?.myVote === null || data?.myVote === undefined) setIsLiked(false)
       else if (typeof data.myVote === 'string') setIsLiked(data.myVote.toLowerCase() === 'up')
       else setIsLiked(Boolean(data?.liked))
-    } catch {
-      if (dir === 'up') {
-        setIsLiked(v => !v)
-        setLikeCount(c => isLiked ? Math.max(0, c - 1) : c + 1)
+    } catch (err: any) {
+        console.error(err)
+
+        return
       }
-    }
     }
 
   const handleAddComment = async () => {
+    if (!requireAuth()) return
     if (!commentText.trim() || !post) return
     setCommentSubmitting(true)
     try {
@@ -254,6 +260,7 @@ export default function PostDetailPage() {
   }
 
   const handleReplyAdded = (parentId: string, reply: Comment) => {
+    if (!requireAuth()) return
     const addReply = (list: Comment[]): Comment[] =>
       list.map(c =>
         c.id === parentId
@@ -312,9 +319,7 @@ export default function PostDetailPage() {
           </div>
 
           {/* Content */}
-          <p className="text-base leading-relaxed whitespace-pre-wrap break-words mb-4" style={{ color: '#212529' }}>
-            {post.content}
-          </p>
+          <RichTextContent className="text-base leading-relaxed whitespace-pre-wrap break-words mb-4" style={{ color: '#212529' }} html={post.content} />
 
           {/* Media */}
           {(() => {
@@ -355,6 +360,13 @@ export default function PostDetailPage() {
             >
               <ThumbsDown className="w-4 h-4" /> {downvotes}
             </button> */}
+            {/* ================== SHARE BUTTON ================== */}
+                    <button
+                      onClick={() => setShowShareModal(true)}
+                      className="ml-auto"
+                    >
+                      <Send />
+                    </button>
             <div className="flex items-center gap-2 px-4 py-2 text-sm" style={{ color: '#5F6368' }}>
               <MessageCircle className="w-4 h-4" /> {comments.length}
             </div>
@@ -402,6 +414,15 @@ export default function PostDetailPage() {
         )}
 
       </div>
+
+      {/* Share Modal */}
+            <ShareModal
+              isOpen={showShareModal}
+              onClose={() => setShowShareModal(false)}
+              postContent={post.content}
+              contentType="posts"
+              contentId={post.id}
+            />
     </div>
   )
 }

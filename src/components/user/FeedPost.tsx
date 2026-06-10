@@ -14,6 +14,7 @@ import { useAccountStatus, useAppSelector } from '@/hooks/useRedux'
 import { getTimeAgo } from '@/lib/utils'
 import { MediaGrid, MediaItem } from '@/components/shared/MediaGrid'
 import ExpandableText from '@/components/common/ExpandableText'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
 
 interface FeedPostProps {
   id?: string
@@ -64,6 +65,7 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, gr
   const [animatingId, setAnimatingId] = useState<string | null>(null)
   const [isDeleted, setIsDeleted] = useState(false)
   const [deleteToast, setDeleteToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const requireAuth = useRequireAuth()
 
   //
   // FETCH COMMENT COUNT
@@ -211,6 +213,8 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, gr
     const isLiked = likedComments.has(itemId)
     const newLikedComments = new Set(likedComments)
 
+    if (!requireAuth()) return
+
     setAnimatingId(itemId)
     setTimeout(() => setAnimatingId(null), 300)
 
@@ -231,6 +235,7 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, gr
   // Like/Unlike post using API
   const handleLike = async () => {
     if (isBanned) return
+    if (!requireAuth()) return
     setAnimatingId('post')
     setTimeout(() => setAnimatingId(null), 300)
 
@@ -262,6 +267,7 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, gr
   }
 
   const handleSave = async () => {
+    if (!requireAuth()) return
     await toggleSave(() => setShowActionMenu(false))
   }
 
@@ -285,6 +291,7 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, gr
 
   // Add comment using API
   const handleAddComment = async () => {
+    if (!requireAuth()) return
     if (!commentInput.trim() || isBanned) return
     try {
       const postId = id?.toString() || ''
@@ -313,6 +320,7 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, gr
 
   // Add reply using API
   const handleAddReply = async (commentId: number, parentReplyId?: number) => {
+    if (!requireAuth()) return
     if (!replyInput.trim() || isBanned) return
     try {
       const postId = id?.toString() || ''

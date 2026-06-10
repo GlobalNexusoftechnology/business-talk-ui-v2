@@ -325,7 +325,22 @@ class ApiClient {
               }
 
               localStorage.removeItem('user')
-              if (!isOnPublicAuthPage && window.location.pathname !== '/login') {
+
+              const isGuest =
+                !localStorage.getItem('user')
+
+              if (isGuest) {
+                window.dispatchEvent(
+                  new CustomEvent('show-login-modal')
+                )
+
+                return Promise.reject(refreshError)
+              }
+
+              if (
+                !isOnPublicAuthPage &&
+                window.location.pathname !== '/login'
+              ) {
                 window.location.href = '/login'
               }
             }
@@ -616,8 +631,13 @@ class ApiClient {
   }
 
   // Explore feed
-  getExploreFeed() {
-    return this.client.get('/posts/feed/explore')
+  getExploreFeed(page = 1, limit = 50) {
+    return this.client.get('/posts/feed/explore', {
+      params: {
+        page,
+        limit,
+      },
+    })
   }
 
   // =========================

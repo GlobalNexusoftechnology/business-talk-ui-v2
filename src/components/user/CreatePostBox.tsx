@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/lib/api-client'
 import { useAccountStatus } from '@/hooks/useRedux'
 import { validateMediaFile, validateFileBeforeUpload } from '@/lib/utils'
+import BasicEditor from '../editor/BasicEditor'
 
 export function CreatePostBox() {
   const { isBanned } = useAccountStatus()
@@ -112,9 +113,9 @@ export function CreatePostBox() {
           Your account is restricted. You cannot create posts.
         </p>
       )}
-      <textarea
+      <BasicEditor
         value={postContent}
-        onChange={(e) => setPostContent(e.target.value)}
+        onChange={setPostContent}
         placeholder={isBanned ? 'Your account is restricted' : 'Ask, Share, Contribute…'}
         disabled={isBanned}
         className="w-full min-h-[120px] p-4 rounded-xl resize-none bg-gray-50 border disabled:cursor-not-allowed disabled:opacity-60"

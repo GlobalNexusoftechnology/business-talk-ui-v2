@@ -42,16 +42,25 @@ export const useNotifications = () => {
   );
 
   useEffect(() => {
+    const isGuest =
+      typeof window !== 'undefined' &&
+      !localStorage.getItem('user')
+
+    if (isGuest) {
+      return
+    }
+
     const isStale =
-      !lastFetchedAt || Date.now() - lastFetchedAt >= NOTIFICATION_STALE_TIME_MS;
+      !lastFetchedAt ||
+      Date.now() - lastFetchedAt >=
+        NOTIFICATION_STALE_TIME_MS
 
     if (isStale) {
-      dispatch(fetchNotifications());
+      dispatch(fetchNotifications())
     }
-    // Always sync unread count with the server on mount
-    dispatch(fetchUnreadCount());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch]);
+
+    dispatch(fetchUnreadCount())
+  }, [dispatch, lastFetchedAt]);
 
   const handleMarkAsRead = (id: string) => {
     dispatch(markNotificationRead(id));

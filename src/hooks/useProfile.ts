@@ -10,8 +10,21 @@ export function useProfile() {
   const [loading, setLoading] = useState(true)
 
   const fetchAll = useCallback(async () => {
+    const isGuest =
+      typeof window !== 'undefined' &&
+      !localStorage.getItem('user')
+
+    if (isGuest) {
+      setLoading(false)
+      return
+    }
+
     try {
-      const [profileRes, statsRes, activityRes] = await Promise.all([
+      const [
+        profileRes,
+        statsRes,
+        activityRes,
+      ] = await Promise.all([
         apiClient.getMyProfileinfo(),
         apiClient.getDashboardStats(),
         apiClient.getUserActivity(),
@@ -21,7 +34,10 @@ export function useProfile() {
       setStats(statsRes.data)
       setActivity(activityRes.data)
     } catch (err) {
-      console.error('Profile fetch error:', err)
+      console.error(
+        'Profile fetch error:',
+        err
+      )
     } finally {
       setLoading(false)
     }

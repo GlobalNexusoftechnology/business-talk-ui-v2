@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { TagsPopup } from '@/components/shared/TagsPopup'
 import apiClient from '@/lib/api-client'
 import { useAccountStatus } from '@/hooks/useRedux'
+import BasicEditor from '../editor/BasicEditor'
 
 export function PostQuestionBox() {
   const { isBanned } = useAccountStatus()
@@ -85,10 +86,10 @@ export function PostQuestionBox() {
           Your account is restricted. You cannot post questions.
         </p>
       )}
-      <textarea
+      <BasicEditor
         value={questionText}
         placeholder={isBanned ? 'Your account is restricted' : 'What would you like to know from the community?'}
-        onChange={(e) => setQuestionText(e.target.value)}
+        onChange={setQuestionText}
         disabled={isBanned}
         className="w-full p-3 bg-gray-50 border rounded-xl disabled:cursor-not-allowed disabled:opacity-60"
       />

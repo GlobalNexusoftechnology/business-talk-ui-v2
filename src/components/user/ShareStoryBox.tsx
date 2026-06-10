@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { TagsPopup } from '@/components/shared/TagsPopup'
 import apiClient from '@/lib/api-client'
 import { validateImageFile, validateFileBeforeUpload } from '@/lib/utils'
+import BasicEditor from '../editor/BasicEditor'
 
 export function ShareStoryBox() {
   const [storyTitle, setStoryTitle] = useState('')
@@ -118,10 +119,10 @@ export function ShareStoryBox() {
         className="w-full p-3 bg-gray-50 border rounded-xl"
       />
 
-      <textarea
+      <BasicEditor
         value={storyText}
         placeholder='Tell your story... Share insights, experiences, and lessons learned.'
-        onChange={(e) => setStoryText(e.target.value)}
+        onChange={setStoryText}
         className="w-full p-3 mt-3 bg-gray-50 border rounded-xl"
       />
 

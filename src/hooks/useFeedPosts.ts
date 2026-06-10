@@ -11,18 +11,61 @@ export function useFeedPosts(
     initialPageParam: 1,
 
     queryFn: async ({ pageParam }) => {
-      const [forYouRes, followingRes] = await Promise.all([
-        apiClient.getForYouFeed(pageParam, 50),
-        apiClient.getFollowingFeed(pageParam, 50),
-      ])
+      const isGuest =
+        typeof window !== 'undefined' &&
+        !localStorage.getItem('user')
 
-      const forYou = extractPaginatedData(forYouRes)
-      const following = extractPaginatedData(followingRes)
+      let combined: any[] = []
+      let hasMore = false
 
-      const combined = [
-        ...forYou.data,
-        ...following.data,
-      ]
+      if (isGuest) {
+        const exploreRes =
+          await apiClient.getExploreFeed(
+            pageParam,
+            50
+          )
+
+        const explore =
+          extractPaginatedData(
+            exploreRes
+          )
+
+        combined = explore.data
+        hasMore = explore.hasMore
+      } else {
+        const [
+          forYouRes,
+          followingRes,
+        ] = await Promise.all([
+          apiClient.getForYouFeed(
+            pageParam,
+            50
+          ),
+          apiClient.getFollowingFeed(
+            pageParam,
+            50
+          ),
+        ])
+
+        const forYou =
+          extractPaginatedData(
+            forYouRes
+          )
+
+        const following =
+          extractPaginatedData(
+            followingRes
+          )
+
+        combined = [
+          ...forYou.data,
+          ...following.data,
+        ]
+
+        hasMore =
+          forYou.hasMore ||
+          following.hasMore
+      }
 
       const unique = Array.from(
         new Map(
@@ -122,9 +165,7 @@ export function useFeedPosts(
 
       return {
         data: filtered,
-        hasMore:
-          forYou.hasMore ||
-          following.hasMore,
+        hasMore: hasMore,
         nextPage: pageParam + 1,
       }
     },

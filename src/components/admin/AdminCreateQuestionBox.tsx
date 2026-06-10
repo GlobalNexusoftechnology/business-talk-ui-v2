@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Tag } from 'lucide-react'
 import { TagsPopup } from '@/components/shared/TagsPopup'
 import apiClient from '@/lib/api-client'
+import BasicEditor from '../editor/BasicEditor'
 
 export function AdminCreateQuestionBox({ onCreated }: { onCreated?: () => void }) {
   const [question, setQuestion] = useState('')
@@ -39,9 +40,9 @@ export function AdminCreateQuestionBox({ onCreated }: { onCreated?: () => void }
 
   return (
     <div className="bg-white rounded-2xl p-6 border mb-6">
-      <textarea
+      <BasicEditor
         value={question}
-        onChange={(e) => setQuestion(e.target.value)}
+        onChange={setQuestion}
         placeholder="Ask a question as admin..."
         className="w-full p-3 bg-gray-50 border rounded-xl"
       />

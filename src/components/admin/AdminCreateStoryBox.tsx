@@ -6,6 +6,7 @@ import { ImageIcon, Tag, X } from 'lucide-react'
 import { TagsPopup } from '@/components/shared/TagsPopup'
 import apiClient from '@/lib/api-client'
 import { validateImageFile, validateFileBeforeUpload } from '@/lib/utils'
+import BasicEditor from '../editor/BasicEditor'
 
 export function AdminCreateStoryBox({ onCreated }: { onCreated?: () => void }) {
   const [title, setTitle] = useState('')
@@ -65,9 +66,9 @@ export function AdminCreateStoryBox({ onCreated }: { onCreated?: () => void }) {
         className="w-full p-3 bg-gray-50 border rounded-xl"
       />
 
-      <textarea
+      <BasicEditor
         value={content}
-        onChange={(e) => setContent(e.target.value)}
+        onChange={setContent}
         placeholder="Write story..."
         className="w-full mt-3 p-3 bg-gray-50 border rounded-xl"
       />

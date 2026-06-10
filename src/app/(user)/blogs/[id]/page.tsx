@@ -7,7 +7,6 @@ import { useState, useEffect } from 'react'
 import { ShareModal } from '@/components/shared/ShareModal'
 import apiClient from '@/lib/api-client'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
-import BasicEditor from '@/components/editor/BasicEditor'
 import RichTextContent from '@/components/common/RichTextContent'
 
 interface Author {
@@ -363,6 +362,15 @@ export default function BlogDetailsPage() {
           <div>
             <p className="font-semibold hover:underline" style={{ color: '#212529' }}>{blog.author.name}</p>
             <p className="text-sm" style={{ color: '#5F6368' }}>{blog.author.title} · {blog.publishedAt}</p>
+          </div>
+          <div className="align-self-end contents">
+            {/* ================== SHARE BUTTON ================== */}
+            <button
+              onClick={() => setShowShareModal(true)}
+              className="ml-auto"
+            >
+              <Send />
+            </button>
           </div>
         </div>
         <RichTextContent className="mb-8 whitespace-pre-wrap break-words" html={blog.content} />

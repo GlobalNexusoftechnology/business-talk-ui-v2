@@ -9,7 +9,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fetchCurrentUser } from '@/redux/slices/authSlice'
 import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import { AuthWallProvider } from '@/providers/AuthWallProvider'
 import apiClient from '@/lib/api-client'
+import Loading from '@/app/loading'
 
 const PUBLIC_AUTH_ROUTES = [
   '/login',
@@ -175,9 +177,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     return (
       <Provider store={store}>
         <QueryClientProvider client={queryClient}>
-          <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
-            <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-          </div>
+          <Loading />
         </QueryClientProvider>
       </Provider>
     )
@@ -186,6 +186,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
+        <AuthWallProvider>
         {isPublicAuthRoute ? (
           children
         ) : (
@@ -222,6 +223,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
             {appToast.message}
           </div>
         )}
+
+        </AuthWallProvider>
       </QueryClientProvider>
     </Provider>
   )

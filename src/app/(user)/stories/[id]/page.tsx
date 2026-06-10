@@ -11,6 +11,9 @@ import {
   Eye,
 } from 'lucide-react'
 import apiClient from '@/lib/api-client'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { ShareModal } from '@/components/shared/ShareModal'
+import RichTextContent from '@/components/common/RichTextContent'
 
 /* ── Types ─────────────────────────────────────────── */
 interface Author {
@@ -161,6 +164,8 @@ export default function StoryDetailPage() {
   const [comments, setComments] = useState<Comment[]>([])
   const [commentText, setCommentText] = useState('')
   const [commentSubmitting, setCommentSubmitting] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const requireAuth = useRequireAuth()
 
   /* fetch story (blog with type=STORY) */
   useEffect(() => {
@@ -217,6 +222,7 @@ export default function StoryDetailPage() {
   }, [storyId])
 
   const handleLike = async () => {
+    if (!requireAuth()) return
     if (!story) return
     try {
       const res = await apiClient.likeBlog(story.id)
@@ -225,13 +231,14 @@ export default function StoryDetailPage() {
       if (data?.myVote === null || data?.myVote === undefined) setIsLiked(false)
       else if (typeof data.myVote === 'string') setIsLiked(data.myVote.toLowerCase() === 'up')
       else setIsLiked(Boolean(data?.liked))
-    } catch {
-      setIsLiked(v => !v)
-      setLikeCount(c => isLiked ? Math.max(0, c - 1) : c + 1)
+    } catch (err) {
+      console.error(err)
+      return
     }
   }
 
   const handleAddComment = async () => {
+    if (!requireAuth()) return
     if (!commentText.trim() || !story) return
     setCommentSubmitting(true)
     try {
@@ -243,6 +250,7 @@ export default function StoryDetailPage() {
   }
 
   const handleReplyAdded = (parentId: string, reply: Comment) => {
+    if (!requireAuth()) return
     const addReply = (list: Comment[]): Comment[] =>
       list.map(c =>
         c.id === parentId
@@ -329,9 +337,7 @@ export default function StoryDetailPage() {
             </div>
 
             {/* Content */}
-            <div className="prose max-w-none text-base leading-relaxed whitespace-pre-wrap mb-5 break-words" style={{ color: '#212529' }}>
-              {story.content}
-            </div>
+            <RichTextContent className="prose max-w-none text-base leading-relaxed whitespace-pre-wrap mb-5 break-words" style={{ color: '#212529' }} html={story.content} />
 
             {/* Tags */}
             {story.tags.length > 0 && (
@@ -361,6 +367,14 @@ export default function StoryDetailPage() {
               <div className="flex items-center gap-2 text-sm" style={{ color: '#5F6368' }}>
                 <MessageCircle className="w-4 h-4" /> {comments.length}
               </div>
+
+              {/* ================== SHARE BUTTON ================== */}
+                      <button
+                        onClick={() => setShowShareModal(true)}
+                        className="ml-auto"
+                      >
+                        <Send />
+                      </button>
             </div>
           </div>
 
@@ -407,6 +421,14 @@ export default function StoryDetailPage() {
 
         </div>
       </div>
+
+      <ShareModal
+              isOpen={showShareModal}
+              onClose={() => setShowShareModal(false)}
+              postContent={story.content}
+              contentType="stories"
+              contentId={story.id}
+            />
     </div>
   )
 }

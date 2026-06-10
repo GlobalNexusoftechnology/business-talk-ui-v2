@@ -6,6 +6,8 @@ import { useContentViewerContext } from '@/providers/ContentViewerProvider'
 import { useState, useEffect } from 'react'
 import { profileHref } from '@/lib/profile-link'
 import apiClient from '@/lib/api-client'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
+import RichTextContent from '../common/RichTextContent'
 
 interface SuggestedGroup {
   id: string
@@ -65,7 +67,7 @@ export function TrendingItem({
       style={{ color: '#212529' }}
       onClick={() => onClick(item)}
     >
-      <p className="text-sm font-semibold text-black line-clamp-2 mb-1">{displayText}</p>
+      <RichTextContent className="text-sm font-semibold text-black line-clamp-2 mb-1" html={displayText} />
       <p className="text-xs text-gray-500">
         {type === 'questions' && (
           <>{item.commentsCount || item.comment_count || 0} Answers</>
@@ -269,6 +271,7 @@ export function RightSidebar() {
   const [joinStates, setJoinStates] = useState<{ [id: string]: 'join' | 'requested' | 'joined' }>({});
   const [isMobile, setIsMobile] = useState(false);
   const [loading, setLoading] = useState(true);
+  const requireAuth = useRequireAuth()
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -335,6 +338,7 @@ export function RightSidebar() {
 
   // --- HANDLERS ---
   const handleTrendingClick = (type: 'questions' | 'stories') => (item: any) => {
+    // if (!requireAuth()) return
     if (!item) return
 
     // Normalize item shape so UniversalContentViewer gets full expected fields
@@ -392,10 +396,12 @@ export function RightSidebar() {
   }
 
   const handleProfileClick = (person: any) => {
+    if (!requireAuth()) return
     router.push(profileHref(person.id, person.name));
   };
 
   const handleConnectClick = (person: any, state: 'connect' | 'pending' | 'connected') => {
+    if (!requireAuth()) return
     setConnectStates(prev => {
       if (state === 'connect') {
         setTimeout(() => {
@@ -413,10 +419,12 @@ export function RightSidebar() {
   };
 
   const handleGroupClick = (group: any) => {
+    if (!requireAuth()) return
     router.push(`/groups/${group.id}`);
   };
 
   const handleJoinClick = async (group: any) => {
+    if (!requireAuth()) return
     const current = joinStates[group.id] || 'join';
     try {
       if (current === 'requested') {

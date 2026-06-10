@@ -28,6 +28,7 @@ import { useFollow } from '@/hooks/useFollow'
 import { useSavedStatus } from '@/hooks/useSavedStatus'
 import { useAccountStatus, useAppSelector } from '@/hooks/useRedux'
 import { getTimeAgo } from '@/lib/utils'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
 
 interface Answer {
   id: string
@@ -110,6 +111,7 @@ export function QuestionPost({
   const [isDeleted, setIsDeleted] = useState(false)
   const [deleteToast, setDeleteToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const reduxUser = useAppSelector((state: any) => state.auth.user)
+  const requireAuth = useRequireAuth()
 
   useEffect(() => {
     if (reduxUser?.id) {
@@ -144,6 +146,7 @@ export function QuestionPost({
   // =========================
 
   const handleSave = async () => {
+    if (!requireAuth()) return
     await toggleSave(() => setShowActionMenu(false))
   }
 
@@ -153,6 +156,7 @@ export function QuestionPost({
 
   const handleLikeQuestion = async () => {
     if (isBanned) return
+    if (!requireAuth()) return
     setAnimatingId('question')
     setTimeout(() => setAnimatingId(null), 300)
 
@@ -251,6 +255,7 @@ export function QuestionPost({
   // =========================
 
   const handlePostAnswer = async () => {
+    if (!requireAuth()) return
     if (!answerText.trim() || isBanned) return
 
     try {
@@ -271,6 +276,7 @@ export function QuestionPost({
   // =========================
 
   const handleAddReply = async (answerId: string, parentReplyId?: string) => {
+    if (!requireAuth()) return
     if (!replyInput.trim() || isBanned) return
 
     try {
@@ -366,6 +372,7 @@ export function QuestionPost({
   // =========================
 
   const handleVoteAnswer = async (answerId: string, vote: 'up' | 'down') => {
+    if (!requireAuth()) return
     if (vote === 'up') {
       setAnimatingId(answerId)
       setTimeout(() => setAnimatingId(null), 300)
