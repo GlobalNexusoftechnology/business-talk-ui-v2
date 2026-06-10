@@ -1,11 +1,14 @@
 'use client'
 
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, Trash2 } from 'lucide-react'
+import { ArrowLeft, Trash2, Send } from 'lucide-react'
 import { profileHref } from '@/lib/profile-link'
 import { useState, useEffect } from 'react'
 import { ShareModal } from '@/components/shared/ShareModal'
 import apiClient from '@/lib/api-client'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
+import BasicEditor from '@/components/editor/BasicEditor'
+import RichTextContent from '@/components/common/RichTextContent'
 
 interface Author {
   name: string
@@ -179,6 +182,7 @@ export default function BlogDetailsPage() {
   const [newComment, setNewComment] = useState('')
   const [currentUserId, setCurrentUserId] = useState('')
   const [isDeleted, setIsDeleted] = useState(false)
+  const requireAuth = useRequireAuth()
 
   useEffect(() => {
     try {
@@ -270,6 +274,7 @@ export default function BlogDetailsPage() {
 
   /* ================== 🆕 ADDED: Add Comment ================== */
   const handleAddComment = async () => {
+    if (!requireAuth()) return
     if (!newComment.trim() || !blog) return
 
     try {
@@ -284,6 +289,7 @@ export default function BlogDetailsPage() {
 
   /* ================== 🆕 ADDED: Reply Logic ================== */
   const handleReplyAdded = (parentId: string, reply: Comment) => {
+    if (!requireAuth()) return
     const addReply = (list: Comment[]): Comment[] =>
       list.map(c =>
         c.id === parentId
@@ -299,7 +305,9 @@ export default function BlogDetailsPage() {
     try {
       await apiClient.deleteBlog(blog.id)
       setIsDeleted(true)
-    } catch { console.error('Failed to delete blog') }
+    } catch (err) {
+      console.error('Failed to delete blog', err)
+    }
   }
 
   /* ================== 🆕 ADDED: Delete Comment ================== */
@@ -357,7 +365,7 @@ export default function BlogDetailsPage() {
             <p className="text-sm" style={{ color: '#5F6368' }}>{blog.author.title} · {blog.publishedAt}</p>
           </div>
         </div>
-        <p className="mb-8 whitespace-pre-wrap break-words">{blog.content}</p>
+        <RichTextContent className="mb-8 whitespace-pre-wrap break-words" html={blog.content} />
 
         {/* ================== 🆕 COMMENTS LIST ================== */}
         {comments.length > 0 && (
@@ -392,6 +400,14 @@ export default function BlogDetailsPage() {
         {/* <button onClick={handleLike} className="mt-6 flex gap-2">
           <ThumbsUp /> {blog.likes}
         </button> */}
+
+        {/* ================== SHARE BUTTON ================== */}
+        <button
+          onClick={() => setShowShareModal(true)}
+          className="ml-auto"
+        >
+          <Send />
+        </button>
       </div>
 
       <ShareModal
