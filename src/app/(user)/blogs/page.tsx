@@ -312,10 +312,10 @@ export default function BlogsPage() {
           <div
             className="bg-white rounded-2xl shadow-sm border overflow-hidden mb-6 hover:shadow-md transition-shadow cursor-pointer"
             style={{ border: '1px solid #E8E8E8' }}
-            onClick={() => blogs[0] && handleBlogClick(blogs[0])}
+            // onClick={() => blogs[0] && handleBlogClick(blogs[0])}
           >
             <div className="grid md:grid-cols-2 gap-6">
-              <img src={blogs[0]?.image} alt={blogs[0]?.title} className="w-full h-full object-cover" />
+              <img src={blogs[0]?.image} alt={blogs[0]?.title} className="w-full h-full object-cover" onClick={() => blogs[0] && handleBlogClick(blogs[0])}/>
               <div className="p-6 flex flex-col justify-center">
                 <div className="flex items-center gap-3 mb-3">
                   <span className="px-3 py-1 text-sm font-medium rounded-full" style={{ backgroundColor: '#E3F2FD', color: '#1976D2' }}>
@@ -329,10 +329,12 @@ export default function BlogsPage() {
                       : (blogs[0]?.category || '').replace(/['",]/g, '').trim()}
                   </span>
                 </div>
-                <h2 className="text-2xl font-semibold mb-3 whitespace-pre-wrap break-words" style={{ color: '#212529' }}>
+                <h2 className="text-2xl font-semibold mb-3 whitespace-pre-wrap break-words" style={{ color: '#212529' }} onClick={() => blogs[0] && handleBlogClick(blogs[0])}>
                   {blogs[0]?.title}
                 </h2>
-                <ExpandableText className="mb-4 text-sm whitespace-pre-wrap break-words" lines={4}>{blogs[0]?.excerpt}</ExpandableText>
+                <ExpandableText className="mb-4 text-sm whitespace-pre-wrap break-words" lines={4} onClick={() => blogs[0] && handleBlogClick(blogs[0])}>
+                  {blogs[0]?.excerpt}
+                </ExpandableText>
                 <div
                   className="flex items-center gap-3 mb-4 cursor-pointer"
                   onClick={e => { e.stopPropagation(); blogs[0]?.authorId && router.push(profileHref(blogs[0].authorId, blogs[0]?.author?.name)) }}
@@ -343,7 +345,7 @@ export default function BlogsPage() {
                     className="w-10 h-10 rounded-full object-cover"
                   />
                   <div>
-                    <p className="font-medium hover:underline" style={{ color: '#212529' }}>
+                    <p className="font-medium hover:underline" style={{ color: '#212529' }} onClick={() => blogs[0]?.authorId && router.push(profileHref(blogs[0].authorId, blogs[0]?.author?.name))}>
                       {blogs[0]?.author?.name}
                     </p>
                     <p className="text-sm" style={{ color: '#5F6368' }}>
@@ -360,16 +362,30 @@ export default function BlogsPage() {
                     <Eye className="w-4 h-4" />
                     {blogs[0]?.views.toLocaleString()} views
                   </span>
-                  {currentUserId && currentUserId === String(blogs[0]?.authorId) && (
+                  <div className="flex gap-2">
                     <button
-                      onClick={(e) => blogs[0] && handleDeleteBlog(blogs[0].id, e)}
-                      className="flex items-center gap-1 text-red-500 hover:text-red-700 transition-colors ml-2"
-                      title="Delete blog"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      <span className="text-xs">Delete</span>
-                    </button>
-                  )}
+                            onClick={() => {
+                              setSelectedBlog(blogs[0])
+                              setShowShareModal(true)
+                            }}
+                            className="p-2 rounded-lg transition-colors cursor-pointer"
+                            style={{ color: '#5F6368' }}
+                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8F9FA')}
+                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                          >
+                            <Send className="w-5 h-5" />
+                          </button>
+                    {currentUserId && currentUserId === String(blogs[0]?.authorId) && (
+                      <button
+                        onClick={(e) => blogs[0] && handleDeleteBlog(blogs[0].id, e)}
+                        className="flex items-center gap-1 text-red-500 hover:text-red-700 transition-colors ml-2"
+                        title="Delete blog"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        <span className="text-xs">Delete</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -383,12 +399,12 @@ export default function BlogsPage() {
               key={blog.id}
               className="bg-white rounded-2xl shadow-sm border p-6 hover:shadow-md transition-shadow cursor-pointer"
               style={{ border: '1px solid #E8E8E8' }}
-              onClick={() => handleBlogClick(blog)}
+              // onClick={() => handleBlogClick(blog)}
             >
               <div className="grid md:grid-cols-3 gap-6">
-                <img src={blog.image} alt={blog.title} className="w-full h-48 object-cover rounded-xl" />
+                <img src={blog.image} alt={blog.title} className="w-full h-48 object-cover rounded-xl" onClick={() => handleBlogClick(blog)} />
                 <div className="md:col-span-2">
-                  <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center gap-2 mb-3" onClick={() => handleBlogClick(blog)}>
                     <span className="px-3 py-1 text-sm font-medium rounded-full" style={{ backgroundColor: '#F8F9FA', color: '#5F6368' }}>
                       {Array.isArray(blog.category)
                         ? blog.category.map((cat: string) =>
@@ -401,10 +417,12 @@ export default function BlogsPage() {
                       {blog.publishedAt}
                     </span>
                   </div>
-                  <h3 className="text-xl font-semibold mb-2 whitespace-pre-wrap break-words" style={{ color: '#212529' }}>
+                  <h3 className="text-xl font-semibold mb-2 whitespace-pre-wrap break-words" style={{ color: '#212529' }} onClick={() => handleBlogClick(blog)}>
                     {blog.title}
                   </h3>
-                  <ExpandableText className="mb-4 text-sm whitespace-pre-wrap break-words" lines={4}>{blog.excerpt}</ExpandableText>
+                  <ExpandableText className="mb-4 text-sm whitespace-pre-wrap break-words" lines={4} onClick={() => handleBlogClick(blog)}>
+                    {blog.excerpt}
+                  </ExpandableText>
 
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div
@@ -413,7 +431,7 @@ export default function BlogsPage() {
                     >
                       <img src={blog.author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(blog.author.name)}&background=E8E8E8&color=212529&size=32`} alt={blog.author.name} className="w-8 h-8 rounded-full object-cover" />
                       <div>
-                        <p className="font-medium text-sm hover:underline" style={{ color: '#212529' }}>
+                        <p className="font-medium text-sm hover:underline" style={{ color: '#212529' }} onClick={() => blog.authorId && router.push(profileHref(blog.authorId, blog.author?.name))}>
                           {blog.author.name}
                         </p>
                         <p className="text-xs" style={{ color: '#5F6368' }}>
@@ -434,14 +452,14 @@ export default function BlogsPage() {
                         </span>
                       </div>
                       <div className="flex gap-2">
-                        <button
+                        {/* <button
                           className="p-2 rounded-lg transition-colors"
                           style={{ color: '#5F6368' }}
                           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8F9FA')}
                           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                         >
                           <BookmarkPlus className="w-5 h-5" />
-                        </button>
+                        </button> */}
                         <button
                           onClick={() => {
                             setSelectedBlog(blog)
