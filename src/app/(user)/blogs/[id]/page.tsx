@@ -351,10 +351,14 @@ export default function BlogDetailsPage() {
 
         {/* AUTHOR */}
         <div
-          className="flex items-center gap-3 mb-8 cursor-pointer"
-          onClick={() => blog.authorId && router.push(profileHref(blog.authorId, blog.author?.name))}
+          className="flex items-center gap-3 mb-4 cursor-pointer justify-between border-b border-[#434343d4] pb-2"
+          style={{ borderBottomColor: '#434343d4', borderBottomWidth: '1px' }}
         >
-          <img
+          <div
+            className="flex items-center gap-3 cursor-pointer"
+            onClick={() => blog.authorId && router.push(profileHref(blog.authorId, blog.author?.name))}
+          >
+            <img
             src={blog.author.avatar || `https://ui-avatars.com/api/name=${encodeURIComponent(blog.author.name)}`}
             alt={blog.author.name}
             className="w-12 h-12 rounded-full object-cover"
@@ -363,7 +367,8 @@ export default function BlogDetailsPage() {
             <p className="font-semibold hover:underline" style={{ color: '#212529' }}>{blog.author.name}</p>
             <p className="text-sm" style={{ color: '#5F6368' }}>{blog.author.title} · {blog.publishedAt}</p>
           </div>
-          <div className="align-self-end contents">
+          </div>
+          <div className="align-self-end flex">
             {/* ================== SHARE BUTTON ================== */}
             <button
               onClick={() => setShowShareModal(true)}
@@ -410,12 +415,12 @@ export default function BlogDetailsPage() {
         </button> */}
 
         {/* ================== SHARE BUTTON ================== */}
-        <button
+        {/* <button
           onClick={() => setShowShareModal(true)}
           className="ml-auto"
         >
           <Send />
-        </button>
+        </button> */}
       </div>
 
       <ShareModal
