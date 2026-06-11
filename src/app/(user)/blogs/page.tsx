@@ -504,6 +504,9 @@ export default function BlogsPage() {
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         postContent={selectedBlog?.excerpt}
+        title={selectedBlog?.title}
+        contentType="blogs"
+        contentId={selectedBlog?.id}
       />
     </div>
     </>
