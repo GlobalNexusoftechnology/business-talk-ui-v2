@@ -1,6 +1,6 @@
 'use client'
 
-import { Search, Clock, Eye, BookmarkPlus, Send, Trash2, Loader2 } from 'lucide-react'
+import { Search, Clock, Eye, Send, Trash2, Loader2 } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import ExpandableText from '@/components/common/ExpandableText'
