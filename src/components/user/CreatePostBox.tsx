@@ -118,7 +118,7 @@ export function CreatePostBox() {
         onChange={setPostContent}
         placeholder={isBanned ? 'Your account is restricted' : 'Ask, Share, Contribute…'}
         disabled={isBanned}
-        className="w-full min-h-[120px] p-4 rounded-xl resize-none bg-gray-50 border disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full min-h-[120px] p-4 rounded-xl resize-none bg-gray-50 border disabled:cursor-not-allowed disabled:opacity-60 hover:border-gray-400 focus-within:border-gray-400 transition-colors selected:border-gray-700"
       />
 
       {selectedFiles.length > 0 && (

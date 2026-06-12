@@ -91,7 +91,7 @@ export function PostQuestionBox() {
         placeholder={isBanned ? 'Your account is restricted' : 'What would you like to know from the community?'}
         onChange={setQuestionText}
         disabled={isBanned}
-        className="w-full p-3 bg-gray-50 border rounded-xl disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full p-3 bg-gray-50 border rounded-xl disabled:cursor-not-allowed disabled:opacity-60 hover:border-gray-400 focus-within:border-gray-400 transition-colors  selected:border-gray-700"
       />
 
       <div className="flex flex-wrap justify-between gap-2 mt-3">

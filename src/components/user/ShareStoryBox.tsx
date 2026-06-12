@@ -123,7 +123,7 @@ export function ShareStoryBox() {
         value={storyText}
         placeholder='Tell your story... Share insights, experiences, and lessons learned.'
         onChange={setStoryText}
-        className="w-full p-3 mt-3 bg-gray-50 border rounded-xl"
+        className="w-full p-3 mt-3 bg-gray-50 border rounded-xl hover:border-gray-400 focus-within:border-gray-400 transition-colors  selected:border-gray-700"
       />
 
       <div className="flex flex-wrap justify-between gap-2 mt-4">

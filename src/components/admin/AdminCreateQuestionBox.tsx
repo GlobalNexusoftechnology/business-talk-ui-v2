@@ -44,7 +44,7 @@ export function AdminCreateQuestionBox({ onCreated }: { onCreated?: () => void }
         value={question}
         onChange={setQuestion}
         placeholder="Ask a question as admin..."
-        className="w-full p-3 bg-gray-50 border rounded-xl"
+        className="w-full p-3 bg-gray-50 border rounded-xl hover:border-gray-400 focus-within:border-gray-400 transition-colors  selected:border-gray-700"
       />
 
       {/* Tags */}

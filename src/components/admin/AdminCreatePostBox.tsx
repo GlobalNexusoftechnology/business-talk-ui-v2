@@ -70,7 +70,7 @@ export function AdminCreatePostBox({ onCreated }: { onCreated?: () => void }) {
         value={content}
         onChange={setContent}
         placeholder="Create an admin post..."
-        className="w-full p-4 rounded-xl bg-gray-50 border"
+        className="w-full p-4 rounded-xl bg-gray-50 border hover:border-gray-400 focus-within:border-gray-400 transition-colors selected:border-gray-700"
       />
 
       {files.length > 0 && (

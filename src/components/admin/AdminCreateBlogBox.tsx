@@ -69,7 +69,7 @@ export function AdminCreateBlogBox({ onCreated }: { onCreated?: () => void }) {
         value={content}
         onChange={setContent}
         placeholder="Write admin blog..."
-        className="w-full mt-3 p-3 bg-gray-50 border rounded-xl"
+        className="w-full mt-3 p-3 bg-gray-50 border rounded-xl hover:border-gray-400 focus-within:border-gray-400 transition-colors  selected:border-gray-700"
       />
 
       {cover.length > 0 && (
