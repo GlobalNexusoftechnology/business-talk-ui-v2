@@ -6,7 +6,7 @@ import { ImageIcon, Tag, X } from 'lucide-react'
 import { TagsPopup } from '@/components/shared/TagsPopup'
 import apiClient from '@/lib/api-client'
 import { validateImageFile, validateFileBeforeUpload } from '@/lib/utils'
-import BasicEditor from '../editor/BasicEditor'
+// import BasicEditor from '../editor/BasicEditor'
 
 export function AdminCreateStoryBox({ onCreated }: { onCreated?: () => void }) {
   const [title, setTitle] = useState('')
@@ -66,12 +66,21 @@ export function AdminCreateStoryBox({ onCreated }: { onCreated?: () => void }) {
         className="w-full p-3 bg-gray-50 border rounded-xl"
       />
 
+      <textarea
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        placeholder="Write story..."
+        className="w-full mt-3 p-3 bg-gray-50 border rounded-xl hover:border-gray-400 focus-within:border-gray-400 transition-colors  selected:border-gray-700"
+      />
+
+      {/* 
       <BasicEditor
         value={content}
         onChange={setContent}
         placeholder="Write story..."
         className="w-full mt-3 p-3 bg-gray-50 border rounded-xl hover:border-gray-400 focus-within:border-gray-400 transition-colors  selected:border-gray-700"
       />
+      */}
 
       {cover.length > 0 && (
         <div className="relative inline-block mt-3">

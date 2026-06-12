@@ -17,22 +17,39 @@ export function ProfileLayout({
   isOwnProfile,
   stats,
   activity,
+  loadMoreActivity,
+  loadingMoreActivity,
+  hasMoreActivity,
 }: {
   profile: any
   userId?: string
   isOwnProfile?: boolean
   stats?: any
   activity?: any
-}) {
 
-  const [activeTab, setActiveTab] = useState<'about' | 'experience' | 'education' | 'gallery'>(
-    isOwnProfile ? 'about' : 'about'
+  loadMoreActivity?: () => void
+  loadingMoreActivity?: boolean
+  hasMoreActivity?: boolean
+}) {
+  const [activeTab, setActiveTab] = useState<
+    'about' | 'experience' | 'education' | 'gallery'
+  >(
+    isOwnProfile
+      ? 'about'
+      : 'about'
   )
 
-  // Reset to 'about' when switching to a non-own profile that doesn't have gallery
   useEffect(() => {
-    if (!isOwnProfile && activeTab === 'gallery') setActiveTab('about')
-  }, [isOwnProfile, activeTab])
+    if (
+      !isOwnProfile &&
+      activeTab === 'gallery'
+    ) {
+      setActiveTab('about')
+    }
+  }, [
+    isOwnProfile,
+    activeTab,
+  ])
 
   const {
     state: followState,
@@ -50,33 +67,92 @@ export function ProfileLayout({
           connectState={followState}
           loading={followLoading}
           onConnect={() => {
-            if (followState === 'connected') {
+            if (
+              followState ===
+              'connected'
+            ) {
               unfollow()
             } else {
               follow()
             }
           }}
           userId={userId || ''}
-          isOwnProfile={!!isOwnProfile}
+          isOwnProfile={
+            !!isOwnProfile
+          }
         />
 
-        <ProfileTabs activeTab={activeTab} setActiveTab={setActiveTab} isOwnProfile={!!isOwnProfile} />
+        <ProfileTabs
+          activeTab={activeTab}
+          setActiveTab={
+            setActiveTab
+          }
+          isOwnProfile={
+            !!isOwnProfile
+          }
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6 px-4 pb-8">
 
           <div className="lg:col-span-2 space-y-6">
-            {activeTab === 'about' && (
+
+            {activeTab ===
+              'about' && (
               <>
-                <ProfileAbout profile={profile} />
-                {userId && <ProfileRecentActivity userId={userId} activity={activity} />}
+                <ProfileAbout
+                  profile={profile}
+                />
+
+                {userId && (
+                  <ProfileRecentActivity
+                    userId={userId}
+                    activity={
+                      activity
+                    }
+                    loadMoreActivity={
+                      loadMoreActivity
+                    }
+                    loadingMoreActivity={
+                      loadingMoreActivity
+                    }
+                    hasMoreActivity={
+                      hasMoreActivity
+                    }
+                  />
+                )}
               </>
             )}
-            {activeTab === 'experience' && <ProfileExperience experiences={profile?.experience} />}
-            {activeTab === 'education' && <ProfileEducation educations={profile?.education} />}
-            {activeTab === 'gallery' && <ProfileGallery />}
+
+            {activeTab ===
+              'experience' && (
+              <ProfileExperience
+                experiences={
+                  profile?.experience
+                }
+              />
+            )}
+
+            {activeTab ===
+              'education' && (
+              <ProfileEducation
+                educations={
+                  profile?.education
+                }
+              />
+            )}
+
+            {activeTab ===
+              'gallery' && (
+              <ProfileGallery />
+            )}
+
           </div>
 
-          <ProfileSidebar profile={profile} userId={userId} statsProp={stats} />
+          <ProfileSidebar
+            profile={profile}
+            userId={userId}
+            statsProp={stats}
+          />
 
         </div>
       </div>

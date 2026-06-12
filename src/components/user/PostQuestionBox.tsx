@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { TagsPopup } from '@/components/shared/TagsPopup'
 import apiClient from '@/lib/api-client'
 import { useAccountStatus } from '@/hooks/useRedux'
-import BasicEditor from '../editor/BasicEditor'
+// import BasicEditor from '../editor/BasicEditor'
 
 export function PostQuestionBox() {
   const { isBanned } = useAccountStatus()
@@ -86,13 +86,22 @@ export function PostQuestionBox() {
           Your account is restricted. You cannot post questions.
         </p>
       )}
+      <textarea
+        value={questionText}
+        placeholder={isBanned ? 'Your account is restricted' : 'What would you like to know from the community?'}
+        onChange={(e) => setQuestionText(e.target.value)}
+        disabled={isBanned}
+        className="w-full p-3 bg-gray-50 border rounded-xl disabled:cursor-not-allowed disabled:opacity-60 hover:border-gray-400 focus-within:border-gray-400 transition-colors  selected:border-gray-700"
+      />
+      {/* 
       <BasicEditor
         value={questionText}
         placeholder={isBanned ? 'Your account is restricted' : 'What would you like to know from the community?'}
         onChange={setQuestionText}
         disabled={isBanned}
         className="w-full p-3 bg-gray-50 border rounded-xl disabled:cursor-not-allowed disabled:opacity-60 hover:border-gray-400 focus-within:border-gray-400 transition-colors  selected:border-gray-700"
-      />
+      /> 
+      */}
 
       <div className="flex flex-wrap justify-between gap-2 mt-3">
         <button type="button" onClick={() => setShowTagsPopup(true)} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-all">

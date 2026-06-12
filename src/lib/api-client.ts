@@ -476,12 +476,39 @@ class ApiClient {
     return this.client.get('/user/dashboard-stats')
   }
 
-  getUserActivity() {
-    return this.client.get('/user/activity')
+  getUserActivity(
+    page = 1,
+    limit = 10,
+  ) {
+    return this.client.get(
+      '/user/activity',
+      {
+        params: {
+          page,
+          limit,
+        },
+      }
+    )
   }
 
   getUserById(id: string) {
     return this.client.get(`/user/${id}`)
+  }
+
+  getUserActivityById(
+    userId: string,
+    page = 1,
+    limit = 10
+  ) {
+    return this.client.get(
+      `/user/${userId}/activity`,
+      {
+        params: {
+          page,
+          limit,
+        },
+      }
+    )
   }
 
   async completeProfile(data: any) {

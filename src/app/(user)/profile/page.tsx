@@ -5,7 +5,17 @@ import { useProfile } from '@/hooks/useProfile'
 import { ProfileLayout } from '@/app/(user)/profile/components/ProfileLayout'
 
 export default function MyProfilePage() {
-  const { profile, stats, activity, loading } = useProfile()
+  const {
+    profile,
+    stats,
+    activity,
+    loading,
+
+    loadMoreActivity,
+    loadingMoreActivity,
+    hasMoreActivity,
+  } = useProfile()
+
   const [userId, setUserId] = useState<string | undefined>()
 
   useEffect(() => {
@@ -42,6 +52,9 @@ export default function MyProfilePage() {
       isOwnProfile={true}
       stats={stats}
       activity={activity}
+      loadMoreActivity={loadMoreActivity}
+      loadingMoreActivity={loadingMoreActivity}
+      hasMoreActivity={hasMoreActivity}
     />
   )
 }

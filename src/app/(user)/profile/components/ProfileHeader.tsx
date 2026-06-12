@@ -30,6 +30,7 @@ export function ProfileHeader({
   const [previewType, setPreviewType] = useState<'avatar' | 'cover' | null>(null)
   const [imageLoading, setImageLoading] = useState(false)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const [hoveringConnected, setHoveringConnected] = useState(false)
 
   const avatarSrc = profileData.avatar || `https://ui-avatars.com/api/name=${encodeURIComponent(profileData.name || profileData.username || 'User')}`
   const coverSrc = profileData.cover_image || `https://ui-avatars.com/api/name=${encodeURIComponent(profileData.name || profileData.username || 'User')}`
@@ -164,16 +165,19 @@ export function ProfileHeader({
               {/* CONNECT */}
               <button
                 onClick={onConnect}
-                disabled={connectState !== 'connect' || loading}
+                disabled={loading}
                 className={`px-4 py-2 text-sm font-medium rounded-lg border transition-all duration-200 active:scale-95
-                  ${connectState === 'connected'
-                    ? 'border-green-500 text-green-700 cursor-default'
-                    : connectState === 'pending'
-                    ? 'border-yellow-400 text-yellow-700 cursor-default'
-                    : loading
-                    ? 'border-[#212529] bg-[#212529] text-white opacity-70 cursor-not-allowed'
-                    : 'border-[#212529] text-[#212529]'
-                  }`}
+
+                  ${
+                    connectState === 'connected'
+                      ? 'border-green-500 bg-green-50 text-green-700 hover:bg-red-50 hover:border-red-500 hover:text-red-600'
+                      : connectState === 'pending'
+                      ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
+                      : 'border-black text-black hover:bg-gray-50'
+                  }
+
+                  ${loading ? 'opacity-60 cursor-not-allowed' : ''}
+                  `}
                 style={{
                   backgroundColor:
                     connectState === 'connected' ? '#F0FDF4'
@@ -181,21 +185,25 @@ export function ProfileHeader({
                     : loading ? '#212529'
                     : 'transparent',
                 }}
-                onMouseEnter={(e) => {
-                  if (connectState === 'connect' && !loading) {
-                    e.currentTarget.style.backgroundColor = '#F8F9FA'
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (connectState === 'connect' && !loading) {
-                    e.currentTarget.style.backgroundColor = 'transparent'
-                  }
-                }}
+                onMouseEnter={() =>
+                  connectState === 'connected' &&
+                  setHoveringConnected(true)
+                }
+                onMouseLeave={() =>
+                  setHoveringConnected(false)
+                }
               >
-                {loading && connectState === 'connect' ? 'Connecting...' : null}
-                {!loading && connectState === 'connect' ? 'Connect' : null}
-                {connectState === 'pending' ? 'Pending' : null}
-                {connectState === 'connected' ? 'Connected' : null}
+                {
+                  loading
+                    ? 'Loading...'
+                    : connectState === 'connected'
+                      ? hoveringConnected
+                        ? 'Disconnect'
+                        : 'Connected'
+                      : connectState === 'pending'
+                        ? 'Pending'
+                        : 'Connect'
+                }
               </button>
 
               {/* MESSAGE */}

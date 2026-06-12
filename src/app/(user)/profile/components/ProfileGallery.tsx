@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Bookmark, Image as ImageIcon, Loader2, FileText, BookOpen } from 'lucide-react'
 import apiClient from '@/lib/api-client'
+import RichTextContent from '@/components/common/RichTextContent'
 
 type GalleryTab = 'media' | 'saved'
 
@@ -332,10 +333,10 @@ export function ProfileGallery() {
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           {data?.title && (
-                            <p className="font-semibold text-sm text-gray-900 truncate">{data.title}</p>
+                            <RichTextContent className="font-semibold text-sm text-gray-900 truncate" html={data.title} />
                           )}
                           {data?.content && (
-                            <p className="text-sm text-gray-500 line-clamp-2 mt-0.5">{data.content}</p>
+                            <RichTextContent className="text-sm text-gray-500 line-clamp-2 mt-0.5" html={data.content} />
                           )}
                           {data?.user && (
                             <p className="text-xs text-gray-400 mt-1">

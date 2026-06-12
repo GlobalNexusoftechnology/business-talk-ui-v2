@@ -5,7 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { ImageIcon, Video, X } from 'lucide-react'
 import apiClient from '@/lib/api-client'
 import { validateMediaFile, validateFileBeforeUpload } from '@/lib/utils'
-import BasicEditor from '../editor/BasicEditor'
+// import BasicEditor from '../editor/BasicEditor'
 
 export function AdminCreatePostBox({ onCreated }: { onCreated?: () => void }) {
   const [content, setContent] = useState('')
@@ -66,12 +66,20 @@ export function AdminCreatePostBox({ onCreated }: { onCreated?: () => void }) {
 
   return (
     <div className="bg-white rounded-2xl p-6 border mb-6">
+      <textarea
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        placeholder="Create an admin post..."
+        className="w-full p-4 rounded-xl bg-gray-50 border hover:border-gray-400 focus-within:border-gray-400 transition-colors selected:border-gray-700"
+      />
+      {/* 
       <BasicEditor
         value={content}
         onChange={setContent}
         placeholder="Create an admin post..."
         className="w-full p-4 rounded-xl bg-gray-50 border hover:border-gray-400 focus-within:border-gray-400 transition-colors selected:border-gray-700"
       />
+      */}
 
       {files.length > 0 && (
         <div className="flex flex-wrap gap-2 mt-3">

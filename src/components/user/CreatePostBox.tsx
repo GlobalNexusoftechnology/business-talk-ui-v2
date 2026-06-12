@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/lib/api-client'
 import { useAccountStatus } from '@/hooks/useRedux'
 import { validateMediaFile, validateFileBeforeUpload } from '@/lib/utils'
-import BasicEditor from '../editor/BasicEditor'
+// import BasicEditor from '../editor/BasicEditor'
 
 export function CreatePostBox() {
   const { isBanned } = useAccountStatus()
@@ -113,13 +113,23 @@ export function CreatePostBox() {
           Your account is restricted. You cannot create posts.
         </p>
       )}
+      <textarea
+        value={postContent}
+        onChange={(e) => setPostContent(e.target.value)}
+        placeholder={isBanned ? 'Your account is restricted' : 'Ask, Share, Contribute…'}
+        disabled={isBanned}
+        className="w-full min-h-[120px] p-4 rounded-xl resize-none bg-gray-50 border disabled:cursor-not-allowed disabled:opacity-60 hover:border-gray-400 focus-within:border-gray-400 transition-colors selected:border-gray-700"
+      />
+
+      {/*  
       <BasicEditor
         value={postContent}
         onChange={setPostContent}
         placeholder={isBanned ? 'Your account is restricted' : 'Ask, Share, Contribute…'}
         disabled={isBanned}
         className="w-full min-h-[120px] p-4 rounded-xl resize-none bg-gray-50 border disabled:cursor-not-allowed disabled:opacity-60 hover:border-gray-400 focus-within:border-gray-400 transition-colors selected:border-gray-700"
-      />
+      /> 
+      */}
 
       {selectedFiles.length > 0 && (
         <div className="flex flex-wrap gap-2 mt-3">
