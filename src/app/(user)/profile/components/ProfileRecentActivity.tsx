@@ -538,13 +538,13 @@ const TABS = [
 ] as const
 
 export function ProfileRecentActivity({
-  userId,
+  // userId,
   activity,
   loadMoreActivity,
   loadingMoreActivity,
   hasMoreActivity,
 }: {
-  userId: string
+  // userId: string
   activity?: {
     recentPosts?: any[]
     recentComments?: any[]

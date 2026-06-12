@@ -105,7 +105,7 @@ export function ProfileLayout({
 
                 {userId && (
                   <ProfileRecentActivity
-                    userId={userId}
+                    // userId={userId}
                     activity={
                       activity
                     }

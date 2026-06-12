@@ -35,7 +35,7 @@ export default function UserProfilePage() {
 
   const [profile, setProfile] = useState<any>(null)
   const [activity, setActivity] = useState<any>(null)
-  const [stats, setStats] = useState<any>(null)
+  // const [stats] = useState<any>(null)
 
   const [activityPage, setActivityPage] = useState(1)
 
@@ -194,7 +194,7 @@ export default function UserProfilePage() {
       profile={profile}
       userId={id as string}
       isOwnProfile={isOwnProfile}
-      stats={stats}
+      // stats={stats}
       activity={activity}
       loadMoreActivity={loadMoreActivity}
       loadingMoreActivity={
