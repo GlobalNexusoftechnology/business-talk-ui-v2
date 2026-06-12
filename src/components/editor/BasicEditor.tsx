@@ -9,7 +9,7 @@ import {
   BtnUnderline,
   BtnBulletList,
   BtnNumberedList,
-  BtnLink
+  // BtnLink
 } from 'react-simple-wysiwyg'
 
 import { Link2 } from 'lucide-react'
