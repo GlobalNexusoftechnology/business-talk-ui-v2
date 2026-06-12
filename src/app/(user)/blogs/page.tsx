@@ -364,17 +364,17 @@ export default function BlogsPage() {
                   </span>
                   <div className="flex gap-2">
                     <button
-                            onClick={() => {
-                              setSelectedBlog(blogs[0])
-                              setShowShareModal(true)
-                            }}
-                            className="p-2 rounded-lg transition-colors cursor-pointer"
-                            style={{ color: '#5F6368' }}
-                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8F9FA')}
-                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                          >
-                            <Send className="w-5 h-5" />
-                          </button>
+                      onClick={() => {
+                        setSelectedBlog(blogs[0])
+                        setShowShareModal(true)
+                      }}
+                      className="p-2 rounded-lg transition-colors cursor-pointer"
+                      style={{ color: '#5F6368' }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8F9FA')}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    >
+                      <Send className="w-5 h-5" />
+                    </button>
                     {currentUserId && currentUserId === String(blogs[0]?.authorId) && (
                       <button
                         onClick={(e) => blogs[0] && handleDeleteBlog(blogs[0].id, e)}
