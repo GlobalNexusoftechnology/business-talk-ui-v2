@@ -44,7 +44,7 @@ export default function ExpandableText({ children, className = '', lines = 4, st
           }
         }}
         ref={ref}
-        className={`rich-text-content break-words ${className}`}
+        className={`rich-text-content whitespace-pre-wrap break-words ${className}`}
         dangerouslySetInnerHTML={{
           __html: html,
         }}

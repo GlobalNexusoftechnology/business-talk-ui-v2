@@ -16,7 +16,7 @@ export default function RichTextContent({
 }: Props) {
   return (
     <div
-      className={`rich-text-content ${className}`}
+      className={`rich-text-content whitespace-pre-wrap break-words ${className}`}
       style={style}
       dangerouslySetInnerHTML={{
         __html: DOMPurify.sanitize(html || '', {

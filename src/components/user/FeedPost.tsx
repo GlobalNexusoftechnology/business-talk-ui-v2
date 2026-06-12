@@ -609,7 +609,7 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, gr
         <div 
           className="mb-4 hover:opacity-80 transition-opacity" // add font-blod/semibold if you want a bit bold text for question
         >
-          <ExpandableText onClick={handleOpenViewer} className="text-gray-800 leading-relaxed" lines={4}>{content}</ExpandableText> {/* add font-blod/semibold if you want a bit bold text for question */}
+          <ExpandableText onClick={handleOpenViewer} className="text-gray-800 whitespace-pre-wrap break-words leading-relaxed" lines={4}>{content}</ExpandableText> {/* add font-blod/semibold if you want a bit bold text for question */}
         </div>
 
         {/* Media Grid */}
