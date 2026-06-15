@@ -107,12 +107,14 @@ export default function BasicEditor({
             onChange={(e) => onChange(e.target.value)}
             containerProps={{
               className:
-                'min-h-[160px] text-base leading-relaxed'
+                'min-h-[160px] max-h-[50vh] overflow-y-auto text-base leading-relaxed'
             }}
             style={{
               minHeight: rows
                 ? `${rows * 24}px`
                 : '160px',
+              maxHeight: '50vh',
+              overflowY: 'auto',
             }}
           />
         </div>
@@ -209,6 +211,8 @@ export default function BasicEditor({
 
           .rsw-ce {
             min-height: 160px;
+            max-height: 50vh;
+            overflow-y: auto;
             padding: 14px;
             font-size: 16px;
             line-height: 1.7;

@@ -121,9 +121,20 @@ export function ShareStoryBox() {
 
       <textarea
         value={storyText}
-        placeholder='Tell your story... Share insights, experiences, and lessons learned.'
         onChange={(e) => setStoryText(e.target.value)}
-        className="w-full p-3 mt-3 bg-gray-50 border rounded-xl hover:border-gray-400 focus-within:border-gray-400 transition-colors  selected:border-gray-700"
+        placeholder="Tell your story..."
+        className="
+          w-full
+          min-h-[200px]
+          max-h-[45vh]
+          overflow-y-auto
+          resize-y
+          p-3
+          mt-3
+          bg-gray-50
+          border
+          rounded-xl
+        "
       />
 
       {/* 
@@ -135,8 +146,8 @@ export function ShareStoryBox() {
       /> 
       */}
 
-      <div className="flex flex-wrap justify-between gap-2 mt-4">
-        <div className="flex gap-4 items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between gap-3 mt-4">
+        <div className="flex flex-wrap gap-4 items-center">
           <input
             type="file"
             id="media-upload"
@@ -154,7 +165,7 @@ export function ShareStoryBox() {
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <button
             type="button"
             onClick={handleSaveDraft}

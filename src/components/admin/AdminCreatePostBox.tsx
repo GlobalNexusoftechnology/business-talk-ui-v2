@@ -70,7 +70,7 @@ export function AdminCreatePostBox({ onCreated }: { onCreated?: () => void }) {
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder="Create an admin post..."
-        className="w-full p-4 rounded-xl bg-gray-50 border hover:border-gray-400 focus-within:border-gray-400 transition-colors selected:border-gray-700"
+        className=" w-full min-h-[140px] max-h-[40vh] overflow-y-auto resize-y p-4 rounded-xl bg-gray-50 border hover:border-gray-400 focus-within:border-gray-400 transition-colors selected:border-gray-700"
       />
       {/* 
       <BasicEditor
@@ -109,7 +109,7 @@ export function AdminCreatePostBox({ onCreated }: { onCreated?: () => void }) {
         </div>
       )}
 
-      <div className="flex flex-wrap justify-between gap-2 mt-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between gap-3 mt-4">
         <input type="file" multiple hidden id="post-media" onChange={handleFileSelect} />
         <label htmlFor="post-media" className="flex gap-2 cursor-pointer">
           <ImageIcon /> <Video />

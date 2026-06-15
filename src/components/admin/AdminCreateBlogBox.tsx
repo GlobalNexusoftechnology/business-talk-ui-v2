@@ -110,8 +110,8 @@ export function AdminCreateBlogBox({ onCreated }: { onCreated?: () => void }) {
                 </div>
               )}
 
-      <div className="flex flex-wrap justify-between gap-2 mt-4">
-        <div className="flex gap-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between gap-3 mt-4">
+        <div className="flex flex-wrap gap-4">
           <input hidden type="file" id="blog-img" accept="image/jpeg,image/png,image/gif,image/webp" onChange={(e) => {
             const file = e.target.files?.[0]
             if (!file) return

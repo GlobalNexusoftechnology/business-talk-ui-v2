@@ -91,7 +91,7 @@ export function PostQuestionBox() {
         placeholder={isBanned ? 'Your account is restricted' : 'What would you like to know from the community?'}
         onChange={(e) => setQuestionText(e.target.value)}
         disabled={isBanned}
-        className="w-full p-3 bg-gray-50 border rounded-xl disabled:cursor-not-allowed disabled:opacity-60 hover:border-gray-400 focus-within:border-gray-400 transition-colors  selected:border-gray-700"
+        className="w-full min-h-[140px] max-h-[40vh] overflow-y-auto resize-y p-3 bg-gray-50 border rounded-xl disabled:cursor-not-allowed disabled:opacity-60 hover:border-gray-400 focus-within:border-gray-400 transition-colors  selected:border-gray-700"
       />
       {/* 
       <BasicEditor
@@ -99,22 +99,22 @@ export function PostQuestionBox() {
         placeholder={isBanned ? 'Your account is restricted' : 'What would you like to know from the community?'}
         onChange={setQuestionText}
         disabled={isBanned}
-        className="w-full p-3 bg-gray-50 border rounded-xl disabled:cursor-not-allowed disabled:opacity-60 hover:border-gray-400 focus-within:border-gray-400 transition-colors  selected:border-gray-700"
+        className="w-full min-h-[140px] max-h-[40vh] overflow-y-auto resize-y p-3 bg-gray-50 border rounded-xl disabled:cursor-not-allowed disabled:opacity-60 hover:border-gray-400 focus-within:border-gray-400 transition-colors  selected:border-gray-700"
       /> 
       */}
 
-      <div className="flex flex-wrap justify-between gap-2 mt-3">
+      <div className="flex flex-col sm:flex-row sm:justify-between gap-3 mt-3">
         <button type="button" onClick={() => setShowTagsPopup(true)} className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-all">
           <Tag className="w-4 h-4" />
           Add Tags ({tags.length})
         </button>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <button
             type="button"
             onClick={handleSaveDraft}
             disabled={savingDraft || loading || !questionText.trim() || isBanned}
-            className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full sm:w-auto px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {savingDraft ? 'Saving...' : 'Save Draft'}
           </button>
@@ -122,7 +122,7 @@ export function PostQuestionBox() {
             type="button"
             onClick={handlePostQuestion}
             disabled={loading || !questionText.trim() || isBanned}
-            className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-400 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="w-full sm:w-auto bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-400 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             {loading ? 'Posting...' : 'Post Question'}
           </button>

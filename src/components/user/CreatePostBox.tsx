@@ -113,12 +113,36 @@ export function CreatePostBox() {
           Your account is restricted. You cannot create posts.
         </p>
       )}
-      <textarea
+      {/* <textarea
         value={postContent}
         onChange={(e) => setPostContent(e.target.value)}
         placeholder={isBanned ? 'Your account is restricted' : 'Ask, Share, Contribute…'}
         disabled={isBanned}
         className="w-full min-h-[120px] p-4 rounded-xl resize-none bg-gray-50 border disabled:cursor-not-allowed disabled:opacity-60 hover:border-gray-400 focus-within:border-gray-400 transition-colors selected:border-gray-700"
+      /> */}
+
+      <textarea
+        value={postContent}
+        onChange={(e) => setPostContent(e.target.value)}
+        placeholder={
+          isBanned
+            ? 'Your account is restricted'
+            : 'Ask, Share, Contribute…'
+        }
+        disabled={isBanned}
+        className="
+          w-full
+          min-h-[120px]
+          max-h-[40vh]
+          overflow-y-auto
+          p-4
+          rounded-xl
+          resize-y
+          bg-gray-50
+          border
+          disabled:cursor-not-allowed
+          disabled:opacity-60
+        "
       />
 
       {/*  
@@ -159,7 +183,7 @@ export function CreatePostBox() {
         </div>
       )}
 
-      <div className="flex flex-wrap justify-between gap-2 mt-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between gap-3 mt-4">
         <input
           type="file"
           id="media-upload"
@@ -172,7 +196,7 @@ export function CreatePostBox() {
           <ImagePlay />
         </label>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <button
             type="button"
             onClick={handleSaveDraft}
@@ -185,7 +209,7 @@ export function CreatePostBox() {
             type="button"
             onClick={handleCreatePost}
             disabled={loading || (!postContent.trim() && selectedFiles.length === 0) || isBanned}
-            className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-400 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="bg-black text-white px-6 py-2 rounded-lg w-full sm:w-auto hover:bg-gray-400 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             {loading ? 'Posting...' : 'Create Post'}
           </button>

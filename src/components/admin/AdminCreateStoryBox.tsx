@@ -70,7 +70,7 @@ export function AdminCreateStoryBox({ onCreated }: { onCreated?: () => void }) {
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder="Write story..."
-        className="w-full mt-3 p-3 bg-gray-50 border rounded-xl hover:border-gray-400 focus-within:border-gray-400 transition-colors  selected:border-gray-700"
+        className="w-full mt-3 min-h-[200px] max-h-[45vh] overflow-y-auto resize-y p-3 bg-gray-50 border rounded-xl hover:border-gray-400 focus-within:border-gray-400 transition-colors  selected:border-gray-700"
       />
 
       {/* 
@@ -120,7 +120,7 @@ export function AdminCreateStoryBox({ onCreated }: { onCreated?: () => void }) {
                 </div>
               )}
 
-      <div className="flex flex-wrap justify-between gap-2 mt-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between gap-3 mt-4">
         <div className="flex gap-4">
           <input hidden type="file" id="story-img" accept="image/jpeg,image/png,image/gif,image/webp" onChange={(e) => {
             const file = e.target.files?.[0]

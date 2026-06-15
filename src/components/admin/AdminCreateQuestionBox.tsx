@@ -44,7 +44,7 @@ export function AdminCreateQuestionBox({ onCreated }: { onCreated?: () => void }
         value={question}
         onChange={(e) => setQuestion(e.target.value)}
         placeholder="Ask a question as admin..."
-        className="w-full p-3 bg-gray-50 border rounded-xl hover:border-gray-400 focus-within:border-gray-400 transition-colors  selected:border-gray-700"
+        className="w-full min-h-[140px] max-h-[40vh] overflow-y-auto resize-y p-3 bg-gray-50 border rounded-xl hover:border-gray-400 focus-within:border-gray-400 transition-colors  selected:border-gray-700"
       />
       {/* 
       <BasicEditor
@@ -76,7 +76,7 @@ export function AdminCreateQuestionBox({ onCreated }: { onCreated?: () => void }
           </div>
         )}
 
-      <div className="flex flex-wrap justify-between gap-2 mt-3">
+      <div className="flex flex-col sm:flex-row sm:justify-between gap-3 mt-3">
         <button type="button" onClick={() => setShowTags(true)} className="flex gap-2 text-sm">
           <Tag /> Tags ({tags.length})
         </button>
