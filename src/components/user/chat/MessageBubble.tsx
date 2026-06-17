@@ -1,36 +1,38 @@
 import React from 'react';
 import { Check, X } from 'lucide-react'
 import type { MessageEntity } from '@/types/chat';
+import RichTextContent from '@/components/common/RichTextContent';
+import { renderMessageHtml } from '@/lib/chat/renderMessage';
 
 // Render text with auto-linked URLs and email addresses
-function renderLinkedText(text?: string | null) {
-  if (!text) return null;
-  const splitRegex = /(https?:\/\/[^\s]+|www\.[^\s]+|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/gi;
-  const parts = text.split(splitRegex);
+// function renderLinkedText(text?: string | null) {
+//   if (!text) return null;
+//   const splitRegex = /(https?:\/\/[^\s]+|www\.[^\s]+|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/gi;
+//   const parts = text.split(splitRegex);
 
-  const isEmail = (s: string) => /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/i.test(s);
-  const isUrl = (s: string) => /^https?:\/\//i.test(s) || /^www\./i.test(s);
+//   const isEmail = (s: string) => /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/i.test(s);
+//   const isUrl = (s: string) => /^https?:\/\//i.test(s) || /^www\./i.test(s);
 
-  return parts.map((part, idx) => {
-    if (!part) return null;
-    if (isEmail(part)) {
-      return (
-        <a key={idx} href={`mailto:${part}`} className="text-blue-600 underline whitespace-pre-wrap break-words">
-          {part}
-        </a>
-      );
-    }
-    if (isUrl(part)) {
-      const href = part.match(/^https?:\/\//i) ? part : `https://${part}`;
-      return (
-        <a key={idx} href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline whitespace-pre-wrap break-words">
-          {part}
-        </a>
-      );
-    }
-    return <span key={idx} className="whitespace-pre-wrap break-words">{part}</span>;
-  });
-}
+//   return parts.map((part, idx) => {
+//     if (!part) return null;
+//     if (isEmail(part)) {
+//       return (
+//         <a key={idx} href={`mailto:${part}`} className="text-blue-600 underline whitespace-pre-wrap break-words">
+//           {part}
+//         </a>
+//       );
+//     }
+//     if (isUrl(part)) {
+//       const href = part.match(/^https?:\/\//i) ? part : `https://${part}`;
+//       return (
+//         <a key={idx} href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline whitespace-pre-wrap break-words">
+//           {part}
+//         </a>
+//       );
+//     }
+//     return <span key={idx} className="whitespace-pre-wrap break-words">{part}</span>;
+//   });
+// }
 
 interface MessageBubbleProps {
   message: MessageEntity;
@@ -40,12 +42,26 @@ interface MessageBubbleProps {
 }
 
 function SharedPreview({ message }: { message: MessageEntity }) {
-  if (message.messageType !== 'blog' && message.messageType !== 'post') return null;
+  if (message.messageType !== 'blog' && message.messageType !== 'post') {
+    return null;
+  }
+
   const preview = message.preview;
+
   if (!preview) return null;
-  const imgSrc = preview.image || preview.imageUrl || preview.thumbnailUrl || preview.img
-  const title = preview.title || preview.headline || ''
-  const description = preview.text || preview.description || preview.subtitle || ''
+
+  const imgSrc =
+    preview.image ||
+    preview.imageUrl ||
+    preview.thumbnailUrl ||
+    preview.img;
+
+  const title = preview.title || preview.headline || '';
+  const description =
+    preview.text ||
+    preview.description ||
+    preview.subtitle ||
+    '';
 
   return (
     <a
@@ -55,41 +71,60 @@ function SharedPreview({ message }: { message: MessageEntity }) {
       className="mt-2 block rounded-lg border border-gray-200 overflow-hidden bg-white"
     >
       {imgSrc && (
-        <img
-          src={imgSrc}
-          alt={title || `${preview.type} preview`}
-          className="w-full max-h-36 object-cover"
-        />
+        <div className="w-full h-36 bg-gray-100">
+          <img
+            src={imgSrc}
+            alt={title || 'Preview'}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            onError={(e) => {
+              e.currentTarget.parentElement?.remove();
+            }}
+          />
+        </div>
       )}
+
       <div className="p-2">
-        <p className="text-[11px] uppercase tracking-wide text-gray-500">{preview.type}</p>
+        <p className="text-[11px] uppercase tracking-wide text-gray-500">
+          {preview.type || 'POST'}
+        </p>
+
         {title ? (
-          <p className="text-sm font-semibold text-gray-900 line-clamp-2">{title}</p>
-        ) : description ? (
-          <p className="text-sm font-semibold text-gray-900 line-clamp-2">{description}</p>
+          <RichTextContent className="text-sm font-semibold text-gray-900 line-clamp-2" html={title} />
+            // {title}
+
         ) : null}
-        {description && title && (
-          <p className="text-xs text-gray-600 line-clamp-2">{description}</p>
-        )}
+
+        {description ? (
+          <RichTextContent className="text-xs text-gray-600 line-clamp-2" html={description} />
+        ) : null}
       </div>
     </a>
-  )
+  );
 }
 
 function AttachmentBlock({ message }: { message: MessageEntity }) {
-  if (!message.attachments.length) return null;
+  if (!message.attachments?.length) return null;
 
   return (
     <div className="mt-2 space-y-2">
-      {message.attachments.map((attachment) => {
+      {message.attachments?.map((attachment) => {
         if (attachment.type === 'image') {
           return (
-            <img
+            <div
               key={attachment.id}
-              src={attachment.thumbnailUrl || attachment.url}
-              alt={attachment.fileName || 'Image attachment'}
-              className="max-w-full rounded-lg border border-gray-200"
-            />
+              className="w-full max-w-md h-56 bg-gray-100 rounded-lg overflow-hidden border border-gray-200"
+            >
+              <img
+                src={attachment.thumbnailUrl || attachment.url}
+                alt={attachment.fileName || 'Image attachment'}
+                className="w-full h-full object-cover"
+                loading="lazy"
+                onError={(e) => {
+                  e.currentTarget.parentElement?.remove();
+                }}
+              />
+            </div>
           );
         }
 
@@ -130,7 +165,12 @@ function AttachmentBlock({ message }: { message: MessageEntity }) {
   );
 }
 
-const MessageBubble = React.memo<MessageBubbleProps>(({ message, isMine, isGroup, displayTime }) => {
+const MessageBubble: React.FC<MessageBubbleProps> = ({
+  message,
+  isMine,
+  isGroup,
+  displayTime,
+}) => {
   if (message.isDeleted) {
     return (
       <div className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
@@ -150,6 +190,9 @@ const MessageBubble = React.memo<MessageBubbleProps>(({ message, isMine, isGroup
             `https://ui-avatars.com/api/?name=${encodeURIComponent(message.senderName || 'User')}`
           }
           alt={message.senderName}
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+          }}
           className="w-6 h-6 md:w-7 md:h-7 rounded-full mr-2 self-end shrink-0"
         />
       )}
@@ -166,7 +209,12 @@ const MessageBubble = React.memo<MessageBubbleProps>(({ message, isMine, isGroup
               : 'bg-gray-100 text-black rounded-bl-sm'
           } ${message.status === 'pending' ? 'opacity-60' : ''}`}
         >
-          {renderLinkedText(message.text)}
+          <div
+            className="break-words whitespace-normal"
+            dangerouslySetInnerHTML={
+              renderMessageHtml(message.text)
+            }
+          />
           <SharedPreview message={message} />
           <AttachmentBlock message={message} />
           <div className="flex items-center justify-end gap-1 mt-1">
@@ -201,8 +249,6 @@ const MessageBubble = React.memo<MessageBubbleProps>(({ message, isMine, isGroup
       </div>
     </div>
   );
-});
-
-MessageBubble.displayName = 'MessageBubble';
+};
 
 export default MessageBubble;

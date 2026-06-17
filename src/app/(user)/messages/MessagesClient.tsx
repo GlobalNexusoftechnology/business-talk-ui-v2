@@ -410,17 +410,24 @@ const MessagesClient = () => {
 
   // Handle ?userId= — open existing DM or create new one (DM reuse)
   useEffect(() => {
-    if (!userIdFromURL) return;
-    dispatch(createConversation({ participantId: userIdFromURL })).then((result) => {
+  if (!userIdFromURL) return;
+
+  dispatch(createConversation({ participantId: userIdFromURL })).then(
+    (result) => {
       if (createConversation.fulfilled.match(result)) {
         const { conversationId, isNew } = result.payload;
+
         dispatch(setActiveConversation(conversationId));
-        if (isNew) dispatch(fetchConversations());
+
+        if (isNew) {
+          dispatch(fetchConversations());
+        }
+
         setShowMobileList(false);
       }
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userIdFromURL]);
+    }
+  );
+}, [userIdFromURL, dispatch]);
 
   // Reset near-bottom anchor when switching conversations
   useEffect(() => {
@@ -430,7 +437,7 @@ const MessagesClient = () => {
     // Optimistically clear unread badge in frontend and notify backend via thunk
     dispatch(markConversationRead(activeConversationId));
     dispatch(markConversationReadServer(activeConversationId));
-  }, [activeConversationId]);
+  }, [activeConversationId, dispatch]);
 
   // Auto-scroll when new messages arrive — only when near the bottom
   const prevMessageCountRef = useRef(0);
@@ -702,7 +709,15 @@ const MessagesClient = () => {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="h-[calc(100dvh-4.25rem)] lg:h-[100dvh] w-full flex overflow-hidden bg-[#F8F9FA]">
+    <div
+      className="
+      flex
+      h-screen
+      w-full
+      overflow-hidden
+      bg-[#F8F9FA]
+    "
+    >
 
       {/* ── Sidebar ────────────────────────────────────────────────────────── */}
       <div
@@ -781,7 +796,7 @@ const MessagesClient = () => {
       {/* ── Chat pane ──────────────────────────────────────────────────────── */}
       <div
         className={`
-          h-full flex flex-col overflow-hidden flex-1 relative
+          flex flex-col flex-1 min-h-0 overflow-hidden relative h-full
           ${!showMobileList ? 'flex' : 'hidden'} md:flex
         `}
       >
@@ -842,7 +857,14 @@ const MessagesClient = () => {
         <div
           ref={scrollContainerRef}
           onScroll={handleScrollEvent}
-          className="flex-1 min-h-0 overflow-y-auto bg-white"
+          className="
+            flex-1
+            overflow-y-auto
+            overflow-x-hidden
+            min-h-0
+            bg-white
+            h-full
+          "
         >
           <div className="p-3 md:p-4 space-y-1">
             {/* Invisible sentinel — IntersectionObserver triggers here */}
@@ -884,8 +906,9 @@ const MessagesClient = () => {
             )}
 
             {allMessages.map((msg) => (
+              
               <MessageBubble
-                key={msg.id}
+                key={`${msg.id}-${msg.updatedAt || msg.createdAt}`}
                 message={msg}
                 isMine={
                   !!normalizedCurrentUserId &&
@@ -894,6 +917,7 @@ const MessagesClient = () => {
                 isGroup={selectedConversation.isGroup}
                 displayTime={formatChatTimestamp(msg.createdAt)}
               />
+              
             ))}
 
             <div ref={messagesEndRef} />
