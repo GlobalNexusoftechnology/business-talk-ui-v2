@@ -247,8 +247,8 @@ export default function AdminQuestionsPage() {
         <AdminContentCard
           {...common}
           type="question"
-          title={it.content}
-          content={it.description}
+          title={it.title}
+          content={it.content}
           tags={it.tags || []}
           onWarn={(uid) => warnUser.mutate(uid)}
           onBan={(uid) => banUser.mutate(uid)}

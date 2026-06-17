@@ -11,6 +11,7 @@ import { AdminContentCard } from '@/components/admin/AdminContentCard'
 import { validateImageFile } from '@/lib/utils'
 import { useSearchParams } from 'next/navigation'
 import apiClient from '@/lib/api-client'
+import BasicEditor from '@/components/editor/BasicEditor'
 
 const filters = ['All', 'Latest', 'Trending', 'Reported']
 
@@ -19,7 +20,7 @@ export default function AdminBlogsPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const debounceRef = useRef<NodeJS.Timeout | null>(null)
   const [searchResults, setSearchResults] = useState<any[] | null>(null)
   const [page, setPage] = useState(1)
   const limit = 50
@@ -398,81 +399,155 @@ export default function AdminBlogsPage() {
       </div>
 
       {showCreate && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="w-full max-w-2xl">
-            <AdminCreateBlogBox onCreated={() => setShowCreate(false)} />
-            <div className="text-center mt-4">
-              <Button onClick={() => setShowCreate(false)}>Close</Button>
+        <div
+          className="
+            fixed
+            inset-0
+            bg-black/50
+            z-50
+            overflow-y-auto
+            p-2
+            sm:p-4
+          "
+        >
+          <div className="min-h-full flex items-center justify-center">
+            <div
+              className="
+                w-full
+                max-w-2xl
+                max-h-[90vh]
+                overflow-y-auto
+              "
+            >
+              <AdminCreateBlogBox onCreated={() => setShowCreate(false)} />
+              <div className="text-center mt-4">
+                <Button onClick={() => setShowCreate(false)}>Close</Button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {editingBlog && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
-          <div className="w-full max-w-2xl bg-white rounded-2xl border p-6" style={{ borderColor: '#E8E8E8' }}>
-            <h2 className="text-xl font-semibold mb-4" style={{ color: '#212529' }}>
-              Edit Admin Blog
-            </h2>
+        <div
+          className="
+            fixed
+            inset-0
+            bg-black/50
+            z-50
+            overflow-y-auto
+            p-2
+            sm:p-4
+          "
+        >
+          <div className="min-h-full flex items-center justify-center">
+            <div
+              className="
+                w-full
+                max-w-2xl
+                bg-white
+                rounded-2xl
+                border
+                p-4
+                sm:p-6
+                max-h-[90vh]
+                overflow-y-auto
+              "
+              style={{ borderColor: '#E8E8E8' }}
+            >
+              <h2 className="text-xl font-semibold mb-4" style={{ color: '#212529' }}>
+                Edit Admin Blog
+              </h2>
 
-            <div className="space-y-3">
-              <input
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                placeholder="Blog title"
-                className="w-full p-3 bg-gray-50 border rounded-xl"
-              />
-
-              <textarea
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                placeholder="Blog content"
-                className="w-full p-3 bg-gray-50 border rounded-xl min-h-[160px]"
-              />
-
-              <input
-                value={editTags}
-                onChange={(e) => setEditTags(e.target.value)}
-                placeholder="Tags (comma separated)"
-                className="w-full p-3 bg-gray-50 border rounded-xl"
-              />
-
-              <input
-                value={editCoverUrl}
-                onChange={(e) => setEditCoverUrl(e.target.value)}
-                placeholder="Cover image URL (optional)"
-                className="w-full p-3 bg-gray-50 border rounded-xl"
-              />
-
-              <div>
-                <label className="text-sm font-medium" style={{ color: '#5F6368' }}>
-                  Upload new cover image (optional)
-                </label>
+              <div className="space-y-3">
                 <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/gif,image/webp"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null
-                    if (file) {
-                      const err = validateImageFile(file)
-                      if (err) { alert(err); return }
-                    }
-                    setEditCoverFile(file)
-                  }}
-                  className="mt-1 w-full p-2 border rounded-xl bg-white"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  placeholder="Blog title"
+                  className="w-full p-3 bg-gray-50 border rounded-xl"
                 />
+
+                <BasicEditor
+                  value={editContent}
+                  onChange={setEditContent}
+                  placeholder="Blog content"
+                  className="
+                    w-full
+                    bg-gray-50
+                    border
+                    rounded-xl
+                    max-h-[50vh]
+                    overflow-hidden
+                  "
+                />
+
+                <input
+                  value={editTags}
+                  onChange={(e) => setEditTags(e.target.value)}
+                  placeholder="Tags (comma separated)"
+                  className="w-full p-3 bg-gray-50 border rounded-xl"
+                />
+
+                <input
+                  value={editCoverUrl}
+                  onChange={(e) => setEditCoverUrl(e.target.value)}
+                  placeholder="Cover image URL (optional)"
+                  className="w-full p-3 bg-gray-50 border rounded-xl"
+                />
+
+                {editCoverFile && (
+                  <div className="mt-3">
+                    <img
+                      src={URL.createObjectURL(editCoverFile)}
+                      alt="Preview"
+                      className="
+                        w-full
+                        max-h-56
+                        object-cover
+                        rounded-xl
+                        border
+                      "
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="text-sm font-medium" style={{ color: '#5F6368' }}>
+                    Upload new cover image (optional)
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null
+                      if (file) {
+                        const err = validateImageFile(file)
+                        if (err) { alert(err); return }
+                      }
+                      setEditCoverFile(file)
+                    }}
+                    className="mt-1 w-full p-2 border rounded-xl bg-white"
+                  />
+                </div>
+
+                {editError && (
+                  <p className="text-sm" style={{ color: '#DC2626' }}>{editError}</p>
+                )}
               </div>
 
-              {editError && (
-                <p className="text-sm" style={{ color: '#DC2626' }}>{editError}</p>
-              )}
-            </div>
-
-            <div className="flex justify-end gap-3 mt-5">
-              <Button onClick={closeEditModal}>Cancel</Button>
-              <Button onClick={handleUpdateBlog} disabled={updateBlog.isPending}>
-                {updateBlog.isPending ? 'Saving...' : 'Save Changes'}
-              </Button>
+              <div className="flex flex-col sm:flex-row justify-end gap-3 mt-5">
+                <Button
+                  onClick={closeEditModal}
+                  className="w-full sm:w-auto"
+                >Cancel</Button>
+                <Button
+                  onClick={handleUpdateBlog}
+                  disabled={updateBlog.isPending}
+                  className="w-full sm:w-auto"
+                >
+                  {updateBlog.isPending ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

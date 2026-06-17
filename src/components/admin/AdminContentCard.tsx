@@ -17,6 +17,7 @@ import {
 import ExpandableText from '@/components/common/ExpandableText'
 import apiClient from '@/lib/api-client'
 import { MediaGrid, MediaItem } from '@/components/shared/MediaGrid'
+import RichTextContent from '../common/RichTextContent'
 
 export interface AdminContentCardProps {
   id: string
@@ -187,9 +188,7 @@ export function AdminContentCard({
 
           {/* Title (blogs / questions) */}
           {title && (
-            <h3 className="font-semibold text-base mb-2" style={{ color: '#212529' }}>
-              {title}
-            </h3>
+            <RichTextContent className="text-base mb-2" style={{ color: '#212529' }} html={title} />
           )}
 
           {/* Content text */}
