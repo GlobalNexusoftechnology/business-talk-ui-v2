@@ -62,7 +62,7 @@ export default function TermsOfServicePage() {
           </ul>
         </li>
         <li><b>Governing Law:</b> These Terms are governed by the laws of India.</li>
-        <li><b>Contact:</b> For queries: <a href="mailto:support@buinesstalk24.com" className="text-blue-600 underline">support@buinesstalk24.com</a></li>
+        <li><b>Contact:</b> For queries: <a href="mailto:support@businesstalk24.com" className="text-blue-600 underline">support@businesstalk24.com</a></li>
       </ol>
     </main>
   );

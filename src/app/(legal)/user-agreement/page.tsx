@@ -110,7 +110,7 @@ export default function UserAgreementPage() {
                   For questions about these terms, please contact us at:
                 </p>
                 <p className="mt-3">
-                  Email: legal@businesstalk24.com<br />
+                  Email: support@businesstalk24.com<br />
                   Address: 123 Business Street, San Francisco, CA 94102
                 </p>
               </section>

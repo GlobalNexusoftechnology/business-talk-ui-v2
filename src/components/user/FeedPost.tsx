@@ -2,9 +2,11 @@
 
 import { useRouter } from 'next/navigation'
 import { profileHref } from '@/lib/profile-link'
-import { ThumbsUp, MessageCircle, Send, MoreVertical, Bookmark, Flag, UserCheck, UserMinus, UserPlus, Trash2 } from 'lucide-react'
+import { ThumbsUp, MessageCircle, Send, MoreVertical, Bookmark, Flag, UserCheck, UserMinus, UserPlus, Trash2, Pencil, ImagePlay, X } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { ShareModal } from '@/components/shared/ShareModal'
+import { TagsPopup } from '@/components/shared/TagsPopup'
+import { useQueryClient } from '@tanstack/react-query'
 import { useOpenContent } from '@/hooks/useOpenContent'
 import apiClient from '@/lib/api-client'
 import { ReportModal } from '@/components/shared/ReportModal'
@@ -32,6 +34,7 @@ interface FeedPostProps {
   image?: string
   video?: string
   media?: MediaItem[]
+  tags?: string[]
   timestamp: string
   likes: number
   liked?: boolean
@@ -40,7 +43,7 @@ interface FeedPostProps {
   sends: number
 }
 
-export function FeedPost({ id = Date.now().toString(), authorId = '', author, groupId, group, content, image, video, media = [], timestamp, likes, liked = false, comments, sends }: FeedPostProps) {
+export function FeedPost({ id = Date.now().toString(), authorId = '', author, groupId, group, content, image, video, media = [], tags = [], timestamp, likes, liked = false, comments, sends }: FeedPostProps) {
   const router = useRouter()
   const reduxUser = useAppSelector((state: any) => state.auth.user)
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string; avatar: string }>({ id: '', name: 'You', avatar: '' })
@@ -65,7 +68,15 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, gr
   const [animatingId, setAnimatingId] = useState<string | null>(null)
   const [isDeleted, setIsDeleted] = useState(false)
   const [deleteToast, setDeleteToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editContent, setEditContent] = useState(content)
+  const [editTags, setEditTags] = useState<string[]>([])
+  const [selectedEditFiles, setSelectedEditFiles] = useState<File[]>([])
+  const [editLoading, setEditLoading] = useState(false)
+  const [editError, setEditError] = useState('')
+  const [showTagsPopup, setShowTagsPopup] = useState(false)
   const requireAuth = useRequireAuth()
+  const queryClient = useQueryClient()
 
   //
   // FETCH COMMENT COUNT
@@ -89,6 +100,12 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, gr
   useEffect(() => {
     setIsLiked(Boolean(liked))
   }, [liked])
+
+  useEffect(() => {
+    setEditContent(content)
+    setEditTags([])
+    setSelectedEditFiles([])
+  }, [content, id])
 
   useEffect(() => {
     const fetchCommentsCount = async () => {
@@ -405,6 +422,62 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, gr
     setTimeout(() => setDeleteToast(null), 3000)
   }
 
+  const handleEditPost = async () => {
+    if (!id || !editContent.trim()) {
+      setEditError('Post content cannot be empty.')
+      return
+    }
+
+    setEditLoading(true)
+    setEditError('')
+
+    try {
+      let payload: any
+      if (selectedEditFiles.length > 0) {
+        const formData = new FormData()
+        formData.append('content', editContent)
+        if (editTags && editTags.length > 0) {
+          formData.append('tags', JSON.stringify(editTags))
+        }
+        selectedEditFiles.forEach((file) => {
+          formData.append('media', file)
+        })
+        payload = formData
+      } else {
+        payload = {
+          content: editContent,
+          tags: editTags,
+        }
+      }
+
+      await apiClient.updatePost(id, payload)
+      await queryClient.invalidateQueries({ queryKey: ['feed'] })
+      await queryClient.invalidateQueries({ queryKey: ['posts'] })
+      setShowEditModal(false)
+      showDeleteToast('Post updated successfully', 'success')
+    } catch (err: any) {
+      const status = err?.response?.status
+      if (status === 401) {
+        showDeleteToast('Session expired. Please log in again.', 'error')
+      } else if (status === 403) {
+        showDeleteToast('You can only edit your own content', 'error')
+      } else {
+        setEditError(err?.response?.data?.message || 'Failed to update post')
+      }
+    } finally {
+      setEditLoading(false)
+    }
+  }
+
+  const handleEditFiles = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const incoming = Array.from(event.target.files || [])
+    setSelectedEditFiles((prev) => [...prev, ...incoming])
+  }
+
+  const removeEditFile = (index: number) => {
+    setSelectedEditFiles((prev) => prev.filter((_, i) => i !== index))
+  }
+
   // Delete this post (only shown to author)
   const handleDeletePost = async () => {
     if (!window.confirm('Delete this post? This cannot be undone.')) return
@@ -493,6 +566,119 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, gr
       )}
       {isDeleted ? null : (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 sm:p-6 mb-4">
+        {showEditModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-2xl rounded-2xl bg-white p-5 shadow-xl">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">Edit Post</h3>
+                <button onClick={() => setShowEditModal(false)} className="rounded-full p-2 text-gray-500 hover:bg-gray-100">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="mt-4 space-y-4">
+                {editError && (
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                    {editError}
+                  </div>
+                )}
+
+                <textarea
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  rows={6}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-black"
+                  placeholder="What would you like to share?"
+                />
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowTagsPopup(true)}
+                    className="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                  >
+                    <ImagePlay className="h-4 w-4" />
+                    Add Tags ({editTags.length})
+                  </button>
+                </div>
+
+                {editTags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {editTags.map((tag) => (
+                      <span key={tag} className="rounded-full bg-gray-900 px-3 py-1 text-xs font-medium text-white">
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div className="rounded-xl border border-dashed border-gray-300 p-3">
+                  <input
+                    type="file"
+                    accept="image/*,video/*"
+                    multiple
+                    onChange={handleEditFiles}
+                    className="block w-full text-sm text-gray-500"
+                  />
+                  {selectedEditFiles.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {selectedEditFiles.map((file, index) => (
+                        <div key={`${file.name}-${index}`} className="relative">
+                          {file.type.startsWith('image/') ? (
+                            <img src={URL.createObjectURL(file)} alt={file.name} className="h-20 w-20 rounded-lg object-cover" />
+                          ) : (
+                            <div className="flex h-20 w-20 items-center justify-center rounded-lg border bg-gray-100 text-xs text-gray-500">
+                              {file.name}
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeEditFile(index)}
+                            className="absolute -right-1 -top-1 rounded-full bg-gray-900 p-1 text-white"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleEditPost}
+                  disabled={editLoading || !editContent.trim()}
+                  className="flex items-center justify-center rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {editLoading ? (
+                    <span className="flex items-center gap-2">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      Saving...
+                    </span>
+                  ) : (
+                    'Save Changes'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <TagsPopup
+          isOpen={showTagsPopup}
+          onClose={() => setShowTagsPopup(false)}
+          onTagsChange={setEditTags}
+          selectedTags={editTags}
+        />
         {/* Post Header */}
         <div className="flex items-start justify-between mb-4">
           <div
@@ -589,16 +775,35 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, gr
                 </span>
                 </button>
                 {currentUser.id && currentUser.id === authorId && (
-                  <button
-                    onClick={handleDeletePost}
-                    title='Delete post'
-                    className="group flex items-center gap-1 text-red-600 hover:bg-red-50 px-2 py-1 rounded transition-all duration-200 hover:gap-2"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-200 whitespace-nowrap">
-                      Delete
-                    </span>
-                  </button>
+                  <>
+                    <button
+                      onClick={() => {
+                        setEditContent(content)
+                        setEditTags(tags || [])
+                        setSelectedEditFiles([])
+                        setEditError('')
+                        setShowEditModal(true)
+                        setShowActionMenu(false)
+                      }}
+                      title='Edit post'
+                      className="group flex items-center gap-1 text-gray-700 hover:bg-gray-100 px-2 py-1 rounded transition-all duration-200 hover:gap-2"
+                    >
+                      <Pencil className="w-4 h-4" />
+                      <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-200 whitespace-nowrap">
+                        Edit
+                      </span>
+                    </button>
+                    <button
+                      onClick={handleDeletePost}
+                      title='Delete post'
+                      className="group flex items-center gap-1 text-red-600 hover:bg-red-50 px-2 py-1 rounded transition-all duration-200 hover:gap-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-200 whitespace-nowrap">
+                        Delete
+                      </span>
+                    </button>
+                  </>
                 )}
               </div>
             )}
@@ -611,6 +816,21 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, gr
         >
           <ExpandableText onClick={handleOpenViewer} className="text-gray-800 whitespace-pre-wrap break-words leading-relaxed" lines={4}>{content}</ExpandableText> {/* add font-blod/semibold if you want a bit bold text for question */}
         </div>
+
+        {/* Hashtags */}
+        {tags.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {tags.map((tag) => (
+              <button
+                key={tag}
+                onClick={() => router.push(`/?tab=home&q=${encodeURIComponent(tag)}`)}
+                className="text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+              >
+                #{tag}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Media Grid */}
         {(media.length > 0 || image || video) && (

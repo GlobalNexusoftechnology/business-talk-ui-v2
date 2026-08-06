@@ -7,11 +7,12 @@ import {
   User, Lock, Bell, Shield, Mail, Smartphone,
   // Eye, Globe,
 
-  Upload, X, Briefcase, GraduationCap, Plus, Pencil, Trash2,
+  Upload, X, Briefcase, GraduationCap, Plus, Pencil, Trash2, AlertTriangle,
 
 } from 'lucide-react'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
 import apiClient from '@/lib/api-client'
 import { validateImageFile } from '@/lib/utils'
@@ -25,6 +26,7 @@ import {
 import { isPushSupported, getPushPermissionState } from '@/lib/fcm'
 import PushDevicesPanel from '@/components/user/PushDevicesPanel'
 import PasswordInput from '@/components/common/PasswordInput'
+import { logout } from '@/redux/slices/authSlice'
 
 
 type ExperienceEntry = {
@@ -666,6 +668,8 @@ function NotificationsTab({
 }
 export default function SettingsPage() {
 
+  const router = useRouter()
+  const dispatch = useAppDispatch()
   const [activeTab, setActiveTab] = useState('profile')
 
 
@@ -733,6 +737,11 @@ export default function SettingsPage() {
   const [pwSuccess, setPwSuccess] = useState('')
 
   const [pwError, setPwError] = useState('')
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deletePassword, setDeletePassword] = useState('')
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
 
   // const [twoFactorAuth, setTwoFactorAuth] = useState(false)
 
@@ -880,6 +889,56 @@ export default function SettingsPage() {
 
     } finally { setPwLoading(false) }
 
+  }
+
+  const clearAuthSession = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('user')
+      localStorage.removeItem('auth:last_login_at')
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    if (!deletePassword.trim()) {
+      setDeleteError('Please enter your password to continue.')
+      return
+    }
+
+    setDeleteLoading(true)
+    setDeleteError('')
+
+    try {
+      await apiClient.deleteAccount(deletePassword)
+
+      clearAuthSession()
+      setShowDeleteModal(false)
+      setDeletePassword('')
+
+      window.dispatchEvent(
+        new CustomEvent('app-toast', {
+          detail: { message: 'Account deleted successfully. Please sign in again.', type: 'success' },
+        })
+      )
+
+      dispatch(logout())
+      router.replace('/login')
+    } catch (err: any) {
+      const status = err?.response?.status
+
+      if (status === 401) {
+        clearAuthSession()
+        setDeleteError('Your session has expired. Please sign in again.')
+        router.replace('/login')
+      } else if (status === 403) {
+        setDeleteError('You are not allowed to delete this account.')
+      } else if (status === 500) {
+        setDeleteError('We could not delete your account right now. Please try again later.')
+      } else {
+        setDeleteError(err?.response?.data?.message || 'Failed to delete account')
+      }
+    } finally {
+      setDeleteLoading(false)
+    }
   }
 
 
@@ -1459,6 +1518,27 @@ export default function SettingsPage() {
 
                     </button>
 
+                    <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <h3 className="text-base font-semibold text-red-700">Delete Account</h3>
+                          <p className="mt-1 text-sm text-red-600">Deleting your account is permanent.</p>
+                          <p className="mt-2 text-sm text-gray-600">This will remove your profile, saved content, and access from the platform.</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDeleteError('')
+                            setDeletePassword('')
+                            setShowDeleteModal(true)
+                          }}
+                          className="inline-flex items-center justify-center rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+                        >
+                          Delete Account
+                        </button>
+                      </div>
+                    </div>
+
                   </div>
 
                 </div>
@@ -1730,6 +1810,70 @@ export default function SettingsPage() {
       </div>
 
 
+
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl">
+            <div className="flex items-start gap-3">
+              <div className="rounded-full bg-red-100 p-2 text-red-600">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Delete account?</h3>
+                <p className="mt-1 text-sm text-gray-500">This action cannot be undone.</p>
+              </div>
+            </div>
+
+            <p className="mt-4 text-sm font-medium text-red-600">Deleting your account is permanent.</p>
+            <p className="mt-2 text-sm text-gray-600">Please enter your password to confirm this action.</p>
+
+            {deleteError && (
+              <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {deleteError}
+              </div>
+            )}
+
+            <div className="mt-4">
+              <PasswordInput
+                label="Password"
+                value={deletePassword}
+                onChange={e => setDeletePassword(e.target.value)}
+                placeholder="Enter your password"
+                className="w-full"
+              />
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteModal(false)
+                  setDeletePassword('')
+                  setDeleteError('')
+                }}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={deleteLoading}
+                className="flex items-center justify-center rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {deleteLoading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Deleting...
+                  </span>
+                ) : (
+                  'Delete Account'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Experience modal */}
 

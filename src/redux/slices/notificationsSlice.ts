@@ -265,6 +265,17 @@ const notificationsSlice = createSlice({
     invalidateNotificationCache(state) {
       state.lastFetchedAt = null;
     },
+
+    removeNotification(state, action: PayloadAction<string>) {
+      const id = action.payload;
+      const notification = state.entities[id];
+
+      if (!notification) return;
+
+      notificationsAdapter.removeOne(state, id);
+      state.unreadCount = Math.max(0, state.unreadCount - (notification.isRead ? 0 : 1));
+      state.pagination.total = Math.max(0, (state.pagination.total ?? 0) - 1);
+    },
   },
 
   extraReducers: (builder) => {
@@ -352,7 +363,11 @@ const notificationsSlice = createSlice({
   },
 });
 
-export const { wsNotificationReceived, notificationAcknowledged, invalidateNotificationCache } =
-  notificationsSlice.actions;
+export const {
+  wsNotificationReceived,
+  notificationAcknowledged,
+  invalidateNotificationCache,
+  removeNotification,
+} = notificationsSlice.actions;
 
 export default notificationsSlice.reducer;

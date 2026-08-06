@@ -13,7 +13,7 @@ export default function DashboardPage() {
       </div>
 
       {/* RIGHT SIDEBAR - Desktop only */}
-      <div className="hidden xl:block sticky p-6">
+      <div className="hidden xl:block sticky top-6 self-start max-h-[calc(100vh-3rem)] overflow-y-auto p-6">
         <RightSidebar />
       </div>
     </div>

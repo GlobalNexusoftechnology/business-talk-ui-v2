@@ -154,6 +154,25 @@ export default function BlogsPage() {
     page => page.data
   ) || []
 
+  // Filter blogs by search query and selected category
+  const filteredBlogs = blogs.filter((blog) => {
+    const matchesSearch = !searchQuery.trim() ||
+      (blog.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+       blog.excerpt?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+       blog.author?.name?.toLowerCase().includes(searchQuery.toLowerCase()))
+
+    const matchesCategory =
+      selectedCategory === 'All'
+        ? true
+        : Array.isArray(blog.category)
+        ? blog.category.some((cat: string) =>
+            cat.toLowerCase().includes(selectedCategory.toLowerCase())
+          )
+        : String(blog.category || '').toLowerCase().includes(selectedCategory.toLowerCase())
+
+    return matchesSearch && matchesCategory
+  })
+
   const showDeleteToast = (message: string, type: 'success' | 'error') => {
     setDeleteToast({ message, type })
     setTimeout(() => setDeleteToast(null), 3000)
@@ -302,7 +321,7 @@ export default function BlogsPage() {
 
 
         {/* Featured Article or Empty State */}
-        {blogs.length === 0 ? (
+        {filteredBlogs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center text-gray-500">
             <h2 className="text-2xl font-semibold mb-2 text-gray-800">No Blogs Available</h2>
             <p className="mb-2">Looks like we currently don't have blogs available.</p>
@@ -312,60 +331,60 @@ export default function BlogsPage() {
           <div
             className="bg-white rounded-2xl shadow-sm border overflow-hidden mb-6 hover:shadow-md transition-shadow cursor-pointer"
             style={{ border: '1px solid #E8E8E8' }}
-            // onClick={() => blogs[0] && handleBlogClick(blogs[0])}
+            // onClick={() => filteredBlogs[0] && handleBlogClick(filteredBlogs[0])}
           >
             <div className="grid md:grid-cols-2 gap-6">
-              <img src={blogs[0]?.image} alt={blogs[0]?.title} className="w-full h-full object-cover" onClick={() => blogs[0] && handleBlogClick(blogs[0])}/>
+              <img src={filteredBlogs[0]?.image} alt={filteredBlogs[0]?.title} className="w-full h-full object-cover" onClick={() => filteredBlogs[0] && handleBlogClick(filteredBlogs[0])}/>
               <div className="p-6 flex flex-col justify-center">
                 <div className="flex items-center gap-3 mb-3">
                   <span className="px-3 py-1 text-sm font-medium rounded-full" style={{ backgroundColor: '#E3F2FD', color: '#1976D2' }}>
                     Featured
                   </span>
                   <span className="px-3 py-1 text-sm font-medium rounded-full" style={{ backgroundColor: '#F8F9FA', color: '#5F6368' }}>
-                    {Array.isArray(blogs[0]?.category)
-                      ? blogs[0].category.map((cat: string) =>
+                    {Array.isArray(filteredBlogs[0]?.category)
+                      ? filteredBlogs[0].category.map((cat: string) =>
                           cat.replace(/['",]/g, '').trim()
                         ).join(', ')
-                      : (blogs[0]?.category || '').replace(/['",]/g, '').trim()}
+                      : (filteredBlogs[0]?.category || '').replace(/['",]/g, '').trim()}
                   </span>
                 </div>
-                <h2 className="text-2xl font-semibold mb-3 whitespace-pre-wrap break-words" style={{ color: '#212529' }} onClick={() => blogs[0] && handleBlogClick(blogs[0])}>
-                  {blogs[0]?.title}
+                <h2 className="text-2xl font-semibold mb-3 whitespace-pre-wrap break-words" style={{ color: '#212529' }} onClick={() => filteredBlogs[0] && handleBlogClick(filteredBlogs[0])}>
+                  {filteredBlogs[0]?.title}
                 </h2>
-                <ExpandableText className="mb-4 text-sm whitespace-pre-wrap break-words" lines={4} onClick={() => blogs[0] && handleBlogClick(blogs[0])}>
-                  {blogs[0]?.excerpt}
+                <ExpandableText className="mb-4 text-sm whitespace-pre-wrap break-words" lines={4} onClick={() => filteredBlogs[0] && handleBlogClick(filteredBlogs[0])}>
+                  {filteredBlogs[0]?.excerpt}
                 </ExpandableText>
                 <div
                   className="flex items-center gap-3 mb-4 cursor-pointer"
-                  onClick={e => { e.stopPropagation(); blogs[0]?.authorId && router.push(profileHref(blogs[0].authorId, blogs[0]?.author?.name)) }}
+                  onClick={e => { e.stopPropagation(); filteredBlogs[0]?.authorId && router.push(profileHref(filteredBlogs[0].authorId, filteredBlogs[0]?.author?.name)) }}
                 >
                   <img
-                    src={blogs[0]?.author?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(blogs[0]?.author?.name || 'User')}&background=E8E8E8&color=212529&size=40`}
-                    alt={blogs[0]?.author?.name}
+                    src={filteredBlogs[0]?.author?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(filteredBlogs[0]?.author?.name || 'User')}&background=E8E8E8&color=212529&size=40`}
+                    alt={filteredBlogs[0]?.author?.name}
                     className="w-10 h-10 rounded-full object-cover"
                   />
                   <div>
-                    <p className="font-medium hover:underline" style={{ color: '#212529' }} onClick={() => blogs[0]?.authorId && router.push(profileHref(blogs[0].authorId, blogs[0]?.author?.name))}>
-                      {blogs[0]?.author?.name}
+                    <p className="font-medium hover:underline" style={{ color: '#212529' }} onClick={() => filteredBlogs[0]?.authorId && router.push(profileHref(filteredBlogs[0].authorId, filteredBlogs[0]?.author?.name))}>
+                      {filteredBlogs[0]?.author?.name}
                     </p>
                     <p className="text-sm" style={{ color: '#5F6368' }}>
-                      {blogs[0]?.author?.title}
+                      {filteredBlogs[0]?.author?.title}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4 text-sm" style={{ color: '#5F6368' }}>
                   <span className="flex items-center gap-1">
                     <Clock className="w-4 h-4" />
-                    {blogs[0]?.readTime}
+                    {filteredBlogs[0]?.readTime}
                   </span>
                   <span className="flex items-center gap-1">
                     <Eye className="w-4 h-4" />
-                    {blogs[0]?.views.toLocaleString()} views
+                    {filteredBlogs[0]?.views.toLocaleString()} views
                   </span>
                   <div className="flex gap-2">
                     <button
                       onClick={() => {
-                        setSelectedBlog(blogs[0])
+                        setSelectedBlog(filteredBlogs[0])
                         setShowShareModal(true)
                       }}
                       className="p-2 rounded-lg transition-colors cursor-pointer"
@@ -375,9 +394,9 @@ export default function BlogsPage() {
                     >
                       <Send className="w-5 h-5" />
                     </button>
-                    {currentUserId && currentUserId === String(blogs[0]?.authorId) && (
+                    {currentUserId && currentUserId === String(filteredBlogs[0]?.authorId) && (
                       <button
-                        onClick={(e) => blogs[0] && handleDeleteBlog(blogs[0].id, e)}
+                        onClick={(e) => filteredBlogs[0] && handleDeleteBlog(filteredBlogs[0].id, e)}
                         className="flex items-center gap-1 text-red-500 hover:text-red-700 transition-colors ml-2"
                         title="Delete blog"
                       >
@@ -394,7 +413,7 @@ export default function BlogsPage() {
 
         {/* Articles Grid */}
         <div className="space-y-6">
-          {blogs.slice(1).map((blog) => (
+          {filteredBlogs.slice(1).map((blog) => (
             <div
               key={blog.id}
               className="bg-white rounded-2xl shadow-sm border p-6 hover:shadow-md transition-shadow cursor-pointer"

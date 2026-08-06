@@ -9,12 +9,15 @@ interface NotificationListProps {
     message: string;
     createdAt: number;
     isRead: boolean;
+    requestId?: string;
+    canAct?: boolean;
   }>;
   loading?: boolean;
   onNotificationClick: (id: string) => void;
+  onConnectionRequestAction?: (notificationId: string, requestId: string, action: 'accept' | 'delete') => Promise<void> | void;
 }
 
-export const NotificationList: React.FC<NotificationListProps> = ({ notifications, loading, onNotificationClick }) => {
+export const NotificationList: React.FC<NotificationListProps> = ({ notifications, loading, onNotificationClick, onConnectionRequestAction }) => {
   if (loading) {
     return <div className="p-4 text-neutral-400">Loading...</div>
   }
@@ -40,7 +43,10 @@ export const NotificationList: React.FC<NotificationListProps> = ({ notification
           message={n.message}
           createdAt={n.createdAt}
           isRead={n.isRead}
+          requestId={n.requestId}
+          canAct={n.canAct}
           onClick={onNotificationClick}
+          onConnectionRequestAction={onConnectionRequestAction}
         />
       ))}
     </div>

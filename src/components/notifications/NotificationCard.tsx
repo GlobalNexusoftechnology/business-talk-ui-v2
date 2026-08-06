@@ -32,7 +32,10 @@ export interface NotificationCardProps {
   /** Raw Unix ms — formatted in this component. Never pre-format before passing. */
   createdAt: number;
   isRead: boolean;
+  requestId?: string;
+  canAct?: boolean;
   onClick: (id: string) => void;
+  onConnectionRequestAction?: (notificationId: string, requestId: string, action: 'accept' | 'delete') => Promise<void> | void;
   /**
    * Optional: additional actors for grouped rendering (req 9).
    * When provided with more than one entry, the card renders a grouped message
@@ -48,11 +51,15 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
   message,
   createdAt,
   isRead,
+  requestId,
+  canAct,
   onClick,
   actors,
+  onConnectionRequestAction,
 }) => {
   // Live-updating relative timestamp — refreshes every minute
   const [relativeTime, setRelativeTime] = useState(() => getTimeAgo(createdAt));
+  const [actionState, setActionState] = useState<'idle' | 'accepting' | 'deleting'>('idle');
 
   useEffect(() => {
     setRelativeTime(getTimeAgo(createdAt));
@@ -74,6 +81,15 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
   // Show stacked avatars for grouped notifications
   const isGrouped = actors && actors.length > 1;
   const extraCount = isGrouped ? actors.length - 2 : 0;
+
+  const handleAction = async (action: 'accept' | 'delete', event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation()
+    if (!requestId || !onConnectionRequestAction) return
+
+    setActionState(action === 'accept' ? 'accepting' : 'deleting')
+    await onConnectionRequestAction(id, requestId, action)
+    setActionState('idle')
+  }
 
   return (
     <div
@@ -147,6 +163,27 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
         </div>
 
         <p className="text-xs text-neutral-400">{relativeTime}</p>
+
+        {canAct && requestId && (
+          <div className="mt-3 flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={(e) => handleAction('accept', e)}
+              disabled={actionState !== 'idle'}
+              className="rounded-lg border border-green-600 px-3 py-1.5 text-sm font-medium text-green-700 transition hover:bg-green-50 disabled:opacity-60"
+            >
+              {actionState === 'accepting' ? 'Accepting...' : 'Accept'}
+            </button>
+            <button
+              type="button"
+              onClick={(e) => handleAction('delete', e)}
+              disabled={actionState !== 'idle'}
+              className="rounded-lg border border-red-600 px-3 py-1.5 text-sm font-medium text-red-700 transition hover:bg-red-50 disabled:opacity-60"
+            >
+              {actionState === 'deleting' ? 'Deleting...' : 'Delete'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

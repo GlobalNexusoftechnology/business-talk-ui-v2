@@ -455,6 +455,13 @@ class ApiClient {
     }
   }
 
+  async deleteAccount(password: string) {
+    return this.client.delete('/users/delete-account', {
+      data: { password },
+      withCredentials: true,
+    })
+  }
+
   // =========================
   // 👤 PROFILE
   // =========================
@@ -725,6 +732,10 @@ class ApiClient {
     return this.client.delete(`/posts/${id}`)
   }
 
+  updatePost(id: string, data: any) {
+    return this.client.put(`/posts/${id}`, data)
+  }
+
   // Delete a post comment (author only)
   deletePostComment(id: string) {
     return this.client.delete(`/posts/comments/${id}`)
@@ -872,6 +883,14 @@ class ApiClient {
 
   getFollowing(id: string) {
     return this.client.get(`/follow/${id}/following`)
+  }
+
+  acceptConnectionRequest(id: string) {
+    return this.client.post(`/connections/accept/${id}`)
+  }
+
+  deleteConnectionRequest(id: string) {
+    return this.client.delete(`/connections/request/${id}`)
   }
 
   // =========================

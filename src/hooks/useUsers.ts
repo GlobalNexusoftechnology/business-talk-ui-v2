@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import apiClient from '@/lib/api-client'
+import { useAppDispatch } from '@/hooks/useRedux'
+import { fetchNotifications, fetchUnreadCount } from '@/redux/slices/notificationsSlice'
 
 export function useUsers() {
+  const dispatch = useAppDispatch()
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -42,6 +45,39 @@ export function useUsers() {
     }
   }
 
+  const getConnectionRequestId = (user: any) => {
+    const id = user?.connection_request_id ?? user?.request_id ?? user?.requestId ?? user?.connection_id ?? user?.connectionId ?? user?.id
+    return id ? String(id) : ''
+  }
+
+  const acceptConnectionRequest = async (user: any) => {
+    const requestId = getConnectionRequestId(user)
+    if (!requestId) return
+
+    try {
+      await apiClient.acceptConnectionRequest(requestId)
+      setUsers(prev => prev.filter((item) => String(item.id) !== String(user.id)))
+      dispatch(fetchNotifications({ force: true }))
+      dispatch(fetchUnreadCount())
+    } catch (err) {
+      console.error('Accept connection request failed', err)
+    }
+  }
+
+  const deleteConnectionRequest = async (user: any) => {
+    const requestId = getConnectionRequestId(user)
+    if (!requestId) return
+
+    try {
+      await apiClient.deleteConnectionRequest(requestId)
+      setUsers(prev => prev.filter((item) => String(item.id) !== String(user.id)))
+      dispatch(fetchNotifications({ force: true }))
+      dispatch(fetchUnreadCount())
+    } catch (err) {
+      console.error('Delete connection request failed', err)
+    }
+  }
+
   const unfollowUser = async (id: string) => {
     try {
       await apiClient.unfollowUserById(id)
@@ -51,5 +87,5 @@ export function useUsers() {
     }
   }
 
-  return { users, loading, followUser, unfollowUser }
+  return { users, loading, followUser, unfollowUser, acceptConnectionRequest, deleteConnectionRequest }
 }

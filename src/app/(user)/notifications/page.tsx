@@ -8,7 +8,9 @@ import {
   markNotificationRead,
   markAllNotificationsRead,
   invalidateNotificationCache,
+  removeNotification,
 } from '@/redux/slices/notificationsSlice'
+import apiClient from '@/lib/api-client'
 import {
   selectAllNotifications,
   selectNotificationUnreadCount,
@@ -91,6 +93,48 @@ export default function NotificationsPage() {
     [notifications, handleMarkAsRead, router],
   )
 
+  const getConnectionRequestId = (n: NotificationEntity) => {
+    const candidates = [
+      (n as NotificationEntity & { requestId?: string }).requestId,
+      (n as NotificationEntity & { connectionRequestId?: string }).connectionRequestId,
+      (n as NotificationEntity & { request_id?: string }).request_id,
+      (n as NotificationEntity & { connection_request_id?: string }).connection_request_id,
+      n.entityId,
+    ]
+
+    return candidates.find((value): value is string => typeof value === 'string' && value.length > 0)
+  }
+
+  const isConnectionRequest = (n: NotificationEntity) => {
+    const type = String(n.type || '').toLowerCase()
+    const message = String(n.message || '').toLowerCase()
+
+    return (
+      type.includes('connection') ||
+      type.includes('friend') ||
+      type.includes('request') ||
+      message.includes('connection') ||
+      message.includes('connect')
+    )
+  }
+
+  const handleConnectionRequestAction = useCallback(
+    async (notificationId: string, requestId: string, action: 'accept' | 'delete') => {
+      try {
+        if (action === 'accept') {
+          await apiClient.acceptConnectionRequest(requestId)
+        } else {
+          await apiClient.deleteConnectionRequest(requestId)
+        }
+
+        dispatch(removeNotification(notificationId))
+      } catch (err) {
+        console.error(`Failed to ${action} connection request`, err)
+      }
+    },
+    [dispatch],
+  )
+
   // ── Filter ────────────────────────────────────────────────────────────────
   const filteredNotifications = useMemo(() => {
     const list =
@@ -104,6 +148,8 @@ export default function NotificationsPage() {
       message: n.message,
       createdAt: n.createdAt,
       isRead: n.isRead,
+      requestId: getConnectionRequestId(n),
+      canAct: isConnectionRequest(n),
     }))
   }, [notifications, filter])
 
@@ -178,6 +224,7 @@ export default function NotificationsPage() {
           notifications={filteredNotifications}
           loading={isLoading}
           onNotificationClick={handleNotificationClick}
+          onConnectionRequestAction={handleConnectionRequestAction}
         />
 
         {/* INFINITE SCROLL SENTINEL + load-more skeleton */}

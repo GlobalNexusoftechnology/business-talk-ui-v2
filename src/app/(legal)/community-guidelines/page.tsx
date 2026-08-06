@@ -72,7 +72,7 @@ export default function CommunityGuidelinesPage() {
         </li>
         <li><b>Responsibility Disclaimer:</b> Content shared on Businesstalk24 reflects individual user opinions and experiences. Users are advised to verify information independently.</li>
         <li><b>Updates to Guidelines:</b> These guidelines may be updated as the platform evolves.</li>
-        <li><b>Contact:</b> For reporting issues or concerns: <a href="mailto:support@buinesstalk24.com" className="text-blue-600 underline">support@buinesstalk24.com</a></li>
+        <li><b>Contact:</b> For reporting issues or concerns: <a href="mailto:support@businesstalk24.com" className="text-blue-600 underline">support@businesstalk24.com</a></li>
       </ol>
     </main>
   );

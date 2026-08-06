@@ -21,7 +21,15 @@ const categories = [
   'In Your Industry',
 ]
 
-function PeopleCard({ user }: { user: any }) {
+function PeopleCard({
+  user,
+  onAcceptConnection,
+  onDeleteConnection,
+}: {
+  user: any
+  onAcceptConnection: (user: any) => Promise<void> | void
+  onDeleteConnection: (user: any) => Promise<void> | void
+}) {
   const currentUserId = useAppSelector((state) => String(state.auth?.user?.id || ''))
   const {
     state: followState,
@@ -32,6 +40,17 @@ function PeopleCard({ user }: { user: any }) {
   } = useFollow(String(user.id || ''))
 
   const isSelf = currentUserId === String(user.id || '')
+  const [actionState, setActionState] = useState<'idle' | 'accepting' | 'deleting'>('idle')
+  const isPendingRequest = Boolean(
+    user?.connection_request_id ||
+    user?.request_id ||
+    user?.requestId ||
+    user?.connection_id ||
+    user?.connectionId ||
+    user?.connection_status === 'pending' ||
+    user?.status === 'pending' ||
+    user?.pending === true,
+  )
 
   const handleConnect = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault()
@@ -46,6 +65,20 @@ function PeopleCard({ user }: { user: any }) {
     if (followState === 'connect') {
       await follow()
     }
+  }
+
+  const handlePendingAction = async (action: 'accept' | 'delete', e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (actionState !== 'idle') return
+
+    setActionState(action === 'accept' ? 'accepting' : 'deleting')
+    if (action === 'accept') {
+      await onAcceptConnection(user)
+    } else {
+      await onDeleteConnection(user)
+    }
+    setActionState('idle')
   }
 
   const buttonLabel =
@@ -123,33 +156,52 @@ function PeopleCard({ user }: { user: any }) {
           </div>
         )}
 
-        {/* Connect Button */}
-        <button
-          onClick={handleConnect}
-          disabled={isSelf || !isHydrated || followLoading || followState === 'pending'}
-          className={`w-full px-3 py-2 text-xs font-medium rounded-lg 
-            transition-all duration-200 flex-shrink-0 border active:scale-95 
-            ${followState === 'connected'
-              ? 'border-green-500 text-green-700 bg-green-50 cursor-default'
-              : 'border-[#212529] text-[#212529]'
-            }
-            ${isSelf || !isHydrated || followLoading || followState === 'pending'
-              ? 'opacity-70 cursor-not-allowed'
-              : ''
-            }`}
-          onMouseEnter={(e) => {
-            if (followState === 'connect' && !followLoading && isHydrated && !isSelf) {
-              e.currentTarget.style.backgroundColor = '#F8F9FA'
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (followState === 'connect') {
-              e.currentTarget.style.backgroundColor = 'transparent'
-            }
-          }}
-        >
-          {isSelf ? 'You' : buttonLabel}
-        </button>
+        {/* Connection Actions */}
+        {isPendingRequest ? (
+          <div className="flex gap-2">
+            <button
+              onClick={(e) => handlePendingAction('accept', e)}
+              disabled={actionState !== 'idle'}
+              className="flex-1 rounded-lg border border-green-600 px-3 py-2 text-xs font-medium text-green-700 transition hover:bg-green-50 disabled:opacity-60"
+            >
+              {actionState === 'accepting' ? 'Accepting...' : 'Accept'}
+            </button>
+            <button
+              onClick={(e) => handlePendingAction('delete', e)}
+              disabled={actionState !== 'idle'}
+              className="flex-1 rounded-lg border border-red-600 px-3 py-2 text-xs font-medium text-red-700 transition hover:bg-red-50 disabled:opacity-60"
+            >
+              {actionState === 'deleting' ? 'Deleting...' : 'Delete'}
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={handleConnect}
+            disabled={isSelf || !isHydrated || followLoading || followState === 'pending'}
+            className={`w-full px-3 py-2 text-xs font-medium rounded-lg 
+              transition-all duration-200 flex-shrink-0 border active:scale-95 
+              ${followState === 'connected'
+                ? 'border-green-500 text-green-700 bg-green-50 cursor-default'
+                : 'border-[#212529] text-[#212529]'
+              }
+              ${isSelf || !isHydrated || followLoading || followState === 'pending'
+                ? 'opacity-70 cursor-not-allowed'
+                : ''
+              }`}
+            onMouseEnter={(e) => {
+              if (followState === 'connect' && !followLoading && isHydrated && !isSelf) {
+                e.currentTarget.style.backgroundColor = '#F8F9FA'
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (followState === 'connect') {
+                e.currentTarget.style.backgroundColor = 'transparent'
+              }
+            }}
+          >
+            {isSelf ? 'You' : buttonLabel}
+          </button>
+        )}
 
       </div>
     </Link>
@@ -157,10 +209,29 @@ function PeopleCard({ user }: { user: any }) {
 }
 
 export default function PeoplePage() {
-  const { users, loading } = useUsers()
+  const { users, loading, acceptConnectionRequest, deleteConnectionRequest } = useUsers()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
+  const [showFilterPanel, setShowFilterPanel] = useState(false)
+  const [locationFilter, setLocationFilter] = useState('')
+  const [companyFilter, setCompanyFilter] = useState('')
+  const [appliedLocation, setAppliedLocation] = useState('')
+  const [appliedCompany, setAppliedCompany] = useState('')
+
+  const handleApplyFilter = () => {
+    setAppliedLocation(locationFilter)
+    setAppliedCompany(companyFilter)
+  }
+
+  const handleClearFilter = () => {
+    setLocationFilter('')
+    setCompanyFilter('')
+    setAppliedLocation('')
+    setAppliedCompany('')
+    setSearchQuery('')
+    setSelectedCategory('All')
+  }
 
   // 🔥 Filter users
   const filteredUsers = users.filter((u) => {
@@ -178,10 +249,18 @@ export default function PeoplePage() {
         ? u.same_industry === true
         : true;
 
-    return matchesSearch && matchesCategory;
+    const matchesLocation = !appliedLocation.trim() ||
+      String(u.location || '').toLowerCase().includes(appliedLocation.toLowerCase().trim())
+
+    const matchesCompany = !appliedCompany.trim() ||
+      `${u.company || ''} ${u.profession || ''}`.toLowerCase().includes(appliedCompany.toLowerCase().trim())
+
+    return matchesSearch && matchesCategory && matchesLocation && matchesCompany;
   });
 
   if (loading) return <div className="p-6">Loading users...</div>
+
+  const isFilterActive = Boolean(appliedLocation || appliedCompany || searchQuery || selectedCategory !== 'All')
 
   return (
     <div className="p-6 overflow-y-auto" style={{ backgroundColor: '#F8F9FA' }}>
@@ -214,11 +293,67 @@ export default function PeoplePage() {
             </div>
 
             {/* Filter Button */}
-            <button className="px-6 py-3 rounded-xl border-2 flex items-center gap-2 text-gray-500 hover:bg-[#F8F9FA]">
+            <button
+              onClick={() => setShowFilterPanel(!showFilterPanel)}
+              className={`px-6 py-3 rounded-xl border-2 flex items-center justify-center gap-2 font-medium transition-all ${
+                showFilterPanel || isFilterActive
+                  ? 'border-[#212529] bg-[#212529] text-white'
+                  : 'border-gray-200 text-gray-700 hover:bg-[#F8F9FA]'
+              }`}
+            >
               <Filter className="w-5 h-5" />
-              Filters
+              <span>Filters</span>
+              {isFilterActive && <span className="h-2 w-2 rounded-full bg-blue-400" />}
             </button>
           </div>
+
+          {/* Filter Panel (Expandable) */}
+          {showFilterPanel && (
+            <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Location</label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Filter by location..."
+                    value={locationFilter}
+                    onChange={(e) => setLocationFilter(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-200 bg-[#F8F9FA] focus:outline-none focus:ring-2 focus:ring-black"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Company / Profession</label>
+                <div className="relative">
+                  <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Filter by company or role..."
+                    value={companyFilter}
+                    onChange={(e) => setCompanyFilter(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-200 bg-[#F8F9FA] focus:outline-none focus:ring-2 focus:ring-black"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-1">
+                <button
+                  onClick={handleApplyFilter}
+                  className="flex-1 py-2 px-4 rounded-lg bg-[#212529] text-white text-sm font-semibold hover:bg-gray-800 transition-colors"
+                >
+                  Apply Filter
+                </button>
+                <button
+                  onClick={handleClearFilter}
+                  className="py-2 px-4 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-100 transition-colors"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Categories */}
           <div className="flex gap-2 mt-4 overflow-x-auto pb-2">
@@ -281,7 +416,12 @@ export default function PeoplePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
           {filteredUsers.map((user) => (
-            <PeopleCard key={user.id} user={user} />
+            <PeopleCard
+              key={user.id}
+              user={user}
+              onAcceptConnection={acceptConnectionRequest}
+              onDeleteConnection={deleteConnectionRequest}
+            />
           ))}
 
         </div>
