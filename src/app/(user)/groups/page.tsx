@@ -72,7 +72,7 @@ export default function GroupsPage() {
           description: g.description,
           image: g.cover_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(g.name || 'Group')}`,
           members: g.memberCount || 0,
-          posts: 0,
+          posts: g.postCount,
           type: g.visibility === 'PRIVATE' ? 'private' : 'public',
           requiresApproval: Boolean(g.requiresApproval) || g.visibility === 'PRIVATE',
           joined: joined || g.isJoined || false,
@@ -316,7 +316,7 @@ export default function GroupsPage() {
               </button>
             </div>
             <button
-              onClick={() => setShowCreateModal(true)} 
+              onClick={() => setShowCreateModal(true)}
               className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-all"
               style={{ backgroundColor: '#212529', color: '#FFFFFF' }}
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#3D3D3D')}
@@ -468,190 +468,188 @@ export default function GroupsPage() {
         )}
 
         {showCreateModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-3">
-          <div className="bg-white w-full max-w-lg rounded-2xl p-4 sm:p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-3">
+            <div className="bg-white w-full max-w-lg rounded-2xl p-4 sm:p-6 shadow-xl max-h-[90vh] overflow-y-auto">
 
-            {/* HEADER */}
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Create Group</h2>
-              <button onClick={() => { setShowCreateModal(false); setShowAdvanced(false); setRuleInput('') }}>✕</button>
-            </div>
+              {/* HEADER */}
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">Create Group</h2>
+                <button onClick={() => { setShowCreateModal(false); setShowAdvanced(false); setRuleInput('') }}>✕</button>
+              </div>
 
-            {/* FORM */}
-            <div className="space-y-4">
+              {/* FORM */}
+              <div className="space-y-4">
 
-              {/* NAME */}
-              <input
-                type="text"
-                placeholder="Group Name"
-                value={newGroup.name}
-                onChange={(e) =>
-                  setNewGroup({ ...newGroup, name: e.target.value })
-                }
-                className="w-full px-4 py-3 rounded-lg border"
-              />
-
-              {/* DESCRIPTION */}
-              <textarea
-                placeholder="Group Description"
-                value={newGroup.description}
-                onChange={(e) =>
-                  setNewGroup({ ...newGroup, description: e.target.value })
-                }
-                className="w-full px-4 py-3 rounded-lg border"
-              />
-
-              {/* IMAGE */}
-              <input
-                type="file"
-                id="media-upload"
-                accept="image/jpeg,image/png,image/gif,image/webp"
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (!file) return
-                  const err = validateImageFile(file)
-                  if (err) { alert(err); return }
-                  setNewGroup({ ...newGroup, cover_image: file })
-                }}
-                className="w-full px-4 py-3 rounded-lg border"
-              />
-
-              {/* VISIBILITY */}
-              <div className="flex gap-3">
-                <button
-                  onClick={() =>
-                    setNewGroup({ ...newGroup, visibility: 'PUBLIC' })
+                {/* NAME */}
+                <input
+                  type="text"
+                  placeholder="Group Name"
+                  value={newGroup.name}
+                  onChange={(e) =>
+                    setNewGroup({ ...newGroup, name: e.target.value })
                   }
-                  className={`flex-1 py-2 rounded-lg ${
-                    newGroup.visibility === 'PUBLIC'
-                      ? 'bg-black text-white'
-                      : 'bg-gray-100'
-                  }`}
+                  className="w-full px-4 py-3 rounded-lg border"
+                />
+
+                {/* DESCRIPTION */}
+                <textarea
+                  placeholder="Group Description"
+                  value={newGroup.description}
+                  onChange={(e) =>
+                    setNewGroup({ ...newGroup, description: e.target.value })
+                  }
+                  className="w-full px-4 py-3 rounded-lg border"
+                />
+
+                {/* IMAGE */}
+                <input
+                  type="file"
+                  id="media-upload"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    const err = validateImageFile(file)
+                    if (err) { alert(err); return }
+                    setNewGroup({ ...newGroup, cover_image: file })
+                  }}
+                  className="w-full px-4 py-3 rounded-lg border"
+                />
+
+                {/* VISIBILITY */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() =>
+                      setNewGroup({ ...newGroup, visibility: 'PUBLIC' })
+                    }
+                    className={`flex-1 py-2 rounded-lg ${newGroup.visibility === 'PUBLIC'
+                        ? 'bg-black text-white'
+                        : 'bg-gray-100'
+                      }`}
+                  >
+                    Public
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      setNewGroup({ ...newGroup, visibility: 'PRIVATE' })
+                    }
+                    className={`flex-1 py-2 rounded-lg ${newGroup.visibility === 'PRIVATE'
+                        ? 'bg-black text-white'
+                        : 'bg-gray-100'
+                      }`}
+                  >
+                    Private
+                  </button>
+                </div>
+              </div>
+
+              {/* ADVANCED SETTINGS */}
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
                 >
-                  Public
+                  <span
+                    className="inline-block transition-transform duration-200"
+                    style={{ transform: showAdvanced ? 'rotate(90deg)' : 'rotate(0deg)' }}
+                  >
+                    ▶
+                  </span>
+                  Advanced Settings
+                </button>
+
+                {showAdvanced && (
+                  <div className="mt-3 space-y-3 border border-gray-100 rounded-lg p-4 bg-gray-50">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Group Rules</p>
+                    <p className="text-xs text-gray-400">Up to 10 rules. Press Enter or click Add.</p>
+
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="e.g. No spam or self-promotion..."
+                        value={ruleInput}
+                        maxLength={200}
+                        onChange={(e) => setRuleInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && ruleInput.trim() && newGroup.rules.length < 10) {
+                            e.preventDefault()
+                            setNewGroup(prev => ({ ...prev, rules: [...prev.rules, ruleInput.trim()] }))
+                            setRuleInput('')
+                          }
+                        }}
+                        className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <button
+                        type="button"
+                        disabled={!ruleInput.trim() || newGroup.rules.length >= 10}
+                        onClick={() => {
+                          if (ruleInput.trim() && newGroup.rules.length < 10) {
+                            setNewGroup(prev => ({ ...prev, rules: [...prev.rules, ruleInput.trim()] }))
+                            setRuleInput('')
+                          }
+                        }}
+                        className="px-3 py-2 bg-black text-white text-sm rounded-lg disabled:opacity-40 transition-opacity"
+                      >
+                        Add
+                      </button>
+                    </div>
+
+                    {newGroup.rules.length > 0 && (
+                      <ol className="space-y-1">
+                        {newGroup.rules.map((rule, idx) => (
+                          <li
+                            key={idx}
+                            className="flex items-start justify-between gap-2 text-sm text-gray-700 bg-white rounded-lg px-3 py-2 border border-gray-100"
+                          >
+                            <span>
+                              <span className="font-semibold text-gray-400 mr-1">{idx + 1}.</span>
+                              {rule}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setNewGroup(prev => ({
+                                  ...prev,
+                                  rules: prev.rules.filter((_, i) => i !== idx),
+                                }))
+                              }
+                              className="text-red-400 hover:text-red-600 text-xs font-bold flex-shrink-0 leading-none"
+                            >
+                              ✕
+                            </button>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+
+                    {newGroup.rules.length >= 10 && (
+                      <p className="text-xs text-amber-600">Maximum of 10 rules allowed.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* ACTIONS */}
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => { setShowCreateModal(false); setShowAdvanced(false); setRuleInput('') }}
+                  className="px-4 py-2 rounded-lg bg-gray-100"
+                >
+                  Cancel
                 </button>
 
                 <button
-                  onClick={() =>
-                    setNewGroup({ ...newGroup, visibility: 'PRIVATE' })
-                  }
-                  className={`flex-1 py-2 rounded-lg ${
-                    newGroup.visibility === 'PRIVATE'
-                      ? 'bg-black text-white'
-                      : 'bg-gray-100'
-                  }`}
+                  onClick={handleCreateGroup}
+                  className="px-4 py-2 rounded-lg bg-black text-white"
                 >
-                  Private
+                  Create
                 </button>
               </div>
             </div>
-
-            {/* ADVANCED SETTINGS */}
-            <div className="mt-4">
-              <button
-                type="button"
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <span
-                  className="inline-block transition-transform duration-200"
-                  style={{ transform: showAdvanced ? 'rotate(90deg)' : 'rotate(0deg)' }}
-                >
-                  ▶
-                </span>
-                Advanced Settings
-              </button>
-
-              {showAdvanced && (
-                <div className="mt-3 space-y-3 border border-gray-100 rounded-lg p-4 bg-gray-50">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Group Rules</p>
-                  <p className="text-xs text-gray-400">Up to 10 rules. Press Enter or click Add.</p>
-
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="e.g. No spam or self-promotion..."
-                      value={ruleInput}
-                      maxLength={200}
-                      onChange={(e) => setRuleInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && ruleInput.trim() && newGroup.rules.length < 10) {
-                          e.preventDefault()
-                          setNewGroup(prev => ({ ...prev, rules: [...prev.rules, ruleInput.trim()] }))
-                          setRuleInput('')
-                        }
-                      }}
-                      className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <button
-                      type="button"
-                      disabled={!ruleInput.trim() || newGroup.rules.length >= 10}
-                      onClick={() => {
-                        if (ruleInput.trim() && newGroup.rules.length < 10) {
-                          setNewGroup(prev => ({ ...prev, rules: [...prev.rules, ruleInput.trim()] }))
-                          setRuleInput('')
-                        }
-                      }}
-                      className="px-3 py-2 bg-black text-white text-sm rounded-lg disabled:opacity-40 transition-opacity"
-                    >
-                      Add
-                    </button>
-                  </div>
-
-                  {newGroup.rules.length > 0 && (
-                    <ol className="space-y-1">
-                      {newGroup.rules.map((rule, idx) => (
-                        <li
-                          key={idx}
-                          className="flex items-start justify-between gap-2 text-sm text-gray-700 bg-white rounded-lg px-3 py-2 border border-gray-100"
-                        >
-                          <span>
-                            <span className="font-semibold text-gray-400 mr-1">{idx + 1}.</span>
-                            {rule}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setNewGroup(prev => ({
-                                ...prev,
-                                rules: prev.rules.filter((_, i) => i !== idx),
-                              }))
-                            }
-                            className="text-red-400 hover:text-red-600 text-xs font-bold flex-shrink-0 leading-none"
-                          >
-                            ✕
-                          </button>
-                        </li>
-                      ))}
-                    </ol>
-                  )}
-
-                  {newGroup.rules.length >= 10 && (
-                    <p className="text-xs text-amber-600">Maximum of 10 rules allowed.</p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* ACTIONS */}
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={() => { setShowCreateModal(false); setShowAdvanced(false); setRuleInput('') }}
-                className="px-4 py-2 rounded-lg bg-gray-100"
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={handleCreateGroup}
-                className="px-4 py-2 rounded-lg bg-black text-white"
-              >
-                Create
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
     </div>
   )

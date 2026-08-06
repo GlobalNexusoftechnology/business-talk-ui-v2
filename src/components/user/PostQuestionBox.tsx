@@ -90,6 +90,18 @@ export function PostQuestionBox() {
         value={questionText}
         placeholder={isBanned ? 'Your account is restricted' : 'What would you like to know from the community?'}
         onChange={(e) => setQuestionText(e.target.value)}
+        onPaste={(e) => {
+          if (e.clipboardData.files && e.clipboardData.files.length > 0) {
+            e.preventDefault()
+            alert('Questions cannot contain media attachments (images or videos).')
+          }
+        }}
+        onDrop={(e) => {
+          if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            e.preventDefault()
+            alert('Questions cannot contain media attachments (images or videos).')
+          }
+        }}
         disabled={isBanned}
         className="w-full min-h-[140px] max-h-[40vh] overflow-y-auto resize-y p-3 bg-gray-50 border rounded-xl disabled:cursor-not-allowed disabled:opacity-60 hover:border-gray-400 focus-within:border-gray-400 transition-colors  selected:border-gray-700"
       />

@@ -1,13 +1,15 @@
 'use client'
 
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, Trash2, Send } from 'lucide-react'
+import { ArrowLeft, Trash2, Send, Pencil, X, Tag } from 'lucide-react'
 import { profileHref } from '@/lib/profile-link'
 import { useState, useEffect } from 'react'
 import { ShareModal } from '@/components/shared/ShareModal'
+import { TagsPopup } from '@/components/shared/TagsPopup'
 import apiClient from '@/lib/api-client'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
 import RichTextContent from '@/components/common/RichTextContent'
+import { validateImageFile } from '@/lib/utils'
 
 interface Author {
   name: string
@@ -183,6 +185,99 @@ export default function BlogDetailsPage() {
   const [isDeleted, setIsDeleted] = useState(false)
   const requireAuth = useRequireAuth()
 
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editTitle, setEditTitle] = useState('')
+  const [editContent, setEditContent] = useState('')
+  const [editImage, setEditImage] = useState<File | null>(null)
+  const [editTags, setEditTags] = useState<string[]>([])
+  const [showTagsPopup, setShowTagsPopup] = useState(false)
+  const [editLoading, setEditLoading] = useState(false)
+  const [editError, setEditError] = useState('')
+
+  const openEditModal = () => {
+    if (!blog) return
+    setEditTitle(blog.title)
+    setEditContent(blog.content)
+    setEditImage(null)
+    setEditTags(
+      blog.category
+        ? blog.category
+            .split(',')
+            .map((t) => t.trim())
+            .filter(Boolean)
+        : []
+    )
+    setEditError('')
+    setShowEditModal(true)
+  }
+
+  const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files)
+      if (files.length > 1) {
+        setEditError('Blogs can only have 1 cover image as media.')
+        return
+      }
+      const file = files[0]
+      if (!file) return
+
+      if (file.type.startsWith('video/')) {
+        setEditError('Blogs can only have 1 cover image as media (no videos allowed).')
+        return
+      }
+
+      const err = validateImageFile(file)
+      if (err) {
+        setEditError(err)
+        return
+      }
+
+      setEditImage(file)
+      setEditError('')
+    }
+  }
+
+  const handleEditBlog = async () => {
+    if (!blog || !editTitle.trim() || !editContent.trim()) {
+      setEditError('Title and content cannot be empty.')
+      return
+    }
+
+    setEditLoading(true)
+    setEditError('')
+
+    try {
+      const formData = new FormData()
+      formData.append('title', editTitle)
+      formData.append('content', editContent)
+      formData.append('tags', JSON.stringify(editTags))
+      if (editImage) {
+        formData.append('cover_image', editImage)
+      }
+
+      await apiClient.updateBlog(blog.id, formData)
+
+      setBlog((prev) =>
+        prev
+          ? {
+              ...prev,
+              title: editTitle,
+              content: editContent,
+              category: editTags.join(', '),
+              image: editImage ? URL.createObjectURL(editImage) : prev.image,
+            }
+          : prev
+      )
+
+      setShowEditModal(false)
+    } catch (err: any) {
+      console.error('Failed to update blog:', err)
+      setEditError(err?.response?.data?.message || 'Failed to update blog.')
+    } finally {
+      setEditLoading(false)
+    }
+  }
+
   useEffect(() => {
     try {
       const u = JSON.parse(localStorage.getItem('user') || '{}')
@@ -332,14 +427,24 @@ export default function BlogDetailsPage() {
             <ArrowLeft /> Back to blogs
           </button>
           {currentUserId && currentUserId === String(blog.authorId) && (
-            <button
-              onClick={handleDeleteBlog}
-              className="flex items-center gap-1 text-red-500 hover:text-red-700 transition-colors text-sm"
-              title="Delete blog"
-            >
-              <Trash2 className="w-4 h-4" />
-              Delete blog
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={openEditModal}
+                className="flex items-center gap-1 text-gray-700 hover:text-black transition-colors text-sm font-medium"
+                title="Edit blog"
+              >
+                <Pencil className="w-4 h-4 text-gray-600" />
+                Edit blog
+              </button>
+              <button
+                onClick={handleDeleteBlog}
+                className="flex items-center gap-1 text-red-500 hover:text-red-700 transition-colors text-sm font-medium"
+                title="Delete blog"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete blog
+              </button>
+            </div>
           )}
         </div>
 
@@ -430,6 +535,116 @@ export default function BlogDetailsPage() {
         title={blog.title}
         contentType="blogs"
         contentId={blog.id}
+      />
+
+      {showEditModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-white p-5 shadow-xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Edit Blog</h3>
+              <button onClick={() => setShowEditModal(false)} className="rounded-full p-2 text-gray-500 hover:bg-gray-100">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-4">
+              {editError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {editError}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Blog Title</label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-black"
+                  placeholder="Enter blog title..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Blog Content</label>
+                <textarea
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  rows={8}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-black"
+                  placeholder="Write your blog content..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Cover Image (Max 1 Image)</label>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  onChange={handleCoverImageChange}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-700"
+                />
+                {editImage && (
+                  <p className="mt-1 text-xs text-green-600 font-medium">Selected image: {editImage.name}</p>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowTagsPopup(true)}
+                  className="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                >
+                  <Tag className="h-4 w-4" />
+                  Edit Tags ({editTags.length})
+                </button>
+              </div>
+
+              {editTags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {editTags.map((tag) => (
+                    <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-gray-900 px-3 py-1 text-xs font-medium text-white">
+                      #{tag}
+                      <button
+                        type="button"
+                        onClick={() => setEditTags((prev) => prev.filter((t) => t !== tag))}
+                        className="hover:text-red-300 ml-1"
+                        title="Remove tag"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleEditBlog}
+                  disabled={editLoading || !editTitle.trim() || !editContent.trim()}
+                  className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+                >
+                  {editLoading ? 'Saving...' : 'Save Blog'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <TagsPopup
+        isOpen={showTagsPopup}
+        onClose={() => setShowTagsPopup(false)}
+        onTagsChange={setEditTags}
+        selectedTags={editTags}
       />
     </div>
   )

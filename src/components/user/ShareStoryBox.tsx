@@ -54,8 +54,19 @@ export function ShareStoryBox() {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const file = e.target.files[0]
+      const files = Array.from(e.target.files)
+      if (files.length > 1) {
+        alert('Blogs can only have 1 cover image as media.')
+        return
+      }
+      const file = files[0]
       if (!file) return
+
+      if (file.type.startsWith('video/')) {
+        alert('Blogs can only have 1 cover image as media (no videos allowed).')
+        return
+      }
+
       const err = validateImageFile(file)
       if (err) { alert(err); return }
       setCoverImage([file])

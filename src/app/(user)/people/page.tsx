@@ -349,7 +349,7 @@ export default function PeoplePage() {
                   onClick={handleClearFilter}
                   className="py-2 px-4 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-100 transition-colors"
                 >
-                  Clear
+                  Reset Filter
                 </button>
               </div>
             </div>

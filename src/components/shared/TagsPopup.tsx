@@ -1,7 +1,7 @@
 'use client'
 
 import { X, Plus } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface TagsPopupProps {
   isOpen: boolean
@@ -45,6 +45,12 @@ export function TagsPopup({
 }: TagsPopupProps) {
   const [customTag, setCustomTag] = useState('')
   const [displayedTags, setDisplayedTags] = useState(selectedTags)
+
+  useEffect(() => {
+    if (isOpen) {
+      setDisplayedTags(selectedTags)
+    }
+  }, [isOpen, selectedTags])
 
   if (!isOpen) return null
 

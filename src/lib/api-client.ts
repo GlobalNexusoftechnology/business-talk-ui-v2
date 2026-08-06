@@ -774,13 +774,16 @@ class ApiClient {
   // 📰 BLOG / STORY INTERACTIONS
   // =========================
 
-  async getBlogs(page = 1, limit = 50) {
-    const res = await this.client.get('/blogs', {
-      params: {
-        page,
-        limit,
-      },
-    })
+  async getBlogs(page = 1, limit = 50, tag?: string, search?: string) {
+    const params: any = { page, limit }
+    if (tag && tag !== 'All') {
+      params.tag = tag
+    }
+    if (search && search.trim()) {
+      params.search = search.trim()
+    }
+
+    const res = await this.client.get('/blogs', { params })
 
     const payload = res.data || {}
 

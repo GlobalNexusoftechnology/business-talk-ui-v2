@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import ExpandableText from '@/components/common/ExpandableText'
 import apiClient, { extractPaginatedData } from '@/lib/api-client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { profileHref } from '@/lib/profile-link'
 import { ShareModal } from '@/components/shared/ShareModal'
 import { useAppSelector } from '@/hooks/useRedux'
@@ -30,16 +30,19 @@ interface Blog {
   bookmarks: number
 }
 
-const categories = ['All', 'Technology', 'Entrepreneurship', 'Marketing', 'Leadership', 'Finance']
+const PRESET_TAGS = ['All', 'Technology', 'Entrepreneurship', 'Marketing', 'Leadership', 'Finance']
 
 export default function BlogsPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const reduxUser = useAppSelector((state: any) => state.auth.user)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<string>('All')
+  
+  const initialTag = searchParams?.get('tag') || searchParams?.get('category') || 'All'
+  const initialSearch = searchParams?.get('search') || searchParams?.get('q') || ''
+
+  const [searchQuery, setSearchQuery] = useState(initialSearch)
+  const [selectedCategory, setSelectedCategory] = useState<string>(initialTag)
   const [showShareModal, setShowShareModal] = useState(false)
-  // const [blogs, setBlogs] = useState<Blog[]>([])
-  // const [loading, setLoading] = useState(true)
   const [selectedBlog, setSelectedBlog] = useState<Blog | null>(null)
   const [currentUserId, setCurrentUserId] = useState('')
   const [deleteToast, setDeleteToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
@@ -53,14 +56,18 @@ export default function BlogsPage() {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ['blogs-feed'],
+    queryKey: ['blogs-feed', selectedCategory, searchQuery],
 
     initialPageParam: 1,
 
     queryFn: async ({ pageParam }) => {
+      const tagParam = selectedCategory !== 'All' ? selectedCategory : undefined
+      const searchParam = searchQuery.trim() ? searchQuery.trim() : undefined
       const res = await apiClient.getBlogs(
         pageParam,
-        50
+        50,
+        tagParam,
+        searchParam
       )
 
       const {
@@ -114,7 +121,7 @@ export default function BlogsPage() {
               b.tags || []
             ).map(
               (t: any) =>
-                t.name
+                typeof t === 'string' ? t : t.name
             ),
 
           readTime:
@@ -150,11 +157,19 @@ export default function BlogsPage() {
   })
 
   const blogs =
-  data?.pages.flatMap(
-    page => page.data
-  ) || []
+    data?.pages.flatMap(
+      page => page.data
+    ) || []
 
-  // Filter blogs by search query and selected category
+  // Extract all dynamic tags from fetched blogs
+  const extractedTags = Array.from(
+    new Set(
+      blogs.flatMap((b) => (Array.isArray(b.category) ? b.category : [b.category])).filter(Boolean)
+    )
+  )
+  const categories = ['All', ...Array.from(new Set([...PRESET_TAGS.slice(1), ...extractedTags]))]
+
+  // Filter blogs by search query and selected tag
   const filteredBlogs = blogs.filter((blog) => {
     const matchesSearch = !searchQuery.trim() ||
       (blog.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||

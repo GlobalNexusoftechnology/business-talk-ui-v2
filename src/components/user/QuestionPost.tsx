@@ -6,6 +6,8 @@ import {
   Send,
   Tag,
   PenLine,
+  Pencil,
+  X,
   ThumbsUp,
   ThumbsDown,
   UserCheck, 
@@ -16,10 +18,12 @@ import {
 } from 'lucide-react'
 
 import { useState, useEffect, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import ExpandableText from '@/components/common/ExpandableText'
 import { useRouter } from 'next/navigation'
 import { profileHref } from '@/lib/profile-link'
 import { ShareModal } from '@/components/shared/ShareModal'
+import { TagsPopup } from '@/components/shared/TagsPopup'
 import { useOpenContent } from '@/hooks/useOpenContent'
 import apiClient from '@/lib/api-client'
 import { MoreVertical, Flag } from 'lucide-react'
@@ -113,6 +117,43 @@ export function QuestionPost({
   const reduxUser = useAppSelector((state: any) => state.auth.user)
   const requireAuth = useRequireAuth()
 
+  const queryClient = useQueryClient()
+  const [displayQuestion, setDisplayQuestion] = useState(question || content || '')
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editQuestionText, setEditQuestionText] = useState(displayQuestion)
+  const [editDescription, setEditDescription] = useState(description || '')
+  const [editTags, setEditTags] = useState<string[]>(tags || [])
+  const [showTagsPopup, setShowTagsPopup] = useState(false)
+  const [editLoading, setEditLoading] = useState(false)
+  const [editError, setEditError] = useState('')
+
+  const handleEditQuestion = async () => {
+    if (!id || !editQuestionText.trim()) {
+      setEditError('Question content cannot be empty.')
+      return
+    }
+
+    setEditLoading(true)
+    setEditError('')
+
+    try {
+      await apiClient.updatePost(id, {
+        content: editQuestionText,
+        description: editDescription,
+        tags: editTags,
+      })
+      setDisplayQuestion(editQuestionText)
+      await queryClient.invalidateQueries({ queryKey: ['feed'] })
+      await queryClient.invalidateQueries({ queryKey: ['questions'] })
+      setShowEditModal(false)
+      showDeleteToast('Question updated successfully', 'success')
+    } catch (err: any) {
+      setEditError(err?.response?.data?.message || 'Failed to update question.')
+    } finally {
+      setEditLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (reduxUser?.id) {
       setCurrentUserId(String(reduxUser.id))
@@ -137,8 +178,6 @@ export function QuestionPost({
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
-
-  const displayQuestion = question || content || ''
 
 
   // =========================
@@ -650,16 +689,35 @@ export function QuestionPost({
                 </span>
                 </button>
                 {currentUserId && currentUserId === authorId && (
-                  <button
-                    onClick={handleDeleteQuestion}
-                    title='Delete question'
-                    className="group flex items-center gap-1 text-red-600 hover:bg-red-50 px-2 py-1 rounded transition-all duration-200 hover:gap-2"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-200 whitespace-nowrap">
-                      Delete
-                    </span>
-                  </button>
+                  <>
+                    <button
+                      onClick={() => {
+                        setEditQuestionText(displayQuestion)
+                        setEditDescription(description || '')
+                        setEditTags(tags || [])
+                        setEditError('')
+                        setShowEditModal(true)
+                        setShowActionMenu(false)
+                      }}
+                      title='Edit question'
+                      className="group flex items-center gap-1 text-gray-700 hover:bg-gray-100 px-2 py-1 rounded transition-all duration-200 hover:gap-2"
+                    >
+                      <Pencil className="w-4 h-4 text-gray-600" />
+                      <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-200 whitespace-nowrap">
+                        Edit
+                      </span>
+                    </button>
+                    <button
+                      onClick={handleDeleteQuestion}
+                      title='Delete question'
+                      className="group flex items-center gap-1 text-red-600 hover:bg-red-50 px-2 py-1 rounded transition-all duration-200 hover:gap-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-200 whitespace-nowrap">
+                        Delete
+                      </span>
+                    </button>
+                  </>
                 )}
               </div>
             )}
@@ -869,6 +927,107 @@ export function QuestionPost({
         onClose={() => setShowReportModal(false)}
         contentId={id}
         contentType="post"
+      />
+
+      {showEditModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-white p-5 shadow-xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Edit Question</h3>
+              <button onClick={() => setShowEditModal(false)} className="rounded-full p-2 text-gray-500 hover:bg-gray-100">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-4">
+              {editError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {editError}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Question Content</label>
+                <textarea
+                  value={editQuestionText}
+                  onChange={(e) => setEditQuestionText(e.target.value)}
+                  rows={4}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-black"
+                  placeholder="Edit your question..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Additional Context / Details</label>
+                <textarea
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  rows={3}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-black"
+                  placeholder="Optional details..."
+                />
+              </div>
+
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                <strong>Note:</strong> Question posts cannot contain media attachments (images or videos).
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowTagsPopup(true)}
+                  className="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                >
+                  <Tag className="h-4 w-4" />
+                  Edit Tags ({editTags.length})
+                </button>
+              </div>
+
+              {editTags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {editTags.map((tag) => (
+                    <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-gray-900 px-3 py-1 text-xs font-medium text-white">
+                      #{tag}
+                      <button
+                        type="button"
+                        onClick={() => setEditTags((prev) => prev.filter((t) => t !== tag))}
+                        className="hover:text-red-300 ml-1"
+                        title="Remove tag"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleEditQuestion}
+                  disabled={editLoading || !editQuestionText.trim()}
+                  className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+                >
+                  {editLoading ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <TagsPopup
+        isOpen={showTagsPopup}
+        onClose={() => setShowTagsPopup(false)}
+        onTagsChange={setEditTags}
+        selectedTags={editTags}
       />
     </>
   )

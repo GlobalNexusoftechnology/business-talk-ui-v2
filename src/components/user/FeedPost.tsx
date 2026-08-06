@@ -71,10 +71,19 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, gr
   const [showEditModal, setShowEditModal] = useState(false)
   const [editContent, setEditContent] = useState(content)
   const [editTags, setEditTags] = useState<string[]>([])
+  const [existingMedia, setExistingMedia] = useState<MediaItem[]>([])
   const [selectedEditFiles, setSelectedEditFiles] = useState<File[]>([])
   const [editLoading, setEditLoading] = useState(false)
   const [editError, setEditError] = useState('')
   const [showTagsPopup, setShowTagsPopup] = useState(false)
+
+  const removeExistingMedia = (index: number) => {
+    setExistingMedia((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const removeEditTag = (tag: string) => {
+    setEditTags((prev) => prev.filter((t) => t !== tag))
+  }
   const requireAuth = useRequireAuth()
   const queryClient = useQueryClient()
 
@@ -428,6 +437,11 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, gr
       return
     }
 
+    if (editTags && editTags.length > 0) {
+      setEditError('Tags are not allowed for normal posts. Use Questions or Blogs for tagged topics.')
+      return
+    }
+
     setEditLoading(true)
     setEditError('')
 
@@ -436,9 +450,8 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, gr
       if (selectedEditFiles.length > 0) {
         const formData = new FormData()
         formData.append('content', editContent)
-        if (editTags && editTags.length > 0) {
-          formData.append('tags', JSON.stringify(editTags))
-        }
+        formData.append('tags', JSON.stringify(editTags))
+        formData.append('existingMedia', JSON.stringify(existingMedia))
         selectedEditFiles.forEach((file) => {
           formData.append('media', file)
         })
@@ -447,6 +460,7 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, gr
         payload = {
           content: editContent,
           tags: editTags,
+          existingMedia,
         }
       }
 
@@ -594,25 +608,60 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, gr
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setShowTagsPopup(true)}
-                    className="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                    onClick={() => setEditError('Tags are not allowed for normal posts. Use Questions or Blogs for tagged topics.')}
+                    className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-400 bg-gray-50 cursor-pointer"
+                    title="Tags are not allowed for normal posts"
                   >
                     <ImagePlay className="h-4 w-4" />
-                    Add Tags ({editTags.length})
+                    Tags (Not allowed for normal posts)
                   </button>
                 </div>
 
                 {editTags.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {editTags.map((tag) => (
-                      <span key={tag} className="rounded-full bg-gray-900 px-3 py-1 text-xs font-medium text-white">
+                      <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-gray-900 px-3 py-1 text-xs font-medium text-white">
                         #{tag}
+                        <button
+                          type="button"
+                          onClick={() => removeEditTag(tag)}
+                          className="hover:text-red-300 ml-1"
+                          title="Remove tag"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
                       </span>
                     ))}
                   </div>
                 )}
 
+                {existingMedia.length > 0 && (
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                    <p className="text-xs font-semibold text-gray-500 mb-2">Current Media Attachments</p>
+                    <div className="flex flex-wrap gap-2">
+                      {existingMedia.map((item, index) => (
+                        <div key={`${item.url}-${index}`} className="relative">
+                          {item.type === 'video' ? (
+                            <video src={item.url} className="h-20 w-20 rounded-lg object-cover bg-black" />
+                          ) : (
+                            <img src={item.url} alt="Attachment" className="h-20 w-20 rounded-lg object-cover" />
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeExistingMedia(index)}
+                            className="absolute -right-1 -top-1 rounded-full bg-red-600 p-1 text-white hover:bg-red-700 transition"
+                            title="Remove attachment"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="rounded-xl border border-dashed border-gray-300 p-3">
+                  <p className="text-xs font-semibold text-gray-500 mb-2">Add New Images / Videos</p>
                   <input
                     type="file"
                     accept="image/*,video/*"
@@ -780,6 +829,14 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, gr
                       onClick={() => {
                         setEditContent(content)
                         setEditTags(tags || [])
+                        setExistingMedia(
+                          media && media.length > 0
+                            ? [...media]
+                            : [
+                                ...(image ? [{ url: image, type: 'image' as const }] : []),
+                                ...(video ? [{ url: video, type: 'video' as const }] : []),
+                              ]
+                        )
                         setSelectedEditFiles([])
                         setEditError('')
                         setShowEditModal(true)
