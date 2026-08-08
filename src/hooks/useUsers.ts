@@ -78,6 +78,23 @@ export function useUsers() {
     }
   }
 
+  const cancelConnectionRequest = async (user: any) => {
+    const requestId = getConnectionRequestId(user)
+    const targetUserId = String(user?.id || user?.userId || '')
+    try {
+      if (requestId && requestId !== targetUserId) {
+        await apiClient.deleteConnectionRequest(requestId)
+      } else if (targetUserId) {
+        await apiClient.unfollowUserById(targetUserId)
+      }
+      setUsers(prev => prev.filter((item) => String(item.id) !== String(user.id)))
+      dispatch(fetchNotifications({ force: true }))
+      dispatch(fetchUnreadCount())
+    } catch (err) {
+      console.error('Cancel connection request failed', err)
+    }
+  }
+
   const unfollowUser = async (id: string) => {
     try {
       await apiClient.unfollowUserById(id)
@@ -87,5 +104,5 @@ export function useUsers() {
     }
   }
 
-  return { users, loading, followUser, unfollowUser, acceptConnectionRequest, deleteConnectionRequest }
+  return { users, loading, followUser, unfollowUser, acceptConnectionRequest, deleteConnectionRequest, cancelConnectionRequest }
 }

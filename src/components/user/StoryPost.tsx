@@ -12,9 +12,12 @@ import {
   UserPlus,
   Flag,
   Trash2,
+  Pencil,
+  X,
 } from 'lucide-react'
 
 import { useEffect, useRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import ExpandableText from '@/components/common/ExpandableText'
 import { useRouter } from 'next/navigation'
 import { profileHref } from '@/lib/profile-link'
@@ -82,6 +85,76 @@ export function StoryPost({
   const [likeCount, setLikeCount] = useState(likes || 0)
   const [commentLikeOverrides, setCommentLikeOverrides] = useState<Record<string, { count: number; liked?: boolean }>>({})
   const [deleteToast, setDeleteToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const queryClient = useQueryClient()
+  const [displayTitle, setDisplayTitle] = useState(storyTitle || '')
+  const [displayExcerpt, setDisplayExcerpt] = useState(excerpt || '')
+  const [displayCoverImage, setDisplayCoverImage] = useState(coverImage || '')
+
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editTitle, setEditTitle] = useState(displayTitle)
+  const [editExcerpt, setEditExcerpt] = useState(displayExcerpt)
+  const [editVisibility, setEditVisibility] = useState<'PUBLIC' | 'CONNECTIONS' | 'PRIVATE'>('PUBLIC')
+  const [editExpiry, setEditExpiry] = useState<'24h' | '48h' | 'never'>('24h')
+  const [newCoverFile, setNewCoverFile] = useState<File | null>(null)
+  const [coverPreview, setCoverPreview] = useState<string | null>(displayCoverImage)
+  const [editLoading, setEditLoading] = useState(false)
+  const [editError, setEditError] = useState('')
+
+  useEffect(() => {
+    setDisplayTitle(storyTitle || '')
+    setDisplayExcerpt(excerpt || '')
+    setDisplayCoverImage(coverImage || '')
+  }, [storyTitle, excerpt, coverImage, id])
+
+  const showDeleteToast = (message: string, type: 'success' | 'error') => {
+    setDeleteToast({ message, type })
+    setTimeout(() => setDeleteToast(null), 3000)
+  }
+
+  const handleEditStory = async () => {
+    if (!id || (!editTitle.trim() && !editExcerpt.trim())) {
+      setEditError('Title or content cannot be empty.')
+      return
+    }
+
+    setEditLoading(true)
+    setEditError('')
+
+    try {
+      const formData = new FormData()
+      formData.append('title', editTitle)
+      formData.append('content', editExcerpt)
+      formData.append('type', 'STORY')
+      formData.append('visibility', editVisibility)
+      formData.append('expiry', editExpiry)
+      if (newCoverFile) {
+        formData.append('cover_image', newCoverFile)
+      }
+
+      const res = await apiClient.updateBlog(id, formData)
+      const updated = res?.data?.data || res?.data
+
+      setDisplayTitle(editTitle)
+      setDisplayExcerpt(editExcerpt)
+      if (newCoverFile) {
+        setDisplayCoverImage(URL.createObjectURL(newCoverFile))
+      } else if (coverPreview === null) {
+        setDisplayCoverImage('')
+      } else if (updated?.cover_image) {
+        setDisplayCoverImage(updated.cover_image)
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ['blogs'] })
+      await queryClient.invalidateQueries({ queryKey: ['stories'] })
+      await queryClient.invalidateQueries({ queryKey: ['feed'] })
+      setShowEditModal(false)
+      showDeleteToast('Story updated successfully', 'success')
+    } catch (err: any) {
+      setEditError(err?.response?.data?.message || 'Failed to update story.')
+    } finally {
+      setEditLoading(false)
+    }
+  }
   const reduxUser = useAppSelector((state: any) => state.auth.user)
 
   // ✅ HOOKS (STANDARDIZED)
@@ -278,11 +351,6 @@ export function StoryPost({
         return updated
       })
     }
-  }
-
-  const showDeleteToast = (message: string, type: 'success' | 'error') => {
-    setDeleteToast({ message, type })
-    setTimeout(() => setDeleteToast(null), 3000)
   }
 
   // Delete this story (only shown to author)
@@ -534,16 +602,36 @@ export function StoryPost({
                   </span>
                 </button>
                 {currentUserId && currentUserId === authorId && (
-                  <button
-                    onClick={handleDeleteStory}
-                    title='Delete story'
-                    className="group flex items-center gap-1 text-red-600 hover:bg-red-50 px-2 py-1 rounded transition-all duration-200 hover:gap-2"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-200 whitespace-nowrap">
-                      Delete
-                    </span>
-                  </button>
+                  <>
+                    <button
+                      onClick={() => {
+                        setEditTitle(displayTitle)
+                        setEditExcerpt(displayExcerpt)
+                        setCoverPreview(displayCoverImage)
+                        setNewCoverFile(null)
+                        setEditError('')
+                        setShowEditModal(true)
+                        setShowActionMenu(false)
+                      }}
+                      title='Edit story'
+                      className="group flex items-center gap-1 text-gray-700 hover:bg-gray-100 px-2 py-1 rounded transition-all duration-200 hover:gap-2"
+                    >
+                      <Pencil className="w-4 h-4 text-gray-600" />
+                      <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-200 whitespace-nowrap">
+                        Edit
+                      </span>
+                    </button>
+                    <button
+                      onClick={handleDeleteStory}
+                      title='Delete story'
+                      className="group flex items-center gap-1 text-red-600 hover:bg-red-50 px-2 py-1 rounded transition-all duration-200 hover:gap-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span className="max-w-0 overflow-hidden group-hover:max-w-[80px] transition-all duration-200 whitespace-nowrap">
+                        Delete
+                      </span>
+                    </button>
+                  </>
                 )}
               </div>
             )}
@@ -551,20 +639,20 @@ export function StoryPost({
         </div>
 
         {/* IMAGE */}
-        {coverImage && (
+        {displayCoverImage && (
           <img
-            src={coverImage}
-            alt={storyTitle}
-            className="rounded-xl mb-4 cursor-pointer hover:opacity-90 transition-opacity"
+            src={displayCoverImage}
+            alt={displayTitle}
+            className="rounded-xl mb-4 cursor-pointer hover:opacity-90 transition-opacity max-h-96 w-full object-cover"
             onClick={() => {
               if (!id) return
               const storyData = {
                 id,
                 author,
                 authorId,
-                storyTitle,
-                excerpt,
-                coverImage,
+                storyTitle: displayTitle,
+                excerpt: displayExcerpt,
+                coverImage: displayCoverImage,
                 timestamp,
                 likes: likeCount,
                 liked: isLiked,
@@ -585,9 +673,9 @@ export function StoryPost({
               id,
               author,
               authorId,
-              storyTitle,
-              excerpt,
-              coverImage,
+              storyTitle: displayTitle,
+              excerpt: displayExcerpt,
+              coverImage: displayCoverImage,
               timestamp,
               likes: likeCount,
               liked: isLiked,
@@ -597,10 +685,10 @@ export function StoryPost({
             openStory(storyData)
           }}
         >
-          {storyTitle}
+          {displayTitle}
         </h2>
 
-        <ExpandableText className="text-sm text-gray-600 whitespace-pre-wrap break-words" lines={4}>{excerpt}</ExpandableText>  {/* add font-blod/semibold if you want a bit bold text for question */}
+        <ExpandableText className="text-sm text-gray-600 whitespace-pre-wrap break-words" lines={4}>{displayExcerpt}</ExpandableText>  {/* add font-blod/semibold if you want a bit bold text for question */}
 
         {/* ACTION BAR */}
         <div className="flex flex-wrap gap-3 mt-4 border-y py-3">
@@ -751,10 +839,134 @@ export function StoryPost({
       </div>
       )}
 
+      {showEditModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-white p-5 shadow-xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Edit Story</h3>
+              <button onClick={() => setShowEditModal(false)} className="rounded-full p-2 text-gray-500 hover:bg-gray-100">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-4 max-h-[80vh] overflow-y-auto pr-1">
+              {editError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {editError}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Story Title / Caption</label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-black"
+                  placeholder="Enter story title or caption..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Content / Details</label>
+                <textarea
+                  value={editExcerpt}
+                  onChange={(e) => setEditExcerpt(e.target.value)}
+                  rows={4}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-black"
+                  placeholder="Write your story details..."
+                />
+              </div>
+
+              {/* Cover Image Controls */}
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 space-y-2">
+                <label className="block text-xs font-semibold text-gray-700">Cover Image</label>
+                {coverPreview ? (
+                  <div className="relative inline-block">
+                    <img src={coverPreview} alt="Cover Preview" className="h-32 w-full max-w-sm rounded-lg object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => { setCoverPreview(null); setNewCoverFile(null) }}
+                      className="absolute -right-2 -top-2 rounded-full bg-red-600 p-1 text-white hover:bg-red-700 transition"
+                      title="Remove Cover Image"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) {
+                          const file = e.target.files[0]
+                          setNewCoverFile(file)
+                          setCoverPreview(URL.createObjectURL(file))
+                        }
+                      }}
+                      className="block w-full text-xs text-gray-500"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Visibility & Expiry Controls */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Visibility</label>
+                  <select
+                    value={editVisibility}
+                    onChange={(e: any) => setEditVisibility(e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-black"
+                  >
+                    <option value="PUBLIC">Public (Everyone)</option>
+                    <option value="CONNECTIONS">Connections Only</option>
+                    <option value="PRIVATE">Private (Only Me)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Expiry Settings</label>
+                  <select
+                    value={editExpiry}
+                    onChange={(e: any) => setEditExpiry(e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-black"
+                  >
+                    <option value="24h">24 Hours</option>
+                    <option value="48h">48 Hours</option>
+                    <option value="never">Never Expire</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleEditStory}
+                  disabled={editLoading || (!editTitle.trim() && !editExcerpt.trim())}
+                  className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+                >
+                  {editLoading ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ShareModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
-        postContent={excerpt}
+        postContent={displayExcerpt}
         contentType="stories"
         contentId={id}
       />

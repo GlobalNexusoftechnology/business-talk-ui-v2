@@ -106,32 +106,17 @@ export function UserCard({
         <p className="text-xs text-gray-500 truncate">{person.profession || person.title || 'User'}</p>
       </div>
       <button
-        className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 flex-shrink-0 border border-[#212529] active:scale-95 ${connectState === 'connected' ? 'bg-[#212529] text-white' : 'bg-transparent text-[#212529]'}`}
-        style={{
-          backgroundColor: connectState === 'connected' ? '#212529' : 'transparent',
-          color: connectState === 'connected' ? '#fff' : '#212529',
-          cursor: connectState === 'pending' ? 'not-allowed' : 'pointer',
-          opacity: connectState === 'pending' ? 0.7 : 1,
-        }}
-        disabled={connectState === 'pending'}
+        className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 flex-shrink-0 border active:scale-95 cursor-pointer ${
+          connectState === 'connected'
+            ? 'bg-[#212529] text-white border-[#212529] hover:bg-[#3D3D3D]'
+            : connectState === 'pending'
+            ? 'bg-amber-50 text-amber-700 border-amber-400 hover:bg-red-50 hover:text-red-700 hover:border-red-500'
+            : 'bg-transparent text-[#212529] border-[#212529] hover:bg-gray-100'
+        }`}
         onClick={() => onConnectClick(person, connectState)}
-        onMouseEnter={e => {
-          if (connectState === 'connected') {
-            (e.currentTarget).style.backgroundColor = '#3D3D3D';
-          } else if (connectState === 'connect') {
-            (e.currentTarget).style.backgroundColor = '#F8F9FA';
-          }
-        }}
-        onMouseLeave={e => {
-          if (connectState === 'connected') {
-            (e.currentTarget).style.backgroundColor = '#212529';
-          } else if (connectState === 'connect') {
-            (e.currentTarget).style.backgroundColor = 'transparent';
-          }
-        }}
       >
         {connectState === 'connect' && 'Connect'}
-        {connectState === 'pending' && 'Pending'}
+        {connectState === 'pending' && 'Requested'}
         {connectState === 'connected' && 'Connected'}
       </button>
     </div>

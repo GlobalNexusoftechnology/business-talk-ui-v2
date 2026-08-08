@@ -69,9 +69,17 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, gr
   const [isDeleted, setIsDeleted] = useState(false)
   const [deleteToast, setDeleteToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [displayContent, setDisplayContent] = useState(content)
+  const initialMediaItems: MediaItem[] = media && media.length > 0
+    ? media
+    : [
+        ...(image ? [{ url: image, type: 'image' as const }] : []),
+        ...(video ? [{ url: video, type: 'video' as const }] : []),
+      ]
+  const [displayMedia, setDisplayMedia] = useState<MediaItem[]>(initialMediaItems)
   const [editContent, setEditContent] = useState(content)
   const [editTags, setEditTags] = useState<string[]>([])
-  const [existingMedia, setExistingMedia] = useState<MediaItem[]>([])
+  const [existingMedia, setExistingMedia] = useState<MediaItem[]>(initialMediaItems)
   const [selectedEditFiles, setSelectedEditFiles] = useState<File[]>([])
   const [editLoading, setEditLoading] = useState(false)
   const [editError, setEditError] = useState('')
@@ -111,10 +119,18 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, gr
   }, [liked])
 
   useEffect(() => {
+    setDisplayContent(content)
+    const items: MediaItem[] = media && media.length > 0
+      ? media
+      : [
+          ...(image ? [{ url: image, type: 'image' as const }] : []),
+          ...(video ? [{ url: video, type: 'video' as const }] : []),
+        ]
+    setDisplayMedia(items)
     setEditContent(content)
     setEditTags([])
     setSelectedEditFiles([])
-  }, [content, id])
+  }, [content, id, image, video, media])
 
   useEffect(() => {
     const fetchCommentsCount = async () => {
@@ -464,7 +480,22 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, gr
         }
       }
 
-      await apiClient.updatePost(id, payload)
+      const res = await apiClient.updatePost(id, payload)
+      const resData = res?.data?.data || res?.data
+      setDisplayContent(editContent)
+
+      if (resData?.media && Array.isArray(resData.media) && resData.media.length > 0) {
+        setDisplayMedia(resData.media)
+      } else if (selectedEditFiles.length > 0) {
+        const newPreviews: MediaItem[] = selectedEditFiles.map(file => ({
+          url: URL.createObjectURL(file),
+          type: file.type.startsWith('video/') ? 'video' : 'image',
+        }))
+        setDisplayMedia([...existingMedia, ...newPreviews])
+      } else {
+        setDisplayMedia(existingMedia)
+      }
+
       await queryClient.invalidateQueries({ queryKey: ['feed'] })
       await queryClient.invalidateQueries({ queryKey: ['posts'] })
       setShowEditModal(false)
@@ -827,16 +858,9 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, gr
                   <>
                     <button
                       onClick={() => {
-                        setEditContent(content)
+                        setEditContent(displayContent)
                         setEditTags(tags || [])
-                        setExistingMedia(
-                          media && media.length > 0
-                            ? [...media]
-                            : [
-                                ...(image ? [{ url: image, type: 'image' as const }] : []),
-                                ...(video ? [{ url: video, type: 'video' as const }] : []),
-                              ]
-                        )
+                        setExistingMedia([...displayMedia])
                         setSelectedEditFiles([])
                         setEditError('')
                         setShowEditModal(true)
@@ -869,9 +893,9 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, gr
 
         {/* Post Content */}
         <div 
-          className="mb-4 hover:opacity-80 transition-opacity" // add font-blod/semibold if you want a bit bold text for question
+          className="mb-4 hover:opacity-80 transition-opacity cursor-pointer"
         >
-          <ExpandableText onClick={handleOpenViewer} className="text-gray-800 whitespace-pre-wrap break-words leading-relaxed" lines={4}>{content}</ExpandableText> {/* add font-blod/semibold if you want a bit bold text for question */}
+          <ExpandableText onClick={handleOpenViewer} className="text-gray-800 whitespace-pre-wrap break-words leading-relaxed" lines={4}>{displayContent}</ExpandableText>
         </div>
 
         {/* Hashtags */}
@@ -890,17 +914,8 @@ export function FeedPost({ id = Date.now().toString(), authorId = '', author, gr
         )}
 
         {/* Media Grid */}
-        {(media.length > 0 || image || video) && (
-          <MediaGrid
-            media={
-              media.length > 0
-                ? media
-                : [
-                    ...(image ? [{ url: image, type: 'image' as const }] : []),
-                    ...(video ? [{ url: video, type: 'video' as const }] : []),
-                  ]
-            }
-          />
+        {displayMedia.length > 0 && (
+          <MediaGrid media={displayMedia} />
         )}
 
         {/* Action Buttons */}

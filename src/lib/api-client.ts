@@ -733,6 +733,11 @@ class ApiClient {
   }
 
   updatePost(id: string, data: any) {
+    if (data instanceof FormData) {
+      return this.client.put(`/posts/${id}`, data, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+    }
     return this.client.put(`/posts/${id}`, data)
   }
 

@@ -52,12 +52,14 @@ function PeopleCard({
     user?.pending === true,
   )
 
+  const [isHovered, setIsHovered] = useState(false)
+
   const handleConnect = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault()
     e.stopPropagation()
     if (isSelf || followLoading || !isHydrated) return
 
-    if (followState === 'connected') {
+    if (followState === 'connected' || followState === 'pending') {
       await unfollow()
       return
     }
@@ -83,8 +85,9 @@ function PeopleCard({
 
   const buttonLabel =
     !isHydrated ? 'Loading...' :
-    followState === 'connected' ? 'Connected' :
-    followState === 'pending' || followLoading ? 'Connecting...' :
+    followState === 'connected' ? (isHovered ? 'Disconnect' : 'Connected') :
+    followState === 'pending' ? (isHovered ? 'Cancel Request' : 'Requested') :
+    followLoading ? 'Connecting...' :
     'Connect'
 
   return (
@@ -177,27 +180,21 @@ function PeopleCard({
         ) : (
           <button
             onClick={handleConnect}
-            disabled={isSelf || !isHydrated || followLoading || followState === 'pending'}
+            disabled={isSelf || !isHydrated || followLoading}
             className={`w-full px-3 py-2 text-xs font-medium rounded-lg 
-              transition-all duration-200 flex-shrink-0 border active:scale-95 
+              transition-all duration-200 flex-shrink-0 border active:scale-95 cursor-pointer
               ${followState === 'connected'
-                ? 'border-green-500 text-green-700 bg-green-50 cursor-default'
-                : 'border-[#212529] text-[#212529]'
+                ? 'border-green-500 text-green-700 bg-green-50 hover:bg-red-50 hover:text-red-700 hover:border-red-500'
+                : followState === 'pending'
+                ? 'border-amber-500 text-amber-700 bg-amber-50 hover:bg-red-50 hover:text-red-700 hover:border-red-500'
+                : 'border-[#212529] text-[#212529] hover:bg-gray-100'
               }
-              ${isSelf || !isHydrated || followLoading || followState === 'pending'
+              ${isSelf || !isHydrated || followLoading
                 ? 'opacity-70 cursor-not-allowed'
                 : ''
               }`}
-            onMouseEnter={(e) => {
-              if (followState === 'connect' && !followLoading && isHydrated && !isSelf) {
-                e.currentTarget.style.backgroundColor = '#F8F9FA'
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (followState === 'connect') {
-                e.currentTarget.style.backgroundColor = 'transparent'
-              }
-            }}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
           >
             {isSelf ? 'You' : buttonLabel}
           </button>

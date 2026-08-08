@@ -33,6 +33,7 @@ import { useSavedStatus } from '@/hooks/useSavedStatus'
 import { useAccountStatus, useAppSelector } from '@/hooks/useRedux'
 import { getTimeAgo } from '@/lib/utils'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { MediaGrid, MediaItem } from '@/components/shared/MediaGrid'
 
 interface Answer {
   id: string
@@ -68,6 +69,9 @@ interface QuestionPostProps {
   likes?: number
   liked?: boolean
   dislikes?: number
+  image?: string
+  video?: string
+  media?: MediaItem[]
 }
 
 export function QuestionPost({
@@ -83,7 +87,9 @@ export function QuestionPost({
   views,
   likes = 0,
   liked = false,
-  // dislikes = 0
+  image,
+  video,
+  media = [],
 }: QuestionPostProps) {
 
   const { openQuestion } = useOpenContent()
@@ -119,13 +125,38 @@ export function QuestionPost({
 
   const queryClient = useQueryClient()
   const [displayQuestion, setDisplayQuestion] = useState(question || content || '')
+  const [displayDescription, setDisplayDescription] = useState(description || '')
+  const [displayTags, setDisplayTags] = useState<string[]>(tags || [])
+  const initialMediaItems: MediaItem[] = media && media.length > 0
+    ? media
+    : [
+        ...(image ? [{ url: image, type: 'image' as const }] : []),
+        ...(video ? [{ url: video, type: 'video' as const }] : []),
+      ]
+  const [displayMedia, setDisplayMedia] = useState<MediaItem[]>(initialMediaItems)
+
   const [showEditModal, setShowEditModal] = useState(false)
   const [editQuestionText, setEditQuestionText] = useState(displayQuestion)
-  const [editDescription, setEditDescription] = useState(description || '')
-  const [editTags, setEditTags] = useState<string[]>(tags || [])
+  const [editDescription, setEditDescription] = useState(displayDescription)
+  const [editTags, setEditTags] = useState<string[]>(displayTags)
+  const [existingMedia, setExistingMedia] = useState<MediaItem[]>(initialMediaItems)
+  const [selectedEditFiles, setSelectedEditFiles] = useState<File[]>([])
   const [showTagsPopup, setShowTagsPopup] = useState(false)
   const [editLoading, setEditLoading] = useState(false)
   const [editError, setEditError] = useState('')
+
+  const removeExistingMedia = (index: number) => {
+    setExistingMedia((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const handleEditFiles = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const incoming = Array.from(event.target.files || [])
+    setSelectedEditFiles((prev) => [...prev, ...incoming])
+  }
+
+  const removeEditFile = (index: number) => {
+    setSelectedEditFiles((prev) => prev.filter((_, i) => i !== index))
+  }
 
   const handleEditQuestion = async () => {
     if (!id || !editQuestionText.trim()) {
@@ -137,12 +168,47 @@ export function QuestionPost({
     setEditError('')
 
     try {
-      await apiClient.updatePost(id, {
-        content: editQuestionText,
-        description: editDescription,
-        tags: editTags,
-      })
+      let payload: any
+      if (selectedEditFiles.length > 0) {
+        const formData = new FormData()
+        formData.append('content', editQuestionText)
+        formData.append('description', editDescription)
+        formData.append('tags', JSON.stringify(editTags))
+        formData.append('post_type', 'QUESTION')
+        formData.append('existingMedia', JSON.stringify(existingMedia))
+        selectedEditFiles.forEach((file) => {
+          formData.append('media', file)
+        })
+        payload = formData
+      } else {
+        payload = {
+          content: editQuestionText,
+          description: editDescription,
+          tags: editTags,
+          post_type: 'QUESTION',
+          existingMedia,
+        }
+      }
+
+      const res = await apiClient.updatePost(id, payload)
+      const resData = res?.data?.data || res?.data
+
       setDisplayQuestion(editQuestionText)
+      setDisplayDescription(editDescription)
+      setDisplayTags(editTags)
+
+      if (resData?.media && Array.isArray(resData.media) && resData.media.length > 0) {
+        setDisplayMedia(resData.media)
+      } else if (selectedEditFiles.length > 0) {
+        const newPreviews: MediaItem[] = selectedEditFiles.map(file => ({
+          url: URL.createObjectURL(file),
+          type: file.type.startsWith('video/') ? 'video' : 'image',
+        }))
+        setDisplayMedia([...existingMedia, ...newPreviews])
+      } else {
+        setDisplayMedia(existingMedia)
+      }
+
       await queryClient.invalidateQueries({ queryKey: ['feed'] })
       await queryClient.invalidateQueries({ queryKey: ['questions'] })
       setShowEditModal(false)
@@ -693,8 +759,10 @@ export function QuestionPost({
                     <button
                       onClick={() => {
                         setEditQuestionText(displayQuestion)
-                        setEditDescription(description || '')
-                        setEditTags(tags || [])
+                        setEditDescription(displayDescription)
+                        setEditTags([...displayTags])
+                        setExistingMedia([...displayMedia])
+                        setSelectedEditFiles([])
                         setEditError('')
                         setShowEditModal(true)
                         setShowActionMenu(false)
@@ -753,17 +821,16 @@ export function QuestionPost({
         </p>
         {/* </ExpandableText> */}
 
-        {description && (
-          <p className="text-sm text-gray-500 mt-2 whitespace-pre-wrap break-words">{description}</p>
+        {displayDescription && (
+          <p className="text-sm text-gray-500 mt-2 whitespace-pre-wrap break-words">{displayDescription}</p>
         )}
 
-        
         {/* Tags */}
-        {tags.length > 0 && (
-          <div className="flex items-center gap-2 mb-4">
+        {displayTags.length > 0 && (
+          <div className="flex items-center gap-2 mb-4 mt-2">
             <Tag className="w-4 h-4" />
-              <div className="flex flex-wrap gap-2">
-              {tags.map((tag, idx) => (
+            <div className="flex flex-wrap gap-2">
+              {displayTags.map((tag, idx) => (
                 <span 
                   key={idx} 
                   className="px-3 py-1 rounded-full text-sm font-medium"
@@ -772,10 +839,17 @@ export function QuestionPost({
                     color: '#5F6368' 
                   }}
                 >
-                  {tag}
+                  #{tag}
                 </span>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Media Grid */}
+        {displayMedia.length > 0 && (
+          <div className="mb-4 mt-2">
+            <MediaGrid media={displayMedia} />
           </div>
         )}
 
@@ -968,8 +1042,62 @@ export function QuestionPost({
                 />
               </div>
 
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                <strong>Note:</strong> Question posts cannot contain media attachments (images or videos).
+              {existingMedia.length > 0 && (
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                  <p className="text-xs font-semibold text-gray-500 mb-2">Current Media Attachments</p>
+                  <div className="flex flex-wrap gap-2">
+                    {existingMedia.map((item, index) => (
+                      <div key={`${item.url}-${index}`} className="relative">
+                        {item.type === 'video' ? (
+                          <video src={item.url} className="h-20 w-20 rounded-lg object-cover bg-black" />
+                        ) : (
+                          <img src={item.url} alt="Attachment" className="h-20 w-20 rounded-lg object-cover" />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeExistingMedia(index)}
+                          className="absolute -right-1 -top-1 rounded-full bg-red-600 p-1 text-white hover:bg-red-700 transition"
+                          title="Remove attachment"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="rounded-xl border border-dashed border-gray-300 p-3">
+                <p className="text-xs font-semibold text-gray-500 mb-2">Add Images / Videos</p>
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  multiple
+                  onChange={handleEditFiles}
+                  className="block w-full text-sm text-gray-500"
+                />
+                {selectedEditFiles.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {selectedEditFiles.map((file, index) => (
+                      <div key={`${file.name}-${index}`} className="relative">
+                        {file.type.startsWith('image/') ? (
+                          <img src={URL.createObjectURL(file)} alt={file.name} className="h-20 w-20 rounded-lg object-cover" />
+                        ) : (
+                          <div className="flex h-20 w-20 items-center justify-center rounded-lg border bg-gray-100 text-xs text-gray-500">
+                            {file.name}
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeEditFile(index)}
+                          className="absolute -right-1 -top-1 rounded-full bg-gray-900 p-1 text-white"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
