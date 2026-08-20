@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   ThumbsUp,
   MessageCircle,
@@ -17,7 +18,6 @@ import {
 import ExpandableText from '@/components/common/ExpandableText'
 import apiClient from '@/lib/api-client'
 import { MediaGrid, MediaItem } from '@/components/shared/MediaGrid'
-import RichTextContent from '../common/RichTextContent'
 
 export interface AdminContentCardProps {
   id: string
@@ -121,9 +121,22 @@ export function AdminContentCard({
   onDelete,
   onEdit,
 }: AdminContentCardProps) {
+  const router = useRouter()
   const [showComments, setShowComments] = useState(false)
   const [comments, setComments] = useState<any[]>([])
   const [loadingComments, setLoadingComments] = useState(false)
+
+  const handleNavigateDetail = () => {
+    if (type === 'story') {
+      router.push(`/stories/${id}`)
+    } else if (type === 'question') {
+      router.push(`/questions/${id}`)
+    } else if (type === 'post') {
+      router.push(`/posts/${id}`)
+    } else {
+      router.push(`/admin/blogs/${id}`)
+    }
+  }
 
   const loadComments = async () => {
     if (showComments) {
@@ -188,12 +201,24 @@ export function AdminContentCard({
 
           {/* Title (blogs / questions) */}
           {title && (
-            <RichTextContent className="text-base mb-2" style={{ color: '#212529' }} html={title} />
+            <h3
+              onClick={handleNavigateDetail}
+              className="text-base font-semibold mb-2 cursor-pointer hover:text-blue-600 hover:underline transition-colors"
+              style={{ color: '#212529' }}
+            >
+              {title.replace(/<[^>]*>/g, '')}
+            </h3>
           )}
 
           {/* Content text */}
           {content && (
-            <ExpandableText className="text-sm mb-3 whitespace-pre-wrap break-words" lines={4}>{content}</ExpandableText>
+            <ExpandableText
+              onClick={handleNavigateDetail}
+              className="text-sm mb-3 whitespace-pre-wrap break-words cursor-pointer hover:text-gray-800"
+              lines={4}
+            >
+              {content}
+            </ExpandableText>
           )}
 
           {/* Tags */}
@@ -217,7 +242,11 @@ export function AdminContentCard({
               ...(coverImage ? [{ url: coverImage, type: 'image' as const }] : []),
               ...media.map((m) => ({ url: m.url, type: (m.type === 'video' ? 'video' : 'image') as 'image' | 'video' })),
             ].filter((m) => m.url)
-            return mediaItems.length > 0 ? <MediaGrid media={mediaItems} /> : null
+            return mediaItems.length > 0 ? (
+              <div onClick={handleNavigateDetail} className="cursor-pointer">
+                <MediaGrid media={mediaItems} />
+              </div>
+            ) : null
           })()}
 
           {/* Stats bar */}
@@ -245,6 +274,12 @@ export function AdminContentCard({
                 <Eye className="w-4 h-4" /> {views}
               </span>
             )}
+            <button
+              onClick={handleNavigateDetail}
+              className="ml-auto font-medium text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+            >
+              View Full {type.charAt(0).toUpperCase() + type.slice(1)} →
+            </button>
           </div>
 
           {/* Comments section */}

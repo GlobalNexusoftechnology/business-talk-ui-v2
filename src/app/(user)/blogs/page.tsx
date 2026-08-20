@@ -86,10 +86,10 @@ export default function BlogsPage() {
           title: b.title,
 
           excerpt:
-            b.content?.slice(
-              0,
-              150
-            ) || '',
+            (() => {
+              const plain = b.content ? b.content.replace(/<[^>]*>/g, '').trim() : ''
+              return b.excerpt || (plain.length > 150 ? plain.slice(0, 150) + '...' : plain)
+            })(),
 
           author: {
             name:
